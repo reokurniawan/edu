@@ -1,0 +1,227 @@
+<!DOCTYPE html>
+<html lang="id">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width,initial-scale=1">
+<title>ZHEDVA EDU</title>
+<script src="https://cdn.tailwindcss.com"></script>
+<style type="text/tailwindcss">
+.card{@apply bg-white rounded-2xl shadow-sm border border-slate-200 p-4 mb-3}
+.inp{@apply w-full border border-slate-300 rounded-xl px-3 py-2 mb-2 bg-white focus:outline-none focus:ring-2 focus:ring-indigo-400}
+.btn{@apply bg-indigo-600 text-white rounded-xl px-4 py-2 font-medium hover:bg-indigo-700 disabled:opacity-50}
+.btn2{@apply bg-slate-100 text-slate-700 rounded-xl px-3 py-1.5 text-sm hover:bg-slate-200}
+.tab{@apply px-4 py-2 rounded-t-xl text-sm font-medium text-indigo-100 hover:bg-white/10}
+.tab.on{@apply bg-slate-50 text-indigo-700}
+.badge{@apply inline-block text-xs px-2 py-0.5 rounded-full bg-indigo-50 text-indigo-700}
+</style>
+</head>
+<body class="bg-slate-50 text-slate-800 min-h-screen" style="font-family:system-ui,-apple-system,Segoe UI,Roboto,sans-serif">
+<div id="app"></div>
+<div id="toast" class="fixed bottom-4 left-1/2 -translate-x-1/2 bg-slate-800 text-white text-sm px-4 py-2 rounded-xl hidden"></div>
+
+<script type="module">
+import { initializeApp } from "https://www.gstatic.com/firebasejs/10.12.2/firebase-app.js";
+import { getAuth, onAuthStateChanged, createUserWithEmailAndPassword, signInWithEmailAndPassword, signOut } from "https://www.gstatic.com/firebasejs/10.12.2/firebase-auth.js";
+import { getDatabase, ref, get, set, push, update, remove } from "https://www.gstatic.com/firebasejs/10.12.2/firebase-database.js";
+
+const firebaseConfig = {
+  apiKey: "AIzaSyBCbxY67MX22CWds3rYx7ugT6bxRpHMqD8",
+  authDomain: "sample-firebase-ai-app-235ac.firebaseapp.com",
+  databaseURL: "https://sample-firebase-ai-app-235ac-default-rtdb.asia-southeast1.firebasedatabase.app",
+  projectId: "sample-firebase-ai-app-235ac",
+  storageBucket: "sample-firebase-ai-app-235ac.firebasestorage.app",
+  messagingSenderId: "849604493738",
+  appId: "1:849604493738:web:64b794b18abe7eb12aabd3"
+};
+const fb = initializeApp(firebaseConfig), auth = getAuth(fb), db = getDatabase(fb);
+const GURU_CODE = "ZHEDVA-GURU"; // ganti kode ini sesuai keinginan
+
+const $ = s => document.querySelector(s), $$ = s => [...document.querySelectorAll(s)];
+const esc = s => String(s ?? '').replace(/[&<>"']/g, c => ({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#39;'}[c]));
+const today = () => new Date().toLocaleDateString('sv');
+const ek = e => e.trim().toLowerCase().replace(/\./g, ',');
+const list = p => get(ref(db, p)).then(s => s.val() || {});
+const empty = m => `<div class="card text-center text-slate-500">${m}</div>`;
+const fmt = t => new Date(t).toLocaleString('id-ID', {dateStyle:'medium', timeStyle:'short'});
+let me = null, busy = false, mode = 'login';
+
+function toast(m) { const t = $('#toast'); t.textContent = m; t.classList.remove('hidden'); clearTimeout(t._h); t._h = setTimeout(() => t.classList.add('hidden'), 2800); }
+const errMsg = e => ({'auth/invalid-credential':'Email atau password salah','auth/email-already-in-use':'Email sudah terdaftar','auth/weak-password':'Password minimal 6 karakter','auth/invalid-email':'Format email tidak valid'}[e.code] || e.message);
+
+/* ---------- AUTH ---------- */
+function renderAuth() {
+  const reg = mode === 'register';
+  $('#app').innerHTML = `
+  <div class="min-h-screen flex items-center justify-center p-4 bg-gradient-to-br from-indigo-600 via-violet-600 to-fuchsia-500">
+   <div class="bg-white rounded-3xl shadow-xl w-full max-w-sm p-6">
+    <div class="text-center mb-5"><div class="text-3xl font-extrabold tracking-wide text-indigo-700">ZHEDVA EDU</div>
+    <p class="text-sm text-slate-500">Portal sekolah untuk murid, guru & wali</p></div>
+    ${reg ? `<input id="nama" class="inp" placeholder="Nama lengkap">
+      <select id="role" class="inp"><option value="murid">Murid</option><option value="guru">Guru</option><option value="wali">Wali Murid</option></select>
+      <input id="kode" class="inp hidden" placeholder="Kode guru">` : ''}
+    <input id="email" type="email" class="inp" placeholder="Email">
+    <input id="pw" type="password" class="inp" placeholder="Password (min. 6 karakter)">
+    <button id="go" class="btn w-full mt-1">${reg ? 'Daftar' : 'Masuk'}</button>
+    <button id="sw" class="w-full text-sm text-indigo-600 mt-3">${reg ? 'Sudah punya akun? Masuk' : 'Belum punya akun? Daftar'}</button>
+   </div></div>`;
+  $('#sw').onclick = () => { mode = reg ? 'login' : 'register'; renderAuth(); };
+  if (reg) $('#role').onchange = e => $('#kode').classList.toggle('hidden', e.target.value !== 'guru');
+  $('#go').onclick = async () => {
+    const email = $('#email').value.trim(), pw = $('#pw').value;
+    if (!email || !pw) return toast('Lengkapi email & password');
+    $('#go').disabled = true;
+    try {
+      if (!reg) await signInWithEmailAndPassword(auth, email, pw);
+      else {
+        const nama = $('#nama').value.trim(), role = $('#role').value;
+        if (!nama) throw {message:'Nama wajib diisi'};
+        if (role === 'guru' && $('#kode').value !== GURU_CODE) throw {message:'Kode guru salah'};
+        busy = true;
+        const c = await createUserWithEmailAndPassword(auth, email, pw);
+        const prof = {nama, email: email.toLowerCase(), role};
+        await set(ref(db, 'users/' + c.user.uid), prof);
+        if (role === 'murid') await set(ref(db, 'emailIndex/' + ek(email)), c.user.uid);
+        busy = false;
+        me = {uid: c.user.uid, ...prof}; boot();
+      }
+    } catch (e) { busy = false; toast(errMsg(e)); $('#go').disabled = false; }
+  };
+}
+
+onAuthStateChanged(auth, async u => {
+  if (busy) return;
+  if (!u) { me = null; return renderAuth(); }
+  const p = (await get(ref(db, 'users/' + u.uid))).val();
+  if (!p) { await signOut(auth); return toast('Profil tidak ditemukan'); }
+  me = {uid: u.uid, ...p}; boot();
+});
+
+/* ---------- SHELL ---------- */
+const TABS = {
+  murid: [['tugas','Tugas'],['absen','Absen'],['nilai','Nilai']],
+  guru:  [['tugas','Tugas & Nilai'],['absen','Rekap Absen']],
+  wali:  [['anak','Perkembangan Anak']]
+};
+function boot() {
+  const tabs = TABS[me.role];
+  $('#app').innerHTML = `
+  <header class="bg-gradient-to-r from-indigo-600 to-violet-600 text-white">
+   <div class="max-w-4xl mx-auto px-4 py-3 flex items-center justify-between">
+    <b class="text-lg tracking-wide">ZHEDVA EDU</b>
+    <div class="text-sm text-right"><div>${esc(me.nama)} · <span class="capitalize">${me.role}</span></div>
+    <button id="out" class="underline text-indigo-100">Keluar</button></div></div>
+   <nav class="max-w-4xl mx-auto px-4 flex gap-1 overflow-x-auto">${tabs.map(t => `<button class="tab" data-t="${t[0]}">${t[1]}</button>`).join('')}</nav>
+  </header>
+  <main id="v" class="max-w-4xl mx-auto p-4"></main>`;
+  $('#out').onclick = () => signOut(auth);
+  $$('.tab').forEach(b => b.onclick = () => go(b.dataset.t));
+  go(tabs[0][0]);
+}
+async function go(t) {
+  $$('.tab').forEach(b => b.classList.toggle('on', b.dataset.t === t));
+  $('#v').innerHTML = '<p class="text-center text-slate-400 py-10">Memuat…</p>';
+  try { await V[me.role + '_' + t](); } catch (e) { $('#v').innerHTML = empty('Gagal memuat: ' + esc(e.message)); }
+}
+
+/* ---------- VIEWS ---------- */
+const V = {
+  /* MURID */
+  async murid_tugas() {
+    const [t, j] = await Promise.all([list('tugas'), list('jawaban')]);
+    const ids = Object.keys(t).sort((a, b) => t[b].ts - t[a].ts);
+    $('#v').innerHTML = ids.length ? ids.map(id => {
+      const x = t[id], a = (j[id] || {})[me.uid], late = x.deadline && Date.now() > new Date(x.deadline + 'T23:59:59');
+      const graded = a && a.nilai != null;
+      return `<div class="card"><div class="flex justify-between gap-2"><b>${esc(x.judul)}</b><span class="badge">${esc(x.mapel)}</span></div>
+      <p class="text-sm text-slate-600 my-1 whitespace-pre-wrap">${esc(x.deskripsi)}</p>
+      <p class="text-xs ${late ? 'text-red-500' : 'text-slate-400'} mb-2">Batas: ${esc(x.deadline || '-')} ${late ? '(lewat)' : ''}</p>
+      ${graded ? `<div class="bg-emerald-50 rounded-xl p-3 text-sm"><b>Nilai: ${esc(a.nilai)}</b><p class="whitespace-pre-wrap mt-1">${esc(a.teks)}</p></div>`
+      : late && !a ? '<p class="text-sm text-red-500">Pengumpulan ditutup.</p>'
+      : `<textarea id="ans-${id}" class="inp" rows="3" placeholder="Tulis jawabanmu…">${esc(a?.teks || '')}</textarea>
+         <button class="btn" data-send="${id}">${a ? 'Perbarui Jawaban' : 'Kirim Jawaban'}</button>${a ? '<span class="text-xs text-emerald-600 ml-2">Sudah dikirim</span>' : ''}`}</div>`;
+    }).join('') : empty('Belum ada tugas.');
+    $$('[data-send]').forEach(b => b.onclick = async () => {
+      const id = b.dataset.send, v = $('#ans-' + id).value.trim();
+      if (!v) return toast('Jawaban masih kosong');
+      await set(ref(db, `jawaban/${id}/${me.uid}`), {nama: me.nama, teks: v, ts: Date.now()});
+      toast('Jawaban terkirim'); V.murid_tugas();
+    });
+  },
+  async murid_absen() {
+    const d = today(), all = await list('absen'), my = Object.keys(all).filter(k => all[k][me.uid]).sort().reverse();
+    const cur = all[d]?.[me.uid];
+    $('#v').innerHTML = `<div class="card"><b>Absen hari ini</b> <span class="text-sm text-slate-500">(${d})</span>
+      ${cur ? `<p class="mt-2">Status: <span class="badge">${esc(cur.status)}</span></p>` :
+      `<div class="flex gap-2 mt-3">${['Hadir','Izin','Sakit'].map(s => `<button class="btn" data-s="${s}">${s}</button>`).join('')}</div>`}</div>
+      <div class="card"><b>Riwayat</b>${my.length ? my.map(k => `<div class="flex justify-between border-b border-slate-100 py-1.5 text-sm"><span>${k}</span><span class="badge">${esc(all[k][me.uid].status)}</span></div>`).join('') : '<p class="text-sm text-slate-400 mt-1">Belum ada riwayat.</p>'}</div>`;
+    $$('[data-s]').forEach(b => b.onclick = async () => { await set(ref(db, `absen/${d}/${me.uid}`), {nama: me.nama, status: b.dataset.s, ts: Date.now()}); toast('Absen tercatat'); V.murid_absen(); });
+  },
+  async murid_nilai() { $('#v').innerHTML = await nilaiHTML(me.uid); },
+
+  /* GURU */
+  async guru_tugas() {
+    const t = await list('tugas'), ids = Object.keys(t).sort((a, b) => t[b].ts - t[a].ts);
+    $('#v').innerHTML = `<div class="card"><b>Buat tugas baru</b>
+      <input id="judul" class="inp mt-2" placeholder="Judul tugas"><input id="mapel" class="inp" placeholder="Mata pelajaran">
+      <input id="dl" type="date" class="inp"><textarea id="desk" class="inp" rows="3" placeholder="Instruksi / soal"></textarea>
+      <button id="add" class="btn">Terbitkan</button></div>
+      ${ids.map(id => `<div class="card"><div class="flex justify-between gap-2"><b>${esc(t[id].judul)}</b><span class="badge">${esc(t[id].mapel)}</span></div>
+      <p class="text-xs text-slate-400">Batas: ${esc(t[id].deadline || '-')}</p>
+      <div class="flex gap-2 mt-2"><button class="btn2" data-j="${id}">Lihat jawaban</button><button class="btn2 !text-red-600" data-del="${id}">Hapus</button></div>
+      <div id="j-${id}" class="mt-2"></div></div>`).join('')}`;
+    $('#add').onclick = async () => {
+      const judul = $('#judul').value.trim(); if (!judul) return toast('Judul wajib diisi');
+      await push(ref(db, 'tugas'), {judul, mapel: $('#mapel').value.trim(), deadline: $('#dl').value, deskripsi: $('#desk').value.trim(), by: me.uid, ts: Date.now()});
+      toast('Tugas diterbitkan'); V.guru_tugas();
+    };
+    $$('[data-del]').forEach(b => b.onclick = async () => { if (confirm('Hapus tugas ini beserta jawabannya?')) { await remove(ref(db, 'tugas/' + b.dataset.del)); await remove(ref(db, 'jawaban/' + b.dataset.del)); V.guru_tugas(); } });
+    $$('[data-j]').forEach(b => b.onclick = async () => {
+      const id = b.dataset.j, box = $('#j-' + id), j = await list('jawaban/' + id), us = Object.keys(j);
+      box.innerHTML = us.length ? us.map(u => `<div class="bg-slate-50 rounded-xl p-3 mb-2 text-sm"><b>${esc(j[u].nama)}</b> <span class="text-xs text-slate-400">${fmt(j[u].ts)}</span>
+        <p class="whitespace-pre-wrap my-1">${esc(j[u].teks)}</p>
+        <input type="number" min="0" max="100" class="inp !w-24 !mb-0 inline-block" id="n-${id}-${u}" value="${j[u].nilai ?? ''}" placeholder="0-100">
+        <button class="btn2" data-n="${id}|${u}">Simpan nilai</button></div>`).join('') : '<p class="text-sm text-slate-400">Belum ada yang mengumpulkan.</p>';
+      $$('[data-n]').forEach(nb => nb.onclick = async () => { const [i, u] = nb.dataset.n.split('|'), v = $(`#n-${i}-${u}`).value; if (v === '') return toast('Isi nilai'); await update(ref(db, `jawaban/${i}/${u}`), {nilai: Number(v)}); toast('Nilai tersimpan'); });
+    });
+  },
+  async guru_absen() {
+    const users = await list('users'), murid = Object.entries(users).filter(([, u]) => u.role === 'murid');
+    $('#v').innerHTML = `<div class="card"><input id="tgl" type="date" class="inp !w-auto !mb-0" value="${today()}"></div><div id="rekap"></div>`;
+    const load = async () => {
+      const a = await list('absen/' + $('#tgl').value), n = Object.keys(a).length;
+      $('#rekap').innerHTML = `<div class="card"><p class="text-sm text-slate-500 mb-2">${n} dari ${murid.length} murid sudah absen</p>` +
+        (murid.length ? murid.map(([u, d]) => `<div class="flex justify-between border-b border-slate-100 py-1.5 text-sm"><span>${esc(d.nama)}</span>${a[u] ? `<span class="badge">${esc(a[u].status)}</span>` : '<span class="text-xs text-slate-400">Belum absen</span>'}</div>`).join('') : '<p class="text-sm text-slate-400">Belum ada murid terdaftar.</p>') + '</div>';
+    };
+    $('#tgl').onchange = load; load();
+  },
+
+  /* WALI */
+  async wali_anak() {
+    if (!me.anakUid) {
+      $('#v').innerHTML = `<div class="card"><b>Hubungkan dengan anak</b><p class="text-sm text-slate-500 mb-2">Masukkan email akun murid (anak Anda).</p>
+        <input id="em" type="email" class="inp" placeholder="Email murid"><button id="ln" class="btn">Hubungkan</button></div>`;
+      $('#ln').onclick = async () => {
+        const uid = (await get(ref(db, 'emailIndex/' + ek($('#em').value)))).val();
+        if (!uid) return toast('Akun murid tidak ditemukan');
+        await update(ref(db, 'users/' + me.uid), {anakUid: uid}); me.anakUid = uid; V.wali_anak();
+      };
+      return;
+    }
+    const anak = (await get(ref(db, 'users/' + me.anakUid))).val(), all = await list('absen'),
+      ks = Object.keys(all).filter(k => all[k][me.anakUid]).sort().reverse();
+    $('#v').innerHTML = `<div class="card"><b>${esc(anak?.nama || 'Anak')}</b> <span class="badge">Murid</span></div>
+      <div class="card"><b>Absensi</b>${ks.length ? ks.map(k => `<div class="flex justify-between border-b border-slate-100 py-1.5 text-sm"><span>${k}</span><span class="badge">${esc(all[k][me.anakUid].status)}</span></div>`).join('') : '<p class="text-sm text-slate-400 mt-1">Belum ada data.</p>'}</div>
+      ${await nilaiHTML(me.anakUid)}`;
+  }
+};
+
+async function nilaiHTML(uid) {
+  const [t, j] = await Promise.all([list('tugas'), list('jawaban')]);
+  const rows = Object.keys(t).filter(id => j[id]?.[uid]).map(id => ({...t[id], ...j[id][uid]}));
+  const g = rows.filter(r => r.nilai != null), avg = g.length ? (g.reduce((s, r) => s + r.nilai, 0) / g.length).toFixed(1) : '-';
+  return `<div class="card"><div class="flex justify-between"><b>Tugas & Nilai</b><span class="badge">Rata-rata: ${avg}</span></div>` +
+    (rows.length ? rows.map(r => `<div class="flex justify-between border-b border-slate-100 py-1.5 text-sm"><span>${esc(r.judul)} <span class="text-xs text-slate-400">${esc(r.mapel)}</span></span><b>${r.nilai ?? 'Belum dinilai'}</b></div>`).join('') : '<p class="text-sm text-slate-400 mt-1">Belum ada tugas yang dikumpulkan.</p>') + '</div>';
+}
+</script>
+</body>
+</html># edu
