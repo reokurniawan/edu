@@ -1,192 +1,194 @@
 <!DOCTYPE html>
-<html lang="id"><head>
-<meta charset="utf-8"><meta name="color-scheme" content="light"><meta name="viewport" content="width=device-width,initial-scale=1">
-<title>SIM MA Insan Generasi Islami</title>
+<html lang="id">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>MyIgi - MA Insan Generasi Islami</title>
+<script src="https://cdn.tailwindcss.com"></script>
+<script src="https://cdnjs.cloudflare.com/ajax/libs/xlsx/0.18.5/xlsx.full.min.js"></script>
+<link href="https://fonts.googleapis.com/css2?family=Plus+Jakarta+Sans:wght@400;600;800&display=swap" rel="stylesheet">
 <style>
-:root{--bg:#ffffff;--card:#fff;--tx:#0f172a;--mu:#64748b;--pr:#2563eb;--bd:#e5e7eb;--ok:#059669;--er:#dc2626}
-*{box-sizing:border-box}body{margin:0;font-family:system-ui,Segoe UI,Roboto,sans-serif;background:var(--bg);color:var(--tx)}
-a{color:var(--pr);text-decoration:none}.hide{display:none!important}
-header{display:flex;justify-content:space-between;align-items:center;padding:14px 5vw;background:var(--card);border-bottom:1px solid var(--bd);position:sticky;top:0;z-index:5}
-.brand{font-weight:700;display:flex;gap:10px;align-items:center}.logo{width:34px;height:34px;border-radius:10px;background:linear-gradient(135deg,#059669,#2563eb);display:grid;place-items:center;color:#fff}
-.wrap{max-width:1100px;margin:auto;padding:24px 5vw}
-.hero{display:grid;grid-template-columns:1.2fr 1fr;gap:28px;align-items:start}
-@media(max-width:800px){.hero{grid-template-columns:1fr}}
-h1{font-size:clamp(26px,4vw,40px);margin:.2em 0}.mu{color:var(--mu)}
-.box{box-shadow:0 1px 3px rgba(15,23,42,.06);background:var(--card);border:1px solid var(--bd);border-radius:16px;padding:20px}
-.tabs{display:flex;gap:6px;margin-bottom:14px}.tabs button{flex:1;padding:9px;border:1px solid var(--bd);background:transparent;color:var(--tx);border-radius:10px;cursor:pointer}
-.tabs button.on{background:var(--pr);color:#fff;border-color:var(--pr)}
-input,select{width:100%;padding:10px 12px;margin:5px 0 10px;border:1px solid var(--bd);border-radius:10px;background:var(--bg);color:var(--tx);font:inherit}
-.btn{background:var(--pr);color:#fff;border:0;padding:10px 16px;border-radius:10px;cursor:pointer;font:inherit}.btn.g{background:transparent;color:var(--tx);border:1px solid var(--bd)}
-.msg{font-size:14px;margin:6px 0}.err{color:var(--er)}.okc{color:var(--ok)}
-.grid{display:grid;grid-template-columns:repeat(auto-fill,minmax(240px,1fr));gap:14px}
-.mod{cursor:pointer;border-top:3px solid var(--pr);transition:.15s}.mod:hover{transform:translateY(-2px)}
-.tag{font-size:11px;padding:2px 8px;border-radius:99px;background:var(--bg);border:1px solid var(--bd);color:var(--pr)}
-table{width:100%;border-collapse:collapse;font-size:14px}th,td{padding:8px;border-bottom:1px solid var(--bd);text-align:left}
-.row{display:flex;gap:8px;flex-wrap:wrap}.row>*{flex:1;min-width:120px}
-.news a{display:block;padding:8px 0;border-bottom:1px solid var(--bd);color:var(--tx);font-size:14px}
-.cfg{background:#fef3c7;color:#78350f;padding:10px 14px;border-radius:10px;font-size:13px;margin-bottom:14px}
-</style></head><body>
-
-<!-- ============ LANDING + LOGIN ============ -->
-<div id="landing">
-<header><div class="brand"><div class="logo">M</div>MA Insan Generasi Islami</div>
-<nav><a href="https://maigi.sch.id/kontak/">Kontak</a> &nbsp; <a href="https://ppdb.maigi.sch.id">PPDB</a> &nbsp; <a href="https://maigi.sch.id">Website</a></nav></header>
-<div class="wrap">
-<div class="hero">
- <div>
-  <span class="tag">Sistem Informasi Madrasah</span>
-  <h1>MA Insan Generasi Islami</h1>
-  <p class="mu">Tagangser Laok, Waru, Pamekasan. Kelola data siswa, absensi, jurnal &amp; nilai, serta pantau perkembangan anak dalam satu aplikasi.</p>
-  <div class="grid" style="margin:18px 0">
-   <div class="box"><b>Guru</b><p class="mu">Absensi, jurnal, input nilai.</p></div>
-   <div class="box"><b>Murid</b><p class="mu">Lihat nilai &amp; kehadiran.</p></div>
-   <div class="box"><b>Wali Murid</b><p class="mu">Pantau anak dari HP.</p></div>
+:root{--g:#0f5132;--g2:#157347;--gold:#c8962e;--bg:#f6f4ee;--ink:#1c2b24}
+body{font-family:'Plus Jakarta Sans',system-ui,sans-serif;background:var(--bg);color:var(--ink)}
+.btn{background:var(--g);color:#fff;border-radius:.75rem;padding:.6rem 1rem;font-weight:700;font-size:.875rem}
+.btn:hover{background:var(--g2)}.btn2{background:#fff;border:1px solid #d6d3c7;border-radius:.75rem;padding:.5rem .9rem;font-weight:600;font-size:.8rem}
+.inp{width:100%;border:1px solid #d6d3c7;border-radius:.75rem;padding:.6rem .8rem;background:#fff;font-size:.9rem}
+.card{background:#fff;border:1px solid #e5e2d6;border-radius:1rem;padding:1rem}
+.tab{padding:.5rem .9rem;border-radius:999px;font-weight:700;font-size:.8rem;white-space:nowrap;background:#fff;border:1px solid #d6d3c7}
+.tab.on{background:var(--g);color:#fff;border-color:var(--g)}
+.hero{background:linear-gradient(135deg,#0f5132,#157347 60%,#1f8a5b);color:#fff;border-radius:1.25rem;position:relative;overflow:hidden}
+.hero:after{content:"";position:absolute;right:-40px;top:-40px;width:180px;height:180px;border-radius:50%;border:26px solid rgba(200,150,46,.35)}
+.pill{font-size:.7rem;font-weight:700;padding:.15rem .6rem;border-radius:999px}
+.hidden{display:none}
+</style>
+</head>
+<body>
+<div id="login" class="min-h-screen flex items-center justify-center p-4">
+  <div class="card w-full max-w-sm space-y-4 p-6">
+    <div class="text-center"><div class="text-3xl font-extrabold" style="color:var(--g)">MyIgi</div><p class="text-sm text-slate-500">MA Insan Generasi Islami</p></div>
+    <input id="u" class="inp" placeholder="NISN" inputmode="numeric">
+    <input id="p" type="password" class="inp" placeholder="Sandi (ddmmyyyy, contoh 12092004)">
+    <p id="err" class="text-sm text-rose-600 hidden"></p>
+    <button class="btn w-full" onclick="doLogin()">Masuk</button>
   </div>
-  <h3>Kabar dari maigi.sch.id</h3>
-  <div class="news box">
-   <a href="https://maigi.sch.id/sk-panitia-berita-acara-peserta-ujian-madrasah/">Contoh SK Panitia, Berita Acara, Peserta Ujian Madrasah, dan Kelulusan</a>
-   <a href="https://maigi.sch.id/cara-mengatasi-gagal-registrasi-akun-emis-kepala/">9 Cara Mengatasi Gagal Registrasi Akun Emis Kepala Madrasah</a>
-   <a href="https://maigi.sch.id/buku-bahasa-arab-kelas-x-xi-xii-madrasah-aliyah/">Buku Bahasa Arab Kelas X, XI dan XII Madrasah Aliyah</a>
-   <a href="https://maigi.sch.id/contoh-soal-ujian-sma-ma-2020-2021/">Contoh Soal Ujian SMA/MA Tahun Pelajaran 2020/2021</a>
-   <a href="https://maigi.sch.id/category/perangkat-pembelajara/">Perangkat Pembelajaran &rarr; (RPP, Silabus, Prota, Promes)</a>
-  </div>
-  <p class="mu" style="font-size:13px">Tentang: <a href="https://maigi.sch.id/visi-dan-misi/">Visi &amp; Misi</a> · <a href="https://maigi.sch.id/sejarah/">Sejarah</a> · <a href="https://maigi.sch.id/struktur-organisasi/">Struktur Organisasi</a> · <a href="https://www.youtube.com/@maigiwaru/">YouTube</a></p>
- </div>
- <div class="box">
-  <div id="cfgwarn" class="cfg hide">Firebase belum dikonfigurasi. Isi <code>firebaseConfig</code> di index.html.</div>
-  <div class="tabs"><button id="tL" class="on">Masuk</button><button id="tR">Daftar</button></div>
-  <div id="fL">
-   <label>Email</label><input id="lE" type="email" autocomplete="username">
-   <label>Password</label><input id="lP" type="password" autocomplete="current-password">
-   <button class="btn" id="bL" style="width:100%">Masuk</button>
-   <p class="msg"><a href="#" id="reset">Lupa password?</a></p>
-  </div>
-  <div id="fR" class="hide">
-   <label>Nama lengkap</label><input id="rN">
-   <label>Daftar sebagai</label><select id="rRole"><option value="murid">Murid</option><option value="wali">Wali Murid</option></select>
-   <label id="rLab">NIS</label><input id="rNis" placeholder="Nomor Induk Siswa">
-   <label>Email</label><input id="rE" type="email">
-   <label>Password (min. 6)</label><input id="rP" type="password">
-   <button class="btn" id="bR" style="width:100%">Buat Akun</button>
-   <p class="mu" style="font-size:12px">Akun guru dibuat/ditetapkan oleh admin madrasah.</p>
-  </div>
-  <div id="amsg" class="msg"></div>
- </div>
-</div>
-</div>
-<footer class="wrap mu" style="font-size:13px">© 2026 MA Insan Generasi Islami · Tagangser Laok Waru Pamekasan</footer>
 </div>
 
-<!-- ============ APP ============ -->
-<div id="app" class="hide">
-<header><div class="brand"><div class="logo">M</div><span id="who"></span></div><button class="btn g" id="out">Keluar</button></header>
-<div class="wrap"><div id="view"></div></div>
+<div id="app" class="hidden max-w-5xl mx-auto p-4 space-y-4">
+  <header class="flex items-center justify-between">
+    <div><div class="font-extrabold text-xl" style="color:var(--g)">MyIgi</div><div class="text-xs text-slate-500">MA Insan Generasi Islami</div></div>
+    <button class="btn2" onclick="logout()">Keluar</button>
+  </header>
+  <nav id="tabs" class="flex gap-2 overflow-x-auto pb-1"></nav>
+  <main id="main"></main>
 </div>
 
 <script type="module">
-/* ====== 1. ISI KONFIGURASI FIREBASE ANDA (Project settings > Your apps > Web) ====== */
-const firebaseConfig = {
-  apiKey: "AIzaSyATVtIQ__52aRAEFIOt1DeLsJXzeENK_78",
-  authDomain: "papantulis-39409.firebaseapp.com",
-  projectId: "papantulis-39409",
-  storageBucket: "papantulis-39409.firebasestorage.app",
-  messagingSenderId: "1000307187807",
-  appId: "1:1000307187807:web:b2d9b074b9d6b9b2eb7bea"
-};
-/* ================================================================================== */
-import {initializeApp} from "https://www.gstatic.com/firebasejs/10.14.1/firebase-app.js";
-import {getAuth,onAuthStateChanged,signInWithEmailAndPassword,createUserWithEmailAndPassword,signOut,sendPasswordResetEmail} from "https://www.gstatic.com/firebasejs/10.14.1/firebase-auth.js";
-import {getFirestore,doc,getDoc,setDoc,addDoc,collection,getDocs,query,where,deleteDoc,serverTimestamp} from "https://www.gstatic.com/firebasejs/10.14.1/firebase-firestore.js";
+import {initializeApp} from "https://www.gstatic.com/firebasejs/11.6.1/firebase-app.js";
+import {getFirestore,collection,getDocs,doc,setDoc,addDoc,updateDoc,deleteDoc,getDoc,writeBatch} from "https://www.gstatic.com/firebasejs/11.6.1/firebase-firestore.js";
 
-const $=s=>document.querySelector(s), esc=s=>String(s??"").replace(/[&<>"]/g,c=>({"&":"&amp;","<":"&lt;",">":"&gt;",'"':"&quot;"}[c]));
-const configured=!firebaseConfig.apiKey.startsWith("ISI_");
-if(!configured)$("#cfgwarn").classList.remove("hide");
-const app=initializeApp(firebaseConfig),auth=getAuth(app),db=getFirestore(app);
-let me=null;
-const say=(t,ok)=>{$("#amsg").className="msg "+(ok?"okc":"err");$("#amsg").textContent=t};
+// === GANTI DENGAN CONFIG FIREBASE BARU ANDA (lihat langkah-langkah) ===
+const firebaseConfig={apiKey:"ISI_API_KEY",authDomain:"ISI.firebaseapp.com",projectId:"ISI_PROJECT_ID",storageBucket:"ISI.appspot.com",messagingSenderId:"ISI",appId:"ISI_APP_ID"};
+const db=getFirestore(initializeApp(firebaseConfig));
+const ADMIN={u:"admin",p:"maigi-admin-2026"};
+const $=id=>document.getElementById(id);
+const esc=s=>String(s??"").replace(/[&<>"]/g,c=>({"&":"&amp;","<":"&lt;",">":"&gt;",'"':"&quot;"}[c]));
+const all=async n=>(await getDocs(collection(db,n))).docs.map(d=>({id:d.id,...d.data()}));
 const today=()=>new Date().toISOString().slice(0,10);
+let me=null,isAdmin=false,tab="",siswa=[];
 
-// tabs
-$("#tL").onclick=()=>{$("#fL").classList.remove("hide");$("#fR").classList.add("hide");$("#tL").classList.add("on");$("#tR").classList.remove("on")};
-$("#tR").onclick=()=>{$("#fR").classList.remove("hide");$("#fL").classList.add("hide");$("#tR").classList.add("on");$("#tL").classList.remove("on")};
-$("#rRole").onchange=e=>$("#rLab").textContent=e.target.value==="wali"?"NIS anak":"NIS";
-
-$("#bL").onclick=async()=>{try{await signInWithEmailAndPassword(auth,$("#lE").value.trim(),$("#lP").value)}catch(e){say("Email atau password salah.")}};
-$("#reset").onclick=async e=>{e.preventDefault();try{await sendPasswordResetEmail(auth,$("#lE").value.trim());say("Link reset dikirim ke email.",1)}catch{say("Isi email dengan benar dulu.")}};
-$("#bR").onclick=async()=>{
-  const n=$("#rN").value.trim(),nis=$("#rNis").value.trim(),role=$("#rRole").value;
-  if(!n||!nis)return say("Nama dan NIS wajib diisi.");
+window.doLogin=async()=>{
+  const u=$("u").value.trim(),p=$("p").value.trim();$("err").classList.add("hidden");
   try{
-    const c=await createUserWithEmailAndPassword(auth,$("#rE").value.trim(),$("#rP").value);
-    await setDoc(doc(db,"users",c.user.uid),{nama:n,role,nis,email:c.user.email,created:serverTimestamp()});
-    location.reload();
-  }catch(e){say(e.code==="auth/weak-password"?"Password minimal 6 karakter.":"Gagal daftar: "+e.code)}
+    if(u===ADMIN.u){ if(p!==ADMIN.p)throw 0; isAdmin=true; me={nama:"Admin"}; }
+    else{ const s=await getDoc(doc(db,"siswa",u)); if(!s.exists()||s.data().tgl!==p)throw 0; me=s.data(); isAdmin=false; }
+  }catch(e){$("err").textContent="NISN/username atau sandi salah.";$("err").classList.remove("hidden");return}
+  sessionStorage.setItem("me",JSON.stringify({u,p}));
+  start();
 };
-$("#out").onclick=()=>signOut(auth);
+window.logout=()=>{sessionStorage.clear();location.reload()};
+const saved=sessionStorage.getItem("me");
+if(saved){const s=JSON.parse(saved);$("u").value=s.u;$("p").value=s.p;doLogin()}
 
-onAuthStateChanged(auth,async u=>{
-  if(!u){me=null;$("#app").classList.add("hide");$("#landing").classList.remove("hide");return}
-  const s=await getDoc(doc(db,"users",u.uid));
-  if(!s.exists()){say("Profil belum ada. Hubungi admin.");signOut(auth);return}
-  me={uid:u.uid,...s.data()};
-  $("#landing").classList.add("hide");$("#app").classList.remove("hide");
-  $("#who").textContent=`${me.nama} · ${me.role}`;home();
-});
-
-const MODS={
- guru:[["Data Siswa","TU","siswa","Tambah & kelola data siswa/kelas."],["Absensi Siswa","GURU","absen","Catat kehadiran harian per kelas."],["Jurnal & Nilai","GURU","nilai","Input nilai & jurnal mengajar."]],
- murid:[["Nilai Saya","MURID","nilai","Lihat nilai tiap mapel."],["Kehadiran Saya","MURID","absen","Riwayat absensi."]],
- wali:[["Nilai Anak","WALI","nilai","Pantau nilai anak."],["Kehadiran Anak","WALI","absen","Pantau absensi anak."]]
+function start(){
+  $("login").classList.add("hidden");$("app").classList.remove("hidden");
+  const t=isAdmin?["Siswa","Pelanggaran","Tugas","Prestasi","Absensi","Pembayaran","Bantuan"]:["Beranda","Pelanggaran","Tugas","Prestasi","Pembayaran","Bantuan"];
+  $("tabs").innerHTML=t.map(x=>`<button class="tab" data-t="${x}" onclick="go('${x}')">${x}</button>`).join("");
+  go(t[0]);
+}
+window.go=async n=>{
+  tab=n;document.querySelectorAll(".tab").forEach(b=>b.classList.toggle("on",b.dataset.t===n));
+  $("main").innerHTML='<p class="text-slate-500">Memuat…</p>';
+  if(isAdmin)siswa=await all("siswa");
+  $("main").innerHTML=await (isAdmin?A:S)[n]();
 };
-function home(){
-  $("#view").innerHTML=`<h2>Halo, ${esc(me.nama)}</h2><div class="grid">${MODS[me.role].map(m=>`<div class="box mod" data-k="${m[2]}"><span class="tag">${m[1]}</span><h3>${m[0]}</h3><p class="mu">${m[3]}</p></div>`).join("")}</div>`;
-  document.querySelectorAll(".mod").forEach(el=>el.onclick=()=>({siswa,absen,nilai})[el.dataset.k]());
-}
-const back=`<p><a href="#" id="bk">← Kembali</a></p>`;
-const bind=()=>{$("#bk").onclick=e=>{e.preventDefault();home()}};
-const myNis=()=>me.nis;
+const opts=(a,sel)=>a.map(s=>`<option value="${s.nisn}">${esc(s.nama)} - ${esc(s.kelas)}</option>`).join("");
+const empty=t=>`<p class="text-slate-500 text-sm">${t}</p>`;
+const list=(a,f,e)=>a.length?a.map(f).join(""):empty(e);
+const fileB64=f=>new Promise((r,j)=>{const x=new FileReader();x.onload=()=>r(x.result);x.onerror=j;x.readAsDataURL(f)});
 
-/* ---- Data Siswa (guru) ---- */
-async function siswa(){
-  const rows=(await getDocs(collection(db,"siswa"))).docs.map(d=>({id:d.id,...d.data()})).sort((a,b)=>(a.kelas+a.nama).localeCompare(b.kelas+b.nama));
-  $("#view").innerHTML=back+`<h2>Data Siswa</h2><div class="box"><div class="row"><input id="sN" placeholder="Nama"><input id="sI" placeholder="NIS"><input id="sK" placeholder="Kelas (X-A)"><button class="btn" id="sAdd">Tambah</button></div></div><br>
-  <div class="box" style="overflow:auto"><table><tr><th>NIS</th><th>Nama</th><th>Kelas</th><th></th></tr>${rows.map(r=>`<tr><td>${esc(r.nis)}</td><td>${esc(r.nama)}</td><td>${esc(r.kelas)}</td><td><a href="#" data-d="${r.id}">hapus</a></td></tr>`).join("")||"<tr><td colspan=4 class=mu>Belum ada data</td></tr>"}</table></div>`;
-  bind();
-  $("#sAdd").onclick=async()=>{const n=$("#sN").value.trim(),i=$("#sI").value.trim(),k=$("#sK").value.trim();if(!n||!i)return;await setDoc(doc(db,"siswa",i),{nama:n,nis:i,kelas:k});siswa()};
-  document.querySelectorAll("[data-d]").forEach(a=>a.onclick=async e=>{e.preventDefault();if(confirm("Hapus siswa ini?")){await deleteDoc(doc(db,"siswa",a.dataset.d));siswa()}});
-}
+// ============ SISWA ============
+const S={
+Beranda:async()=>{
+  const [pel,pr,ab]=await Promise.all([all("pelanggaran"),all("prestasi"),all("absensi")]);
+  const mine=a=>a.filter(x=>x.nisn===me.nisn);
+  const alpha=mine(ab).filter(x=>x.status==="A").length;
+  const pm=mine(pr),pl=mine(pel);
+  return `<section class="hero p-6 space-y-3"><p class="text-sm opacity-80">Assalamu'alaikum,</p>
+  <h1 class="text-2xl sm:text-3xl font-extrabold">${esc(me.nama)}</h1>
+  <div class="grid grid-cols-3 gap-3 text-sm pt-2 max-w-md"><div><div class="opacity-70 text-xs">Nama</div><b>${esc(me.nama)}</b></div><div><div class="opacity-70 text-xs">Kelas</div><b>${esc(me.kelas)}</b></div><div><div class="opacity-70 text-xs">NISN</div><b>${esc(me.nisn)}</b></div></div></section>
+  <section class="grid grid-cols-3 gap-3 mt-4">
+   <div class="card text-center"><div class="text-3xl font-extrabold text-rose-600">${alpha}</div><div class="text-xs text-slate-500">Alpha</div></div>
+   <div class="card text-center"><div class="text-3xl font-extrabold text-amber-600">${pl.length}</div><div class="text-xs text-slate-500">Pelanggaran</div></div>
+   <div class="card text-center"><div class="text-3xl font-extrabold" style="color:var(--g)">${pm.length}</div><div class="text-xs text-slate-500">Prestasi</div></div></section>
+  <section class="mt-4"><h2 class="font-extrabold mb-2">Prestasi Saya</h2><div class="space-y-2">${list(pm,x=>`<div class="card flex gap-3 items-center" style="border-left:4px solid var(--gold)"><div class="text-2xl">🏆</div><div><b>${esc(x.judul)}</b><div class="text-xs text-slate-500">${esc(x.tgl)} - ${esc(x.ket)}</div></div></div>`,"Belum ada prestasi.")}</div></section>`;
+},
+Pelanggaran:async()=>list((await all("pelanggaran")).filter(x=>x.nisn===me.nisn).sort((a,b)=>b.waktu>a.waktu?1:-1),x=>`<div class="card mb-2"><b>${esc(x.ket)}</b><div class="text-xs text-slate-500">${esc(x.waktu)}</div></div>`,"Tidak ada catatan pelanggaran."),
+Tugas:async()=>{
+  const t=(await all("tugas")).filter(x=>x.nisn===me.nisn).sort((a,b)=>b.tgl>a.tgl?1:-1);
+  return `<div class="card space-y-2 mb-4"><h2 class="font-extrabold">Kumpulkan tugas</h2>
+  <input id="tm" class="inp" placeholder="Mata pelajaran"><input id="tj" class="inp" placeholder="Judul tugas">
+  <input id="tl" class="inp" placeholder="Link tugas (opsional, mis. Google Drive)"><input id="tf" type="file" class="inp">
+  <p class="text-xs text-slate-500">File maksimal 700 KB. Untuk file besar, pakai link.</p><button class="btn" onclick="kirimTugas()">Kirim tugas</button></div>`+
+  list(t,x=>`<div class="card mb-2"><div class="flex justify-between gap-2"><b>${esc(x.judul)}</b><span class="pill ${x.status==="Selesai"?"bg-emerald-100 text-emerald-700":x.status==="Revisi"?"bg-amber-100 text-amber-700":"bg-slate-100"}">${esc(x.status)}</span></div><div class="text-xs text-slate-500">${esc(x.mapel)} - ${esc(x.tgl)}</div>${x.nilai!==""&&x.nilai!=null?`<div class="text-sm mt-1">Nilai: <b>${esc(x.nilai)}</b></div>`:""}</div>`,"Belum ada tugas dikirim.");
+},
+Prestasi:async()=>list((await all("prestasi")).filter(x=>x.nisn===me.nisn),x=>`<div class="card mb-2" style="border-left:4px solid var(--gold)">🏆 <b>${esc(x.judul)}</b><div class="text-xs text-slate-500">${esc(x.tgl)} - ${esc(x.ket)}</div></div>`,"Belum ada prestasi."),
+Pembayaran:async()=>{
+  const q=(await getDoc(doc(db,"pengaturan","qris"))).data()?.url;
+  const p=(await all("pembayaran")).filter(x=>x.nisn===me.nisn);
+  return `<div class="card space-y-3 mb-4"><h2 class="font-extrabold">Pembayaran</h2>
+  ${q?`<img src="${esc(q)}" alt="QRIS" class="w-56 rounded-xl border">`:empty("QRIS belum tersedia. Bayar tunai ke bagian administrasi.")}
+  <p class="text-sm">Bayar lewat QRIS atau tunai, lalu lapor di sini.</p>
+  <select id="pm" class="inp"><option>QRIS</option><option>Tunai</option></select><input id="pj" type="number" class="inp" placeholder="Jumlah (Rp)"><input id="pk" class="inp" placeholder="Keterangan (mis. SPP Oktober)">
+  <button class="btn" onclick="kirimBayar()">Kirim laporan</button></div>`+list(p,x=>`<div class="card mb-2 flex justify-between"><div><b>Rp ${Number(x.jumlah).toLocaleString("id-ID")}</b> - ${esc(x.metode)}<div class="text-xs text-slate-500">${esc(x.ket)} - ${esc(x.tgl)}</div></div><span class="pill bg-slate-100 h-fit">${esc(x.status)}</span></div>`,"Belum ada pembayaran.");
+},
+Bantuan:async()=>{
+  const b=(await all("bantuan")).filter(x=>x.nisn===me.nisn);
+  return `<div class="card space-y-2 mb-4"><h2 class="font-extrabold">Butuh bantuan?</h2><textarea id="bp" class="inp" rows="3" placeholder="Tulis pesan Anda"></textarea><button class="btn" onclick="kirimBantuan()">Kirim</button></div>`+list(b,x=>`<div class="card mb-2"><p>${esc(x.pesan)}</p>${x.balasan?`<p class="text-sm mt-2 p-2 rounded-lg" style="background:#e8f3ec"><b>Admin:</b> ${esc(x.balasan)}</p>`:'<p class="text-xs text-slate-400 mt-1">Menunggu balasan</p>'}</div>`,"Belum ada pesan.");
+}};
 
-/* ---- Absensi ---- */
-async function absen(){
-  if(me.role!=="guru"){
-    const rows=await mine("absensi");
-    $("#view").innerHTML=back+`<h2>Kehadiran</h2><div class="box">${tbl(["Tanggal","Status"],rows.sort((a,b)=>b.tanggal.localeCompare(a.tanggal)).map(r=>[r.tanggal,r.status]))}</div>`;return bind();
-  }
-  const sis=(await getDocs(collection(db,"siswa"))).docs.map(d=>d.data());
-  const kls=[...new Set(sis.map(s=>s.kelas))].sort();
-  $("#view").innerHTML=back+`<h2>Absensi Siswa</h2><div class="box"><div class="row"><select id="aK">${kls.map(k=>`<option>${esc(k)}</option>`).join("")}</select><input id="aT" type="date" value="${today()}"></div><div id="aL"></div><button class="btn" id="aS">Simpan Absensi</button><div id="aM" class="msg okc"></div></div>`;
-  bind();
-  const draw=()=>{const k=$("#aK").value;$("#aL").innerHTML="<table>"+sis.filter(s=>s.kelas===k).map(s=>`<tr><td>${esc(s.nama)}</td><td><select data-n="${esc(s.nis)}" data-nm="${esc(s.nama)}"><option>Hadir</option><option>Sakit</option><option>Izin</option><option>Alpa</option></select></td></tr>`).join("")+"</table>"};
-  $("#aK").onchange=draw;draw();
-  $("#aS").onclick=async()=>{const t=$("#aT").value;for(const s of document.querySelectorAll("#aL select"))await setDoc(doc(db,"absensi",`${t}_${s.dataset.n}`),{nis:s.dataset.n,nama:s.dataset.nm,kelas:$("#aK").value,tanggal:t,status:s.value});$("#aM").textContent="Tersimpan."};
-}
+window.kirimTugas=async()=>{
+  const m=$("tm").value.trim(),j=$("tj").value.trim(),l=$("tl").value.trim(),f=$("tf").files[0];
+  if(!m||!j||(!l&&!f))return alert("Isi mapel, judul, dan link atau file.");
+  if(f&&f.size>700000)return alert("File terlalu besar. Pakai link.");
+  await addDoc(collection(db,"tugas"),{nisn:me.nisn,nama:me.nama,kelas:me.kelas,mapel:m,judul:j,link:l,file:f?await fileB64(f):"",namaFile:f?.name||"",tgl:today(),nilai:"",status:"Menunggu"});
+  go("Tugas");
+};
+window.kirimBayar=async()=>{
+  const j=$("pj").value;if(!j)return alert("Isi jumlah.");
+  await addDoc(collection(db,"pembayaran"),{nisn:me.nisn,nama:me.nama,metode:$("pm").value,jumlah:+j,ket:$("pk").value,tgl:today(),status:"Menunggu"});go("Pembayaran");
+};
+window.kirimBantuan=async()=>{const t=$("bp").value.trim();if(!t)return;await addDoc(collection(db,"bantuan"),{nisn:me.nisn,nama:me.nama,pesan:t,balasan:""});go("Bantuan")};
 
-/* ---- Nilai ---- */
-async function nilai(){
-  if(me.role!=="guru"){
-    const rows=await mine("nilai");
-    $("#view").innerHTML=back+`<h2>Nilai</h2><div class="box">${tbl(["Mapel","Jenis","Nilai","Tanggal"],rows.map(r=>[r.mapel,r.jenis,r.nilai,r.tanggal]))}</div>`;return bind();
-  }
-  const rows=(await getDocs(collection(db,"nilai"))).docs.map(d=>({id:d.id,...d.data()})).sort((a,b)=>b.tanggal.localeCompare(a.tanggal)).slice(0,50);
-  $("#view").innerHTML=back+`<h2>Jurnal & Nilai</h2><div class="box"><div class="row"><input id="nI" placeholder="NIS"><input id="nM" placeholder="Mata pelajaran"><select id="nJ"><option>Harian</option><option>UTS</option><option>UAS</option><option>Tugas</option></select><input id="nV" type="number" min="0" max="100" placeholder="Nilai"><button class="btn" id="nA">Simpan</button></div><div id="nMsg" class="msg err"></div></div><br><div class="box" style="overflow:auto">${tbl(["NIS","Nama","Mapel","Jenis","Nilai","Tanggal"],rows.map(r=>[r.nis,r.nama,r.mapel,r.jenis,r.nilai,r.tanggal]))}</div>`;
-  bind();
-  $("#nA").onclick=async()=>{
-    const nis=$("#nI").value.trim(),s=await getDoc(doc(db,"siswa",nis));
-    if(!s.exists())return $("#nMsg").textContent="NIS tidak ditemukan di Data Siswa.";
-    await addDoc(collection(db,"nilai"),{nis,nama:s.data().nama,mapel:$("#nM").value.trim(),jenis:$("#nJ").value,nilai:+$("#nV").value,tanggal:today()});nilai();
-  };
-}
-async function mine(col){return (await getDocs(query(collection(db,col),where("nis","==",myNis())))).docs.map(d=>d.data())}
-function tbl(h,r){return `<table><tr>${h.map(x=>`<th>${x}</th>`).join("")}</tr>${r.map(x=>`<tr>${x.map(c=>`<td>${esc(c)}</td>`).join("")}</tr>`).join("")||`<tr><td colspan=${h.length} class=mu>Belum ada data</td></tr>`}</table>`}
+// ============ ADMIN ============
+const sel=(id)=>`<select id="${id}" class="inp">${opts(siswa)}</select>`;
+const A={
+Siswa:async()=>`<div class="card space-y-2 mb-4"><h2 class="font-extrabold">Upload data siswa</h2><p class="text-xs text-slate-500">File .xlsx atau .csv dengan kolom: NAMA, KELAS, NISN, TGL LAHIR. Sandi siswa = tanggal lahir (ddmmyyyy).</p><input id="xf" type="file" accept=".xlsx,.xls,.csv" class="inp"><button class="btn" onclick="importSiswa()">Upload</button></div>
+ <p class="text-sm mb-2">${siswa.length} siswa</p>`+list(siswa.sort((a,b)=>a.kelas>b.kelas?1:-1),x=>`<div class="card mb-2 flex justify-between"><div><b>${esc(x.nama)}</b><div class="text-xs text-slate-500">${esc(x.kelas)} - ${esc(x.nisn)}</div></div><button class="btn2" onclick="hapus('siswa','${x.id}','Siswa')">Hapus</button></div>`,"Belum ada data siswa."),
+Pelanggaran:async()=>{const p=(await all("pelanggaran")).sort((a,b)=>b.waktu>a.waktu?1:-1);
+ return `<div class="card space-y-2 mb-4"><h2 class="font-extrabold">Input pelanggaran</h2>${sel("ps")}<input id="pk" class="inp" placeholder="Keterangan pelanggaran"><input id="pw" type="datetime-local" class="inp"><button class="btn" onclick="addPel()">Simpan</button></div>`+list(p,x=>`<div class="card mb-2 flex justify-between"><div><b>${esc(x.nama)}</b> (${esc(x.kelas)})<div class="text-sm">${esc(x.ket)}</div><div class="text-xs text-slate-500">${esc(x.waktu)}</div></div><button class="btn2" onclick="hapus('pelanggaran','${x.id}','Pelanggaran')">Hapus</button></div>`,"Belum ada pelanggaran.")},
+Tugas:async()=>{const t=(await all("tugas")).sort((a,b)=>b.tgl>a.tgl?1:-1);const m=[...new Set(t.map(x=>x.mapel))];
+ return `<div class="card mb-4"><select id="fm" class="inp" onchange="filterTugas()"><option value="">Semua pelajaran</option>${m.map(x=>`<option>${esc(x)}</option>`).join("")}</select></div><div id="tl">${list(t,x=>`<div class="card mb-2 tg" data-m="${esc(x.mapel)}"><div class="flex justify-between gap-2"><div><b>${esc(x.judul)}</b><div class="text-xs text-slate-500">${esc(x.nama)} (${esc(x.kelas)}) - ${esc(x.mapel)} - ${esc(x.tgl)}</div></div><span class="pill bg-slate-100 h-fit">${esc(x.status)}</span></div>
+ <div class="text-sm mt-1">${x.link?`<a class="underline text-emerald-700" target="_blank" href="${esc(x.link)}">Buka link</a> `:""}${x.file?`<a class="underline text-emerald-700" download="${esc(x.namaFile)}" href="${x.file}">Unduh ${esc(x.namaFile)}</a>`:""}</div>
+ <div class="flex gap-2 mt-2"><input id="n${x.id}" class="inp" style="max-width:90px" placeholder="Nilai" value="${esc(x.nilai)}"><select id="s${x.id}" class="inp" style="max-width:130px">${["Menunggu","Revisi","Selesai"].map(s=>`<option ${s===x.status?"selected":""}>${s}</option>`).join("")}</select><button class="btn" onclick="nilai('${x.id}')">Simpan</button></div></div>`,"Belum ada tugas masuk.")}</div>`},
+Prestasi:async()=>{const p=await all("prestasi");
+ return `<div class="card space-y-2 mb-4"><h2 class="font-extrabold">Input prestasi</h2>${sel("ps")}<input id="pj" class="inp" placeholder="Nama prestasi"><input id="pk" class="inp" placeholder="Keterangan (juara, tingkat)"><input id="pt" type="date" class="inp" value="${today()}"><button class="btn" onclick="addPrestasi()">Simpan</button></div>`+list(p,x=>`<div class="card mb-2 flex justify-between"><div>🏆 <b>${esc(x.judul)}</b> - ${esc(x.nama)}<div class="text-xs text-slate-500">${esc(x.tgl)} - ${esc(x.ket)}</div></div><button class="btn2" onclick="hapus('prestasi','${x.id}','Prestasi')">Hapus</button></div>`,"Belum ada prestasi.")},
+Absensi:async()=>{const k=[...new Set(siswa.map(x=>x.kelas))].sort();
+ return `<div class="card space-y-2 mb-4"><h2 class="font-extrabold">Absensi siswa</h2><div class="flex gap-2"><select id="ak" class="inp" onchange="loadAbsen()"><option value="">Pilih kelas</option>${k.map(x=>`<option>${esc(x)}</option>`).join("")}</select><input id="at" type="date" class="inp" value="${today()}" onchange="loadAbsen()"></div></div><div id="ab"></div>`},
+Pembayaran:async()=>{const p=(await all("pembayaran")).sort((a,b)=>b.tgl>a.tgl?1:-1);const q=(await getDoc(doc(db,"pengaturan","qris"))).data()?.url||"";
+ return `<div class="card space-y-2 mb-4"><h2 class="font-extrabold">Gambar QRIS</h2><input id="qu" class="inp" placeholder="Link gambar QRIS" value="${esc(q)}"><button class="btn" onclick="setQris()">Simpan QRIS</button></div>`+list(p,x=>`<div class="card mb-2"><b>${esc(x.nama)}</b> - Rp ${Number(x.jumlah).toLocaleString("id-ID")} (${esc(x.metode)})<div class="text-xs text-slate-500">${esc(x.ket)} - ${esc(x.tgl)}</div><div class="flex gap-2 mt-2"><span class="pill bg-slate-100">${esc(x.status)}</span><button class="btn2" onclick="bayarOk('${x.id}')">Tandai lunas</button></div></div>`,"Belum ada pembayaran.")},
+Bantuan:async()=>list(await all("bantuan"),x=>`<div class="card mb-2"><b>${esc(x.nama)}</b><p class="text-sm">${esc(x.pesan)}</p><div class="flex gap-2 mt-2"><input id="r${x.id}" class="inp" placeholder="Balasan" value="${esc(x.balasan)}"><button class="btn" onclick="balas('${x.id}')">Kirim</button></div></div>`,"Belum ada pesan.")
+};
+const sw=n=>siswa.find(s=>s.nisn===n)||{};
+window.hapus=async(c,id,t)=>{if(confirm("Hapus data ini?")){await deleteDoc(doc(db,c,id));go(t)}};
+window.addPel=async()=>{const s=sw($("ps").value);if(!$("pk").value||!$("pw").value)return alert("Lengkapi keterangan dan waktu.");await addDoc(collection(db,"pelanggaran"),{nisn:s.nisn,nama:s.nama,kelas:s.kelas,ket:$("pk").value,waktu:$("pw").value.replace("T"," ")});go("Pelanggaran")};
+window.addPrestasi=async()=>{const s=sw($("ps").value);if(!$("pj").value)return alert("Isi nama prestasi.");await addDoc(collection(db,"prestasi"),{nisn:s.nisn,nama:s.nama,judul:$("pj").value,ket:$("pk").value,tgl:$("pt").value});go("Prestasi")};
+window.nilai=async id=>{await updateDoc(doc(db,"tugas",id),{nilai:$("n"+id).value,status:$("s"+id).value});alert("Tersimpan.")};
+window.filterTugas=()=>{const v=$("fm").value;document.querySelectorAll(".tg").forEach(e=>e.style.display=!v||e.dataset.m===v?"":"none")};
+window.setQris=async()=>{await setDoc(doc(db,"pengaturan","qris"),{url:$("qu").value});alert("Tersimpan.")};
+window.bayarOk=async id=>{await updateDoc(doc(db,"pembayaran",id),{status:"Lunas"});go("Pembayaran")};
+window.balas=async id=>{await updateDoc(doc(db,"bantuan",id),{balasan:$("r"+id).value});alert("Terkirim.")};
+window.loadAbsen=async()=>{
+  const k=$("ak").value,t=$("at").value;if(!k)return($("ab").innerHTML="");
+  const ex=(await all("absensi")).filter(x=>x.kelas===k&&x.tgl===t);
+  $("ab").innerHTML=siswa.filter(s=>s.kelas===k).sort((a,b)=>a.nama>b.nama?1:-1).map(s=>{const c=ex.find(x=>x.nisn===s.nisn)?.status||"H";
+   return `<div class="card mb-2 flex justify-between items-center"><b class="text-sm">${esc(s.nama)}</b><div class="flex gap-3 text-sm">${["H","I","A"].map(v=>`<label><input type="radio" name="a${s.nisn}" value="${v}" ${v===c?"checked":""}> ${v}</label>`).join("")}</div></div>`}).join("")+`<button class="btn" onclick="saveAbsen()">Simpan absensi</button>`;
+};
+window.saveAbsen=async()=>{
+  const k=$("ak").value,t=$("at").value,b=writeBatch(db);
+  siswa.filter(s=>s.kelas===k).forEach(s=>{const v=document.querySelector(`input[name=a${s.nisn}]:checked`).value;b.set(doc(db,"absensi",`${t}_${s.nisn}`),{nisn:s.nisn,nama:s.nama,kelas:k,tgl:t,status:v})});
+  await b.commit();alert("Absensi tersimpan.");
+};
+window.importSiswa=async()=>{
+  const f=$("xf").files[0];if(!f)return alert("Pilih file.");
+  const wb=XLSX.read(await f.arrayBuffer(),{cellDates:true}),rows=XLSX.utils.sheet_to_json(wb.Sheets[wb.SheetNames[0]],{defval:""});
+  const g=(r,k)=>r[Object.keys(r).find(h=>h.toLowerCase().includes(k))]??"";
+  const fmt=v=>{if(v instanceof Date){const p=n=>String(n).padStart(2,"0");return p(v.getDate())+p(v.getMonth()+1)+v.getFullYear()}return String(v).replace(/\D/g,"")};
+  let n=0,b=writeBatch(db);
+  for(const r of rows){const nisn=String(g(r,"nisn")).trim(),nama=String(g(r,"nama")).trim();if(!nisn||!nama)continue;
+   b.set(doc(db,"siswa",nisn),{nisn,nama,kelas:String(g(r,"kelas")).trim(),tgl:fmt(g(r,"lahir")||g(r,"tgl"))});
+   if(++n%400===0){await b.commit();b=writeBatch(db)}}
+  await b.commit();alert(n+" siswa berhasil diupload.");go("Siswa");
+};
 </script>
-</body></html>
+</body>
+</html>
