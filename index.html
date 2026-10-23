@@ -13,6 +13,8 @@ body{font-family:'Plus Jakarta Sans',system-ui,sans-serif;background:var(--bg);c
 .btn{background:var(--g);color:#fff;border-radius:.75rem;padding:.6rem 1rem;font-weight:700;font-size:.875rem}
 .btn:hover{background:var(--g2)}.btn2{background:#fff;border:1px solid #d6d3c7;border-radius:.75rem;padding:.5rem .9rem;font-weight:600;font-size:.8rem}
 .inp{width:100%;border:1px solid #d6d3c7;border-radius:.75rem;padding:.6rem .8rem;background:#fff;font-size:.9rem}
+input[type=date],input[type=datetime-local],input[type=time]{display:block;box-sizing:border-box;width:100%;min-width:0;max-width:100%;-webkit-appearance:none;appearance:none;min-height:2.6rem}
+input[type=date]::-webkit-date-and-time-value,input[type=datetime-local]::-webkit-date-and-time-value{text-align:left;min-width:0}
 .card{background:#fff;border:1px solid #e5e2d6;border-radius:1rem;padding:1rem}
 .tab{padding:.5rem .9rem;border-radius:999px;font-weight:700;font-size:.8rem;white-space:nowrap;background:#fff;border:1px solid #d6d3c7}
 .tab.on{background:var(--g);color:#fff;border-color:var(--g)}
@@ -94,7 +96,7 @@ html{scroll-behavior:smooth}
   <div class="text-center"><p class="text-sm font-bold" style="color:var(--gold)">CARA MENGGUNAKAN</p><h2 class="text-2xl sm:text-3xl font-extrabold mt-1">Mulai hanya dalam tiga langkah</h2></div>
   <div class="grid sm:grid-cols-3 gap-6 mt-8">
     <div class="flex gap-3"><div class="stp">1</div><div><h3 class="font-extrabold">Klik tombol Masuk</h3><p class="text-sm text-slate-500 mt-1">Jendela login akan muncul tanpa berpindah halaman.</p></div></div>
-    <div class="flex gap-3"><div class="stp">2</div><div><h3 class="font-extrabold">Isi akun Anda</h3><p class="text-sm text-slate-500 mt-1">Siswa memakai NISN dan sandi tanggal lahir (ddmmyyyy). Guru memakai username dari madrasah.</p></div></div>
+    <div class="flex gap-3"><div class="stp">2</div><div><h3 class="font-extrabold">Isi akun Anda</h3><p class="text-sm text-slate-500 mt-1">Siswa memakai NISN dan sandi tanggal lahir (ddmmyyyy). Guru memakai ID Guru dari madrasah.</p></div></div>
     <div class="flex gap-3"><div class="stp">3</div><div><h3 class="font-extrabold">Nikmati semua fitur</h3><p class="text-sm text-slate-500 mt-1">Jadwal, tugas, pembayaran, dan pengumuman langsung tersedia di beranda.</p></div></div>
   </div>
   <div class="text-center mt-10"><button class="lp-btn" onclick="openLogin()">Masuk sekarang</button></div>
@@ -121,7 +123,7 @@ html{scroll-behavior:smooth}
   <div class="modal-box space-y-4" role="dialog" aria-modal="true" aria-label="Masuk">
     <button class="modal-x" onclick="closeLogin()" aria-label="Tutup">&times;</button>
     <div class="text-center"><div class="text-3xl font-extrabold" style="color:var(--g)">MyIgi</div><p class="text-sm text-slate-500">MA Insan Generasi Islami</p></div>
-    <input id="u" class="inp" placeholder="NISN / Username guru" inputmode="numeric" autocomplete="username">
+    <input id="u" class="inp" placeholder="NISN / ID Guru" inputmode="numeric" autocomplete="username">
     <input id="p" type="password" class="inp" placeholder="Sandi (siswa: ddmmyyyy, contoh 12092004)" autocomplete="current-password">
     <p id="err" class="text-sm text-rose-600 hidden"></p>
     <button class="btn w-full" onclick="doLogin()">Masuk</button>
@@ -167,7 +169,7 @@ window.doLogin=async()=>{
     else if(key(u)){ const d=await getDoc(doc(db,"guru",key(u))); if(d.exists()&&d.data().sandi===p) g=d.data(); }
     if(g){ isAdmin=true; me={nama:g.nama}; }
     else{ const s=await getDoc(doc(db,"siswa",u)); if(!s.exists()||s.data().tgl!==p)throw 0; me=s.data(); isAdmin=false; }
-  }catch(e){$("err").textContent="NISN/username atau sandi salah.";$("err").classList.remove("hidden");if(!saved)openLogin();return}
+  }catch(e){$("err").textContent="NISN/ID guru atau sandi salah.";$("err").classList.remove("hidden");if(!saved)openLogin();return}
   sessionStorage.setItem("me",JSON.stringify({u,p}));
   start();
 };
@@ -275,8 +277,8 @@ Rekap:async()=>{const k=[...new Set(siswa.map(x=>x.kelas))].sort(),t=today();
  <div class="grid grid-cols-2 gap-2"><div><label class="text-xs text-slate-500">Dari tanggal</label><input id="rka" type="date" class="inp" value="${t.slice(0,8)}01" onchange="loadRekap()"></div><div><label class="text-xs text-slate-500">Sampai tanggal</label><input id="rkb" type="date" class="inp" value="${t}" onchange="loadRekap()"></div></div>
  <button class="btn" onclick="exportRekap()">⬇ Ekspor ke Excel</button></div><div id="rks"></div>`},
 Guru:async()=>{const g=(await all("guru")).sort((a,b)=>a.nama>b.nama?1:-1);
- return `<div class="card space-y-2 mb-4"><h2 class="font-extrabold">Upload data guru</h2><p class="text-xs text-slate-500">File .xlsx atau .csv dengan kolom: NAMA GURU, SANDI. Username login = nama guru (huruf besar/kecil, spasi, dan tanda baca diabaikan). Akun dengan nama yang sama akan diperbarui.</p><input id="gf" type="file" accept=".xlsx,.xls,.csv" class="inp"><button class="btn" onclick="importGuru()">Upload</button></div>
- <p class="text-sm mb-2">${g.length} akun guru</p>`+list(g,x=>`<div class="card mb-2 flex justify-between"><div><b>${esc(x.nama)}</b><div class="text-xs text-slate-500">Sandi: <span class="font-mono">${esc(x.sandi)}</span></div></div><button class="btn2" onclick="hapus('guru','${x.id}','Guru')">Hapus</button></div>`,"Belum ada data guru. Upload file dari sheet AKUN GURU.")},
+ return `<div class="card space-y-2 mb-4"><h2 class="font-extrabold">Upload data guru</h2><p class="text-xs text-slate-500">File .xlsx atau .csv dengan kolom: ID GURU, SANDI (kolom NAMA GURU boleh ditambahkan, opsional). Login guru = ID GURU (huruf besar/kecil, spasi, dan tanda baca diabaikan). Akun dengan ID yang sama akan diperbarui.</p><input id="gf" type="file" accept=".xlsx,.xls,.csv" class="inp"><button class="btn" onclick="importGuru()">Upload</button></div>
+ <p class="text-sm mb-2">${g.length} akun guru</p>`+list(g,x=>`<div class="card mb-2 flex justify-between"><div><b>${esc(x.idGuru||x.nama)}</b>${x.idGuru&&x.nama&&x.nama!==x.idGuru?`<div class="text-xs text-slate-500">${esc(x.nama)}</div>`:""}<div class="text-xs text-slate-500">Sandi: <span class="font-mono">${esc(x.sandi)}</span></div></div><button class="btn2" onclick="hapus('guru','${x.id}','Guru')">Hapus</button></div>`,"Belum ada data guru. Upload file berisi kolom ID GURU dan SANDI.")},
 Jadwal:async()=>`<div class="card space-y-2 mb-4"><h2 class="font-extrabold">Upload jadwal pelajaran</h2><p class="text-xs text-slate-500">File .xlsx atau .csv dengan kolom: MATA PELAJARAN, JAM, NAMA GURU, KELAS (kelas boleh diisi sekali di baris pertama tiap kelompok). Upload baru menggantikan jadwal lama.</p><input id="jf" type="file" accept=".xlsx,.xls,.csv" class="inp"><button class="btn" onclick="importJadwal()">Upload</button></div>`+await jadwalHTML(),
 Pengumuman:async()=>{const p=(await all("pengumuman")).sort((a,b)=>b.waktu>a.waktu?1:-1);
  return `<div class="card space-y-2 mb-4"><h2 class="font-extrabold">Buat pengumuman</h2><input id="pu" class="inp" placeholder="Judul pengumuman"><textarea id="pi" class="inp" rows="4" placeholder="Isi pengumuman"></textarea><p class="text-xs text-slate-500">Pengumuman akan muncul di menu Notifikasi semua siswa.</p><button class="btn" onclick="addInfo()">Kirim pengumuman</button></div>`+list(p,x=>`<div class="card mb-2 flex justify-between gap-2"><div><b>📢 ${esc(x.judul)}</b><p class="text-sm whitespace-pre-line">${esc(x.isi)}</p><div class="text-xs text-slate-500">${fmtWaktu(x.waktu)}${x.oleh?" - "+esc(x.oleh):""}</div></div><button class="btn2 h-fit" onclick="hapus('pengumuman','${x.id}','Pengumuman')">Hapus</button></div>`,"Belum ada pengumuman.")},
@@ -349,8 +351,8 @@ const gv=(r,k)=>r[Object.keys(r).find(h=>h.toLowerCase().includes(k))]??"";
 window.importGuru=async()=>{
   const rows=await readSheet("gf");if(!rows)return;
   let n=0,b=writeBatch(db);
-  for(const r of rows){const nama=String(gv(r,"nama")).trim(),sandi=String(gv(r,"sandi")).trim(),id=key(nama);if(!id||!sandi)continue;
-   b.set(doc(db,"guru",id),{nama,sandi});if(++n%400===0){await b.commit();b=writeBatch(db)}}
+  for(const r of rows){const hk=Object.keys(r).find(h=>/(^|[^a-z])id([^a-z]|$)/i.test(h)),idGuru=String(hk?r[hk]:"").trim(),nm=String(gv(r,"nama")).trim(),sandi=String(gv(r,"sandi")).trim(),id=key(idGuru);if(!id||!sandi)continue;
+   b.set(doc(db,"guru",id),{idGuru,nama:nm||idGuru,sandi});if(++n%400===0){await b.commit();b=writeBatch(db)}}
   await b.commit();alert(n+" akun guru berhasil diupload.");go("Guru");
 };
 window.importJadwal=async()=>{
