@@ -27,17 +27,106 @@ body{font-family:'Plus Jakarta Sans',system-ui,sans-serif;background:var(--bg);c
 .mi:hover{background:#f1efe6}
 .tile{background:#fff;border:1px solid #e5e2d6;border-radius:1rem;padding:1.1rem .5rem;display:flex;flex-direction:column;align-items:center;gap:.4rem;box-shadow:0 1px 2px rgba(0,0,0,.04);width:100%}
 .tile:hover{border-color:var(--g);transform:translateY(-1px)}
+
+html{scroll-behavior:smooth}
+.lp-nav{position:sticky;top:0;z-index:40;background:rgba(246,244,238,.88);backdrop-filter:blur(10px);border-bottom:1px solid #e5e2d6}
+.lp-hero{background:linear-gradient(135deg,#0b3d27,#0f5132 45%,#1f8a5b);color:#fff;position:relative;overflow:hidden}
+.lp-hero:before{content:"";position:absolute;right:-90px;top:-90px;width:340px;height:340px;border-radius:50%;border:44px solid rgba(200,150,46,.28)}
+.lp-hero:after{content:"";position:absolute;left:-70px;bottom:-110px;width:260px;height:260px;border-radius:50%;background:rgba(255,255,255,.06)}
+.lp-btn{background:var(--gold);color:#1c2b24;border-radius:999px;padding:.8rem 1.6rem;font-weight:800;font-size:.95rem;box-shadow:0 6px 18px rgba(200,150,46,.35);transition:.2s}
+.lp-btn:hover{transform:translateY(-2px);background:#d8a63e}
+.lp-btn2{border:1.5px solid rgba(255,255,255,.55);color:#fff;border-radius:999px;padding:.8rem 1.6rem;font-weight:700;font-size:.95rem}
+.lp-btn2:hover{background:rgba(255,255,255,.12)}
+.fcard{background:#fff;border:1px solid #e5e2d6;border-radius:1.1rem;padding:1.2rem;transition:.2s}
+.fcard:hover{border-color:var(--g);transform:translateY(-3px);box-shadow:0 10px 24px rgba(15,81,50,.08)}
+.fic{width:46px;height:46px;border-radius:14px;background:#e8f3ec;display:flex;align-items:center;justify-content:center;font-size:1.4rem;margin-bottom:.7rem}
+.stp{width:38px;height:38px;border-radius:50%;background:var(--g);color:#fff;font-weight:800;display:flex;align-items:center;justify-content:center;flex-shrink:0}
+.soc{display:flex;align-items:center;gap:.75rem;background:#fff;border:1px solid #e5e2d6;border-radius:1rem;padding:.9rem 1.1rem;font-weight:700;transition:.2s}
+.soc:hover{border-color:var(--g);transform:translateY(-2px)}
+.soc .si{width:42px;height:42px;border-radius:12px;display:flex;align-items:center;justify-content:center;color:#fff;flex-shrink:0}
+.modal{position:fixed;inset:0;background:rgba(10,35,24,.62);backdrop-filter:blur(4px);display:flex;align-items:center;justify-content:center;padding:1rem;z-index:100}
+.modal.hidden{display:none}
+.modal-box{background:#fff;border-radius:1.25rem;width:100%;max-width:24rem;padding:1.5rem;position:relative;box-shadow:0 24px 60px rgba(0,0,0,.28)}
+.modal-x{position:absolute;right:.8rem;top:.8rem;width:32px;height:32px;border-radius:50%;font-size:1.3rem;line-height:1;color:#64748b}
+.modal-x:hover{background:#f1efe6}
 </style>
 </head>
 <body>
-<div id="login" class="min-h-screen flex items-center justify-center p-4">
-  <div class="card w-full max-w-sm space-y-4 p-6">
+<div id="login">
+<!-- NAVBAR -->
+<header class="lp-nav"><div class="max-w-5xl mx-auto px-4 py-3 flex items-center justify-between">
+  <div><div class="font-extrabold text-xl leading-none" style="color:var(--g)">MyIgi</div><div class="text-[11px] text-slate-500">MA Insan Generasi Islami</div></div>
+  <nav class="hidden sm:flex items-center gap-6 text-sm font-semibold text-slate-600"><a href="#fitur" class="hover:text-emerald-800">Fitur</a><a href="#cara" class="hover:text-emerald-800">Cara Kerja</a><a href="#sosmed" class="hover:text-emerald-800">Sosial Media</a></nav>
+  <button class="btn" onclick="openLogin()">Masuk</button>
+</div></header>
+
+<!-- HERO -->
+<section class="lp-hero"><div class="max-w-5xl mx-auto px-4 py-16 sm:py-24 relative z-10">
+  <span class="pill" style="background:rgba(200,150,46,.25);color:#f5dfa8;font-size:.78rem;padding:.3rem .9rem">✨ Portal Digital Madrasah</span>
+  <h1 class="text-3xl sm:text-5xl font-extrabold mt-4 leading-tight max-w-2xl">Satu aplikasi untuk seluruh urusan sekolah Anda.</h1>
+  <p class="mt-4 text-base sm:text-lg opacity-90 max-w-xl">MyIgi menghadirkan jadwal pelajaran, tugas, absensi, pembayaran, hingga pengumuman madrasah dalam satu genggaman. Cukup masuk dengan NISN, semua informasi siap dibuka kapan saja dan di mana saja.</p>
+  <div class="flex flex-wrap gap-3 mt-8"><button class="lp-btn" onclick="openLogin()">Masuk ke MyIgi →</button><a href="#fitur" class="lp-btn2">Lihat fitur</a></div>
+  <div class="grid grid-cols-3 gap-4 mt-12 max-w-md text-center sm:text-left">
+    <div><div class="text-2xl font-extrabold">24/7</div><div class="text-xs opacity-75">Akses kapan saja</div></div>
+    <div><div class="text-2xl font-extrabold">1 Akun</div><div class="text-xs opacity-75">Untuk semua fitur</div></div>
+    <div><div class="text-2xl font-extrabold">Real-time</div><div class="text-xs opacity-75">Info terbaru</div></div>
+  </div>
+</div></section>
+
+<!-- FITUR -->
+<section id="fitur" class="max-w-5xl mx-auto px-4 py-14">
+  <div class="text-center max-w-xl mx-auto"><p class="text-sm font-bold" style="color:var(--gold)">FITUR UNGGULAN</p><h2 class="text-2xl sm:text-3xl font-extrabold mt-1">Lengkap, rapi, dan mudah digunakan</h2><p class="text-slate-500 mt-2 text-sm sm:text-base">Dirancang agar siswa, guru, dan orang tua selalu terhubung dengan perkembangan belajar di madrasah.</p></div>
+  <div class="grid sm:grid-cols-2 lg:grid-cols-3 gap-4 mt-8">
+    <div class="fcard"><div class="fic">📅</div><h3 class="font-extrabold">Jadwal Pelajaran</h3><p class="text-sm text-slate-500 mt-1">Lihat jadwal harian lengkap dengan jam, mata pelajaran, dan nama guru untuk setiap kelas.</p></div>
+    <div class="fcard"><div class="fic">📝</div><h3 class="font-extrabold">Pengumpulan Tugas</h3><p class="text-sm text-slate-500 mt-1">Kirim tugas lewat file atau tautan, pantau statusnya, dan lihat nilai begitu guru selesai menilai.</p></div>
+    <div class="fcard"><div class="fic">💳</div><h3 class="font-extrabold">Pembayaran via QRIS</h3><p class="text-sm text-slate-500 mt-1">Bayar SPP dan biaya lain praktis dengan QRIS, lalu laporkan pembayaran langsung dari aplikasi.</p></div>
+    <div class="fcard"><div class="fic">🗓️</div><h3 class="font-extrabold">Absensi &amp; Rekap Kehadiran</h3><p class="text-sm text-slate-500 mt-1">Kehadiran tercatat rapi per hari. Guru dapat melihat rekap per kelas dan mengekspornya ke Excel.</p></div>
+    <div class="fcard"><div class="fic">🏆</div><h3 class="font-extrabold">Prestasi &amp; Pelanggaran</h3><p class="text-sm text-slate-500 mt-1">Setiap capaian dan catatan kedisiplinan terdokumentasi transparan sebagai bahan pembinaan karakter.</p></div>
+    <div class="fcard"><div class="fic">📢</div><h3 class="font-extrabold">Pengumuman &amp; Notifikasi</h3><p class="text-sm text-slate-500 mt-1">Informasi penting dari madrasah langsung sampai ke siswa, lengkap dengan penanda pesan baru.</p></div>
+    <div class="fcard"><div class="fic">🎧</div><h3 class="font-extrabold">Bantuan (CS)</h3><p class="text-sm text-slate-500 mt-1">Ada kendala? Kirim pesan ke admin dan terima balasannya langsung di aplikasi.</p></div>
+    <div class="fcard"><div class="fic">👩‍🏫</div><h3 class="font-extrabold">Panel Guru &amp; Admin</h3><p class="text-sm text-slate-500 mt-1">Kelola data siswa, guru, jadwal, nilai tugas, dan pembayaran dari satu dasbor yang ringkas.</p></div>
+    <div class="fcard" style="background:linear-gradient(135deg,#0f5132,#157347);color:#fff;border:0"><div class="fic" style="background:rgba(255,255,255,.15)">🔐</div><h3 class="font-extrabold">Aman &amp; Personal</h3><p class="text-sm opacity-85 mt-1">Setiap pengguna masuk dengan akun masing-masing, sehingga data hanya dapat dilihat oleh yang berhak.</p></div>
+  </div>
+</section>
+
+<!-- CARA KERJA -->
+<section id="cara" style="background:#fff;border-top:1px solid #e5e2d6;border-bottom:1px solid #e5e2d6"><div class="max-w-5xl mx-auto px-4 py-14">
+  <div class="text-center"><p class="text-sm font-bold" style="color:var(--gold)">CARA MENGGUNAKAN</p><h2 class="text-2xl sm:text-3xl font-extrabold mt-1">Mulai hanya dalam tiga langkah</h2></div>
+  <div class="grid sm:grid-cols-3 gap-6 mt-8">
+    <div class="flex gap-3"><div class="stp">1</div><div><h3 class="font-extrabold">Klik tombol Masuk</h3><p class="text-sm text-slate-500 mt-1">Jendela login akan muncul tanpa berpindah halaman.</p></div></div>
+    <div class="flex gap-3"><div class="stp">2</div><div><h3 class="font-extrabold">Isi akun Anda</h3><p class="text-sm text-slate-500 mt-1">Siswa memakai NISN dan sandi tanggal lahir (ddmmyyyy). Guru memakai username dari madrasah.</p></div></div>
+    <div class="flex gap-3"><div class="stp">3</div><div><h3 class="font-extrabold">Nikmati semua fitur</h3><p class="text-sm text-slate-500 mt-1">Jadwal, tugas, pembayaran, dan pengumuman langsung tersedia di beranda.</p></div></div>
+  </div>
+  <div class="text-center mt-10"><button class="lp-btn" onclick="openLogin()">Masuk sekarang</button></div>
+</div></section>
+
+<!-- SOSMED -->
+<section id="sosmed" class="max-w-5xl mx-auto px-4 py-14">
+  <div class="text-center max-w-xl mx-auto"><p class="text-sm font-bold" style="color:var(--gold)">TERHUBUNG BERSAMA KAMI</p><h2 class="text-2xl sm:text-3xl font-extrabold mt-1">Ikuti kabar terbaru madrasah</h2><p class="text-slate-500 mt-2 text-sm sm:text-base">Kegiatan, prestasi, dan momen kebersamaan keluarga besar MA Insan Generasi Islami.</p></div>
+  <div class="grid sm:grid-cols-3 gap-3 mt-8">
+    <a class="soc" href="https://www.instagram.com/maigiwaru" target="_blank" rel="noopener"><span class="si" style="background:linear-gradient(45deg,#f09433,#dc2743 55%,#bc1888)"><svg width="22" height="22" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><rect x="2" y="2" width="20" height="20" rx="5"/><circle cx="12" cy="12" r="4"/><circle cx="17.5" cy="6.5" r="1" fill="currentColor"/></svg></span><span><span class="block text-sm">Instagram</span><span class="block text-xs text-slate-500 font-semibold">@maigiwaru</span></span></a>
+    <a class="soc" href="https://www.tiktok.com/@maigiwaru" target="_blank" rel="noopener"><span class="si" style="background:#111"><svg width="20" height="20" viewBox="0 0 24 24" fill="currentColor"><path d="M19.6 6.7a5 5 0 0 1-3.9-4.4V2h-3.4v13.4a2.9 2.9 0 1 1-2-2.8V9.2a6.3 6.3 0 1 0 5.4 6.2V9a8.3 8.3 0 0 0 4.8 1.5V7.1a4.9 4.9 0 0 1-.9-.4z"/></svg></span><span><span class="block text-sm">TikTok</span><span class="block text-xs text-slate-500 font-semibold">@maigiwaru</span></span></a>
+    <a class="soc" href="https://www.facebook.com/share/19meKjjkGE/?mibextid=wwXIfr" target="_blank" rel="noopener"><span class="si" style="background:#1877f2"><svg width="20" height="20" viewBox="0 0 24 24" fill="currentColor"><path d="M14 8.5V6.9c0-.8.2-1.2 1.4-1.2H17V2.2C16.7 2.1 15.7 2 14.6 2 12.2 2 10.5 3.5 10.5 6.2v2.3H8v3.6h2.5V22H14v-9.9h2.7l.4-3.6H14z"/></svg></span><span><span class="block text-sm">Facebook</span><span class="block text-xs text-slate-500 font-semibold">MA Insan Generasi Islami</span></span></a>
+  </div>
+</section>
+
+<footer style="background:#0b3d27;color:#fff"><div class="max-w-5xl mx-auto px-4 py-8 flex flex-col sm:flex-row items-center justify-between gap-3 text-center sm:text-left">
+  <div><div class="font-extrabold text-lg">MyIgi</div><div class="text-xs opacity-70">MA Insan Generasi Islami</div></div>
+  <button class="lp-btn" style="padding:.55rem 1.3rem;font-size:.85rem" onclick="openLogin()">Masuk</button>
+  <div class="text-xs opacity-60">&copy; <span id="yr"></span> MyIgi. Seluruh hak cipta dilindungi.</div>
+</div></footer>
+
+<!-- POP UP LOGIN -->
+<div id="loginModal" class="modal hidden" onclick="if(event.target===this)closeLogin()">
+  <div class="modal-box space-y-4" role="dialog" aria-modal="true" aria-label="Masuk">
+    <button class="modal-x" onclick="closeLogin()" aria-label="Tutup">&times;</button>
     <div class="text-center"><div class="text-3xl font-extrabold" style="color:var(--g)">MyIgi</div><p class="text-sm text-slate-500">MA Insan Generasi Islami</p></div>
-    <input id="u" class="inp" placeholder="NISN / Username guru" inputmode="numeric">
-    <input id="p" type="password" class="inp" placeholder="Sandi (siswa: ddmmyyyy, contoh 12092004)">
+    <input id="u" class="inp" placeholder="NISN / Username guru" inputmode="numeric" autocomplete="username">
+    <input id="p" type="password" class="inp" placeholder="Sandi (siswa: ddmmyyyy, contoh 12092004)" autocomplete="current-password">
     <p id="err" class="text-sm text-rose-600 hidden"></p>
     <button class="btn w-full" onclick="doLogin()">Masuk</button>
   </div>
+</div>
 </div>
 
 <div id="app" class="hidden max-w-5xl mx-auto p-4 space-y-4">
@@ -65,6 +154,11 @@ const all=async n=>(await getDocs(collection(db,n))).docs.map(d=>({id:d.id,...d.
 const today=()=>new Date().toISOString().slice(0,10);
 let me=null,isAdmin=false,tab="",siswa=[];
 
+const saved=sessionStorage.getItem("me");
+window.openLogin=()=>{$("loginModal").classList.remove("hidden");setTimeout(()=>$("u").focus(),50)};
+window.closeLogin=()=>$("loginModal").classList.add("hidden");
+document.addEventListener("keydown",e=>{if(e.key==="Escape")closeLogin();if(e.key==="Enter"&&!$("loginModal").classList.contains("hidden"))doLogin()});
+$("yr").textContent=new Date().getFullYear();
 window.doLogin=async()=>{
   const u=$("u").value.trim(),p=$("p").value.trim();$("err").classList.add("hidden");
   try{
@@ -73,12 +167,11 @@ window.doLogin=async()=>{
     else if(key(u)){ const d=await getDoc(doc(db,"guru",key(u))); if(d.exists()&&d.data().sandi===p) g=d.data(); }
     if(g){ isAdmin=true; me={nama:g.nama}; }
     else{ const s=await getDoc(doc(db,"siswa",u)); if(!s.exists()||s.data().tgl!==p)throw 0; me=s.data(); isAdmin=false; }
-  }catch(e){$("err").textContent="NISN/username atau sandi salah.";$("err").classList.remove("hidden");return}
+  }catch(e){$("err").textContent="NISN/username atau sandi salah.";$("err").classList.remove("hidden");if(!saved)openLogin();return}
   sessionStorage.setItem("me",JSON.stringify({u,p}));
   start();
 };
 window.logout=()=>{sessionStorage.clear();location.reload()};
-const saved=sessionStorage.getItem("me");
 if(saved){const s=JSON.parse(saved);$("u").value=s.u;$("p").value=s.p;doLogin()}
 
 const svg=p=>`<svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">${p}</svg>`;
@@ -90,7 +183,7 @@ window.toggleMenu=e=>{e.stopPropagation();$("menu").classList.toggle("hidden")};
 document.addEventListener("click",()=>$("menu")&&$("menu").classList.add("hidden"));
 window.home=()=>{if(!isAdmin)go("Beranda")};
 function start(){
-  $("login").classList.add("hidden");$("app").classList.remove("hidden");
+  closeLogin();$("login").classList.add("hidden");$("app").classList.remove("hidden");
   const t=["Siswa","Guru","Jadwal","Pengumuman","Pelanggaran","Prestasi","Tugas","Absensi","Rekap","Pembayaran","Bantuan"];
   if(isAdmin){$("tabs").style.display="";$("tabs").innerHTML=t.map(x=>`<button class="tab" data-t="${x}" onclick="go('${x}')">${x==="Rekap"?"Rekap Kehadiran":x}</button>`).join("")}
   else{$("tabs").style.display="none";$("tabs").innerHTML=""}
@@ -123,7 +216,7 @@ Beranda:async()=>{
   const alpha=mine(ab).filter(x=>x.status==="A").length;
   return `<section class="hero p-6 space-y-3"><p class="text-sm opacity-80">Assalamu'alaikum,</p>
   <h1 class="text-2xl sm:text-3xl font-extrabold">${esc(me.nama)}</h1>
-  <div class="grid grid-cols-3 gap-3 text-sm pt-2 max-w-md"><div><div class="opacity-70 text-xs">Nama</div><b>${esc(me.nama)}</b></div><div><div class="opacity-70 text-xs">Kelas</div><b>${esc(me.kelas)}</b></div><div><div class="opacity-70 text-xs">NISN</div><b>${esc(me.nisn)}</b></div></div></section>
+  <div class="flex gap-8 text-sm pt-2"><div><div class="opacity-70 text-xs">NISN</div><b>${esc(me.nisn)}</b></div><div><div class="opacity-70 text-xs">Kelas</div><b>${esc(me.kelas)}</b></div></div></section>
   <section class="grid grid-cols-3 gap-3 mt-4">${[["Jadwal","📅"],["Tugas","📝"],["Pembayaran","💳"]].map(([t,i])=>`<button class="tile" onclick="go('${t}')"><span class="text-3xl">${i}</span><span class="text-sm font-bold">${t}</span></button>`).join("")}</section>
   <section class="grid grid-cols-3 gap-3 mt-4">
    <div class="card text-center"><div class="text-3xl font-extrabold text-rose-600">${alpha}</div><div class="text-xs text-slate-500">Alpha</div></div>
