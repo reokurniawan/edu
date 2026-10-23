@@ -26,8 +26,8 @@ body{font-family:'Plus Jakarta Sans',system-ui,sans-serif;background:var(--bg);c
 <div id="login" class="min-h-screen flex items-center justify-center p-4">
   <div class="card w-full max-w-sm space-y-4 p-6">
     <div class="text-center"><div class="text-3xl font-extrabold" style="color:var(--g)">MyIgi</div><p class="text-sm text-slate-500">MA Insan Generasi Islami</p></div>
-    <input id="u" class="inp" placeholder="NISN" inputmode="numeric">
-    <input id="p" type="password" class="inp" placeholder="Sandi (ddmmyyyy, contoh 12092004)">
+    <input id="u" class="inp" placeholder="NISN / Username guru" inputmode="numeric">
+    <input id="p" type="password" class="inp" placeholder="Sandi (siswa: ddmmyyyy, contoh 12092004)">
     <p id="err" class="text-sm text-rose-600 hidden"></p>
     <button class="btn w-full" onclick="doLogin()">Masuk</button>
   </div>
@@ -49,7 +49,9 @@ import {getFirestore,collection,getDocs,doc,setDoc,addDoc,updateDoc,deleteDoc,ge
 // === GANTI DENGAN CONFIG FIREBASE BARU ANDA (lihat langkah-langkah) ===
 const firebaseConfig={apiKey:"AIzaSyClGgcUyZj16x1XpbGGFkIdbQC9OSqnvtw",authDomain:"apa-1c339.firebaseapp.com",projectId:"apa-1c339",storageBucket:"apa-1c339.firebasestorage.app",messagingSenderId:"446205639535",appId:"1:446205639535:web:3ac4916c616089f15f869a"};
 const db=getFirestore(initializeApp(firebaseConfig));
-const ADMIN={u:"admin",p:"maigi-admin-2026"};
+const ADMIN={u:"admin",p:"RUGEK.aja234817"};
+const key=s=>String(s??"").toLowerCase().replace(/[^a-z0-9]/g,"");
+const DEF_JADWAL=[{"kelas": 10, "mapel": "Matematika", "jam": "07:00 - 08:30", "guru": "Budi Santoso, S.Pd."}, {"kelas": 10, "mapel": "Bahasa Indonesia", "jam": "08:30 - 10:00", "guru": "Siti Aminah, M.Pd."}, {"kelas": 10, "mapel": "Istirahat", "jam": "10:00 - 10:30", "guru": "-"}, {"kelas": 10, "mapel": "Ilmu Pengetahuan Alam (IPA)", "jam": "10:30 - 12:00", "guru": "Drs. Ahmad Hidayat"}, {"kelas": 10, "mapel": "Pendidikan Pancasila", "jam": "12:45 - 14:15", "guru": "Dewi Lestari, S.H."}, {"kelas": 11, "mapel": "Matematika", "jam": "07:00 - 08:30", "guru": "Budi Santoso, S.Pd."}, {"kelas": 11, "mapel": "Bahasa Indonesia", "jam": "08:30 - 10:00", "guru": "Siti Aminah, M.Pd."}, {"kelas": 11, "mapel": "Istirahat", "jam": "10:00 - 10:30", "guru": "-"}, {"kelas": 11, "mapel": "Ilmu Pengetahuan Alam (IPA)", "jam": "10:30 - 12:00", "guru": "Drs. Ahmad Hidayat"}, {"kelas": 11, "mapel": "Pendidikan Pancasila", "jam": "12:45 - 14:15", "guru": "Dewi Lestari, S.H."}, {"kelas": 12, "mapel": "Matematika", "jam": "07:00 - 08:30", "guru": "Budi Santoso, S.Pd."}, {"kelas": 12, "mapel": "Bahasa Indonesia", "jam": "08:30 - 10:00", "guru": "Siti Aminah, M.Pd."}, {"kelas": 12, "mapel": "Istirahat", "jam": "10:00 - 10:30", "guru": "-"}, {"kelas": 12, "mapel": "Ilmu Pengetahuan Alam (IPA)", "jam": "10:30 - 12:00", "guru": "Drs. Ahmad Hidayat"}, {"kelas": 12, "mapel": "Pendidikan Pancasila", "jam": "12:45 - 14:15", "guru": "Dewi Lestari, S.H."}];
 const $=id=>document.getElementById(id);
 const esc=s=>String(s??"").replace(/[&<>"]/g,c=>({"&":"&amp;","<":"&lt;",">":"&gt;",'"':"&quot;"}[c]));
 const all=async n=>(await getDocs(collection(db,n))).docs.map(d=>({id:d.id,...d.data()}));
@@ -59,7 +61,10 @@ let me=null,isAdmin=false,tab="",siswa=[];
 window.doLogin=async()=>{
   const u=$("u").value.trim(),p=$("p").value.trim();$("err").classList.add("hidden");
   try{
-    if(u===ADMIN.u){ if(p!==ADMIN.p)throw 0; isAdmin=true; me={nama:"Admin"}; }
+    let g=null;
+    if(u.toLowerCase()===ADMIN.u&&p===ADMIN.p) g={nama:"Admin"};
+    else if(key(u)){ const d=await getDoc(doc(db,"guru",key(u))); if(d.exists()&&d.data().sandi===p) g=d.data(); }
+    if(g){ isAdmin=true; me={nama:g.nama}; }
     else{ const s=await getDoc(doc(db,"siswa",u)); if(!s.exists()||s.data().tgl!==p)throw 0; me=s.data(); isAdmin=false; }
   }catch(e){$("err").textContent="NISN/username atau sandi salah.";$("err").classList.remove("hidden");return}
   sessionStorage.setItem("me",JSON.stringify({u,p}));
@@ -71,9 +76,10 @@ if(saved){const s=JSON.parse(saved);$("u").value=s.u;$("p").value=s.p;doLogin()}
 
 function start(){
   $("login").classList.add("hidden");$("app").classList.remove("hidden");
-  const t=isAdmin?["Siswa","Pelanggaran","Tugas","Prestasi","Absensi","Pembayaran","Bantuan"]:["Beranda","Pelanggaran","Tugas","Prestasi","Pembayaran","Bantuan"];
-  $("tabs").innerHTML=t.map(x=>`<button class="tab" data-t="${x}" onclick="go('${x}')">${x}</button>`).join("");
+  const t=isAdmin?["Siswa","Guru","Jadwal","Pengumuman","Pelanggaran","Prestasi","Tugas","Absensi","Pembayaran","Bantuan"]:["Beranda","Jadwal","Tugas","Pembayaran","Notifikasi","Bantuan"];
+  $("tabs").innerHTML=t.map(x=>`<button class="tab" data-t="${x}" onclick="go('${x}')">${x}${x==="Notifikasi"?'<span id="bdg"></span>':""}</button>`).join("");
   go(t[0]);
+  if(!isAdmin)refreshBadge();
 }
 window.go=async n=>{
   tab=n;document.querySelectorAll(".tab").forEach(b=>b.classList.toggle("on",b.dataset.t===n));
@@ -92,7 +98,7 @@ Beranda:async()=>{
   const [pel,pr,ab]=await Promise.all([all("pelanggaran"),all("prestasi"),all("absensi")]);
   const mine=a=>a.filter(x=>x.nisn===me.nisn);
   const alpha=mine(ab).filter(x=>x.status==="A").length;
-  const pm=mine(pr),pl=mine(pel);
+  const pm=mine(pr),pl=mine(pel).sort((a,b)=>b.waktu>a.waktu?1:-1);
   return `<section class="hero p-6 space-y-3"><p class="text-sm opacity-80">Assalamu'alaikum,</p>
   <h1 class="text-2xl sm:text-3xl font-extrabold">${esc(me.nama)}</h1>
   <div class="grid grid-cols-3 gap-3 text-sm pt-2 max-w-md"><div><div class="opacity-70 text-xs">Nama</div><b>${esc(me.nama)}</b></div><div><div class="opacity-70 text-xs">Kelas</div><b>${esc(me.kelas)}</b></div><div><div class="opacity-70 text-xs">NISN</div><b>${esc(me.nisn)}</b></div></div></section>
@@ -100,9 +106,15 @@ Beranda:async()=>{
    <div class="card text-center"><div class="text-3xl font-extrabold text-rose-600">${alpha}</div><div class="text-xs text-slate-500">Alpha</div></div>
    <div class="card text-center"><div class="text-3xl font-extrabold text-amber-600">${pl.length}</div><div class="text-xs text-slate-500">Pelanggaran</div></div>
    <div class="card text-center"><div class="text-3xl font-extrabold" style="color:var(--g)">${pm.length}</div><div class="text-xs text-slate-500">Prestasi</div></div></section>
+  <section class="mt-4"><h2 class="font-extrabold mb-2">Pelanggaran Saya</h2><div class="space-y-2">${list(pl,x=>`<div class="card flex gap-3 items-center" style="border-left:4px solid #e11d48"><div class="text-2xl">⚠️</div><div><b>${esc(x.ket)}</b><div class="text-xs text-slate-500">${esc(x.waktu)}</div></div></div>`,"Tidak ada catatan pelanggaran.")}</div></section>
   <section class="mt-4"><h2 class="font-extrabold mb-2">Prestasi Saya</h2><div class="space-y-2">${list(pm,x=>`<div class="card flex gap-3 items-center" style="border-left:4px solid var(--gold)"><div class="text-2xl">🏆</div><div><b>${esc(x.judul)}</b><div class="text-xs text-slate-500">${esc(x.tgl)} - ${esc(x.ket)}</div></div></div>`,"Belum ada prestasi.")}</div></section>`;
 },
-Pelanggaran:async()=>list((await all("pelanggaran")).filter(x=>x.nisn===me.nisn).sort((a,b)=>b.waktu>a.waktu?1:-1),x=>`<div class="card mb-2"><b>${esc(x.ket)}</b><div class="text-xs text-slate-500">${esc(x.waktu)}</div></div>`,"Tidak ada catatan pelanggaran."),
+Jadwal:()=>jadwalHTML(parseInt(me.kelas)),
+Notifikasi:async()=>{
+  const p=(await all("pengumuman")).sort((a,b)=>b.waktu>a.waktu?1:-1),prev=getSeen();
+  setSeen(p[0]?.waktu||"");$("bdg")&&($("bdg").innerHTML="");
+  return list(p,x=>`<div class="card mb-2" style="border-left:4px solid var(--gold)"><div class="flex justify-between gap-2"><b>📢 ${esc(x.judul)}</b>${x.waktu>prev?'<span class="pill bg-rose-100 text-rose-700 h-fit">Baru</span>':""}</div><p class="text-sm mt-1 whitespace-pre-line">${esc(x.isi)}</p><div class="text-xs text-slate-500 mt-1">${fmtWaktu(x.waktu)}</div></div>`,"Belum ada pengumuman.");
+},
 Tugas:async()=>{
   const t=(await all("tugas")).filter(x=>x.nisn===me.nisn).sort((a,b)=>b.tgl>a.tgl?1:-1);
   return `<div class="card space-y-2 mb-4"><h2 class="font-extrabold">Kumpulkan tugas</h2>
@@ -111,7 +123,6 @@ Tugas:async()=>{
   <p class="text-xs text-slate-500">File maksimal 700 KB. Untuk file besar, pakai link.</p><button class="btn" onclick="kirimTugas()">Kirim tugas</button></div>`+
   list(t,x=>`<div class="card mb-2"><div class="flex justify-between gap-2"><b>${esc(x.judul)}</b><span class="pill ${x.status==="Selesai"?"bg-emerald-100 text-emerald-700":x.status==="Revisi"?"bg-amber-100 text-amber-700":"bg-slate-100"}">${esc(x.status)}</span></div><div class="text-xs text-slate-500">${esc(x.mapel)} - ${esc(x.tgl)}</div>${x.nilai!==""&&x.nilai!=null?`<div class="text-sm mt-1">Nilai: <b>${esc(x.nilai)}</b></div>`:""}</div>`,"Belum ada tugas dikirim.");
 },
-Prestasi:async()=>list((await all("prestasi")).filter(x=>x.nisn===me.nisn),x=>`<div class="card mb-2" style="border-left:4px solid var(--gold)">🏆 <b>${esc(x.judul)}</b><div class="text-xs text-slate-500">${esc(x.tgl)} - ${esc(x.ket)}</div></div>`,"Belum ada prestasi."),
 Pembayaran:async()=>{
   const q=(await getDoc(doc(db,"pengaturan","qris"))).data()?.url;
   const p=(await all("pembayaran")).filter(x=>x.nisn===me.nisn);
@@ -142,6 +153,12 @@ window.kirimBantuan=async()=>{const t=$("bp").value.trim();if(!t)return;await ad
 // ============ ADMIN ============
 const sel=(id)=>`<select id="${id}" class="inp">${opts(siswa)}</select>`;
 const A={
+Guru:async()=>{const g=(await all("guru")).sort((a,b)=>a.nama>b.nama?1:-1);
+ return `<div class="card space-y-2 mb-4"><h2 class="font-extrabold">Upload data guru</h2><p class="text-xs text-slate-500">File .xlsx atau .csv dengan kolom: NAMA GURU, SANDI. Username login = nama guru (huruf besar/kecil, spasi, dan tanda baca diabaikan). Akun dengan nama yang sama akan diperbarui.</p><input id="gf" type="file" accept=".xlsx,.xls,.csv" class="inp"><button class="btn" onclick="importGuru()">Upload</button></div>
+ <p class="text-sm mb-2">${g.length} akun guru</p>`+list(g,x=>`<div class="card mb-2 flex justify-between"><div><b>${esc(x.nama)}</b><div class="text-xs text-slate-500">Sandi: <span class="font-mono">${esc(x.sandi)}</span></div></div><button class="btn2" onclick="hapus('guru','${x.id}','Guru')">Hapus</button></div>`,"Belum ada data guru. Upload file dari sheet AKUN GURU.")},
+Jadwal:async()=>`<div class="card space-y-2 mb-4"><h2 class="font-extrabold">Upload jadwal pelajaran</h2><p class="text-xs text-slate-500">File .xlsx atau .csv dengan kolom: MATA PELAJARAN, JAM, NAMA GURU, KELAS (kelas boleh diisi sekali di baris pertama tiap kelompok). Upload baru menggantikan jadwal lama.</p><input id="jf" type="file" accept=".xlsx,.xls,.csv" class="inp"><button class="btn" onclick="importJadwal()">Upload</button></div>`+await jadwalHTML(),
+Pengumuman:async()=>{const p=(await all("pengumuman")).sort((a,b)=>b.waktu>a.waktu?1:-1);
+ return `<div class="card space-y-2 mb-4"><h2 class="font-extrabold">Buat pengumuman</h2><input id="pu" class="inp" placeholder="Judul pengumuman"><textarea id="pi" class="inp" rows="4" placeholder="Isi pengumuman"></textarea><p class="text-xs text-slate-500">Pengumuman akan muncul di menu Notifikasi semua siswa.</p><button class="btn" onclick="addInfo()">Kirim pengumuman</button></div>`+list(p,x=>`<div class="card mb-2 flex justify-between gap-2"><div><b>📢 ${esc(x.judul)}</b><p class="text-sm whitespace-pre-line">${esc(x.isi)}</p><div class="text-xs text-slate-500">${fmtWaktu(x.waktu)}${x.oleh?" - "+esc(x.oleh):""}</div></div><button class="btn2 h-fit" onclick="hapus('pengumuman','${x.id}','Pengumuman')">Hapus</button></div>`,"Belum ada pengumuman.")},
 Siswa:async()=>`<div class="card space-y-2 mb-4"><h2 class="font-extrabold">Upload data siswa</h2><p class="text-xs text-slate-500">File .xlsx atau .csv dengan kolom: NAMA, KELAS, NISN, TGL LAHIR. Sandi siswa = tanggal lahir (ddmmyyyy).</p><input id="xf" type="file" accept=".xlsx,.xls,.csv" class="inp"><button class="btn" onclick="importSiswa()">Upload</button></div>
  <p class="text-sm mb-2">${siswa.length} siswa</p>`+list(siswa.sort((a,b)=>a.kelas>b.kelas?1:-1),x=>`<div class="card mb-2 flex justify-between"><div><b>${esc(x.nama)}</b><div class="text-xs text-slate-500">${esc(x.kelas)} - ${esc(x.nisn)}</div></div><button class="btn2" onclick="hapus('siswa','${x.id}','Siswa')">Hapus</button></div>`,"Belum ada data siswa."),
 Pelanggaran:async()=>{const p=(await all("pelanggaran")).sort((a,b)=>b.waktu>a.waktu?1:-1);
@@ -188,6 +205,42 @@ window.importSiswa=async()=>{
    b.set(doc(db,"siswa",nisn),{nisn,nama,kelas:String(g(r,"kelas")).trim(),tgl:fmt(g(r,"lahir")||g(r,"tgl"))});
    if(++n%400===0){await b.commit();b=writeBatch(db)}}
   await b.commit();alert(n+" siswa berhasil diupload.");go("Siswa");
+};
+
+// ============ JADWAL / NOTIFIKASI / GURU ============
+let JR=[];
+const fmtWaktu=w=>{const d=new Date(w);return isNaN(d)?esc(w):d.toLocaleString("id-ID",{dateStyle:"medium",timeStyle:"short"})};
+const seenK=()=>"seen_"+(me?.nisn||"x");
+const getSeen=()=>{try{return localStorage.getItem(seenK())||""}catch(e){return ""}};
+const setSeen=v=>{try{localStorage.setItem(seenK(),v)}catch(e){}};
+window.refreshBadge=async()=>{try{const s=getSeen(),n=(await all("pengumuman")).filter(x=>x.waktu>s).length;if($("bdg"))$("bdg").innerHTML=n?` <span class="pill bg-rose-600 text-white">${n}</span>`:""}catch(e){}};
+const getJadwal=async()=>{try{const d=await getDoc(doc(db,"pengaturan","jadwal"));if(d.exists()&&d.data().rows?.length)return d.data().rows}catch(e){}return DEF_JADWAL};
+const jadwalTbl=k=>{const r=JR.filter(x=>x.kelas===k);
+  return r.length?`<div class="card overflow-x-auto p-0"><table class="w-full text-sm"><thead style="background:var(--g);color:#fff"><tr><th class="text-left p-3">Jam</th><th class="text-left p-3">Mata Pelajaran</th><th class="text-left p-3">Guru</th></tr></thead><tbody>`+r.map(x=>{const br=/istirahat/i.test(x.mapel);return `<tr class="border-t" ${br?'style="background:#fbf3df"':""}><td class="p-3 whitespace-nowrap font-semibold">${esc(x.jam)}</td><td class="p-3">${br?"☕ ":""}${esc(x.mapel)}</td><td class="p-3">${esc(x.guru)}</td></tr>`}).join("")+`</tbody></table></div>`:empty("Belum ada jadwal untuk kelas ini.")};
+const jadwalHTML=async def=>{JR=await getJadwal();const ks=[...new Set(JR.map(x=>x.kelas))].sort((a,b)=>a-b);if(!ks.length)return empty("Belum ada jadwal.");const d=ks.includes(def)?def:ks[0];
+  return `<div class="card mb-4 flex items-center gap-3"><b class="text-sm">Jadwal Pelajaran Kelas</b><select id="jk" class="inp" style="max-width:110px" onchange="renderJadwal()">${ks.map(k=>`<option ${k===d?"selected":""}>${k}</option>`).join("")}</select></div><div id="jt">${jadwalTbl(d)}</div>`};
+window.renderJadwal=()=>{$("jt").innerHTML=jadwalTbl(+$("jk").value)};
+const readSheet=async id=>{const f=$(id).files[0];if(!f){alert("Pilih file.");return null}
+  const wb=XLSX.read(await f.arrayBuffer());return XLSX.utils.sheet_to_json(wb.Sheets[wb.SheetNames[0]],{defval:""})};
+const gv=(r,k)=>r[Object.keys(r).find(h=>h.toLowerCase().includes(k))]??"";
+window.importGuru=async()=>{
+  const rows=await readSheet("gf");if(!rows)return;
+  let n=0,b=writeBatch(db);
+  for(const r of rows){const nama=String(gv(r,"nama")).trim(),sandi=String(gv(r,"sandi")).trim(),id=key(nama);if(!id||!sandi)continue;
+   b.set(doc(db,"guru",id),{nama,sandi});if(++n%400===0){await b.commit();b=writeBatch(db)}}
+  await b.commit();alert(n+" akun guru berhasil diupload.");go("Guru");
+};
+window.importJadwal=async()=>{
+  const rows=await readSheet("jf");if(!rows)return;
+  const out=[];let k=null;
+  for(const r of rows){const kk=parseInt(String(gv(r,"kelas")));if(!isNaN(kk))k=kk;const mapel=String(gv(r,"mata")).trim();if(!mapel||k==null)continue;
+   out.push({kelas:k,mapel,jam:String(gv(r,"jam")).trim(),guru:String(gv(r,"guru")).trim()})}
+  if(!out.length)return alert("Tidak ada data jadwal yang terbaca. Cek nama kolom.");
+  await setDoc(doc(db,"pengaturan","jadwal"),{rows:out});alert(out.length+" baris jadwal tersimpan.");go("Jadwal");
+};
+window.addInfo=async()=>{
+  const j=$("pu").value.trim(),i=$("pi").value.trim();if(!j||!i)return alert("Isi judul dan isi pengumuman.");
+  await addDoc(collection(db,"pengumuman"),{judul:j,isi:i,waktu:new Date().toISOString(),oleh:me.nama});go("Pengumuman");
 };
 </script>
 </body>
