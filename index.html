@@ -213,12 +213,14 @@ function start(){
 }
 window.go=async n=>{
   if(window.unsubChat){window.unsubChat();window.unsubChat=null}
+  if(window.pgStop)window.pgStop();
   tab=n;document.querySelectorAll(".tab").forEach(b=>b.classList.toggle("on",b.dataset.t===n));
   $("main").innerHTML='<p class="text-slate-500">Memuat…</p>';
   if(isAdmin)siswa=await all("siswa");
   const hm=isAdmin?"Menu":"Beranda",back=n!==hm?`<button class="btn2 mb-3" onclick="go('${hm}')">← ${hm}</button>`:"";
   $("main").innerHTML=back+await (isAdmin?A:S)[n]();
   if(isAdmin&&n==="Rekap")loadRekap();
+  if(isAdmin&&n==="Presensi")loadPG();
   if(n==="Chat")initChat();
   window.scrollTo(0,0);
 };
@@ -419,7 +421,7 @@ window.exportRekap=()=>{
 // ============ MENU KARTU ADMIN ============
 IC.chat=svg('<path d="M21 15a2 2 0 0 1-2 2H7l-4 4V5a2 2 0 0 1 2-2h14a2 2 0 0 1 2 2z"/>');
 const MENU=[
- ["Akademik",[["Jadwal","📅","Jadwal pelajaran semua kelas","#e0f2fe"],["Tugas","📝","Periksa & nilai tugas siswa","#fef3c7"],["Absensi","✅","Catat kehadiran harian","#dcfce7"],["Rekap","🗓️","Rekap kehadiran & ekspor Excel","#ede9fe","Rekap Kehadiran"],["Jurnal","📓","Isi jurnal mengajar guru","#fce7f3","Jurnal Guru"]]],
+ ["Akademik",[["Jadwal","📅","Jadwal pelajaran semua kelas","#e0f2fe"],["Tugas","📝","Periksa & nilai tugas siswa","#fef3c7"],["Absensi","✅","Catat kehadiran harian","#dcfce7"],["Rekap","🗓️","Rekap kehadiran & ekspor Excel","#ede9fe","Rekap Kehadiran"],["Jurnal","📓","Isi jurnal mengajar guru","#fce7f3","Jurnal Guru"],["Presensi","📸","Absen guru dengan kamera & lokasi","#fee2e2","Presensi Guru"]]],
  ["Data Madrasah",[["Siswa","🎓","Upload & kelola data siswa","#e0e7ff"],["Guru","👩‍🏫","Akun & sandi guru","#ccfbf1"]]],
  ["Kesiswaan",[["Pelanggaran","⚠️","Catatan kedisiplinan","#ffe4e6"],["Prestasi","🏆","Capaian & penghargaan siswa","#fef9c3"]]],
  ["Layanan",[["Pengumuman","📢","Kirim info ke semua siswa","#ffedd5"],["Pembayaran","💳","QRIS & laporan pembayaran","#d1fae5"],["Bantuan","🎧","Balas pesan dari siswa","#cffafe"],["Chat","💬","Grup chat guru & siswa","#dbeafe","Grup Chat"]]]
@@ -471,6 +473,147 @@ window.exportJurnal=()=>{
   const ws=XLSX.utils.aoa_to_sheet([["JURNAL GURU"],[],["No","Tanggal","Jam","Kelas","Mata Pelajaran","Guru","Materi","Kegiatan","Siswa Tidak Hadir","Catatan/Kendala"],...[...JNV].sort((a,b)=>a.tgl>b.tgl?1:-1).map((x,i)=>[i+1,x.tgl,x.jam,x.kelas,x.mapel,x.guru,x.materi,x.kegiatan,x.absen,x.catatan])]);
   ws["!cols"]=[{wch:5},{wch:12},{wch:14},{wch:10},{wch:22},{wch:24},{wch:32},{wch:36},{wch:22},{wch:28}];
   const wb=XLSX.utils.book_new();XLSX.utils.book_append_sheet(wb,ws,"Jurnal");XLSX.writeFile(wb,"Jurnal_Guru_"+today()+".xlsx");
+};
+
+// ============ PRESENSI GURU (kamera + lokasi) ============
+const PG_ACC=300; // akurasi GPS maksimal (meter) agar lokasi dianggap valid
+const pgp=n=>String(n).padStart(2,"0");
+const pgYmd=d=>d.getFullYear()+"-"+pgp(d.getMonth()+1)+"-"+pgp(d.getDate());
+const hav=(la1,ln1,la2,ln2)=>{const R=6371000,r=x=>x*Math.PI/180,a=Math.sin(r(la2-la1)/2)**2+Math.cos(r(la1))*Math.cos(r(la2))*Math.sin(r(ln2-ln1)/2)**2;return 2*R*Math.asin(Math.sqrt(a))};
+const fmJ=m=>m<1000?Math.round(m)+" m":(m/1000).toFixed(2)+" km";
+const parseKoord=s=>{s=String(s||"").trim();const m=s.match(/@(-?\d+\.\d+),(-?\d+\.\d+)/)||s.match(/!3d(-?\d+\.\d+)!4d(-?\d+\.\d+)/)||s.match(/[?&](?:q|ll|query)=(-?\d+\.\d+)(?:,|%2C)(-?\d+\.\d+)/)||s.match(/^(-?\d+(?:\.\d+)?)\s*[, ]\s*(-?\d+(?:\.\d+)?)$/);
+  if(!m)return null;const lat=+m[1],lng=+m[2];return Math.abs(lat)<=90&&Math.abs(lng)<=180?{lat,lng}:null};
+let PGL={lat:null,lng:null,radius:1000,nama:"Lokasi madrasah"},PGV=[],PGG=[],pgStream=null,pgPos=null,pgFoto="";
+const getLokasi=async()=>{try{const d=await getDoc(doc(db,"pengaturan","lokasi"));if(d.exists())PGL={...PGL,...d.data()}}catch(e){}return PGL};
+window.pgStop=()=>{if(pgStream){pgStream.getTracks().forEach(t=>t.stop());pgStream=null}};
+const pgMsg=(t,c)=>{const e=$("pgMsg");if(e){e.textContent=t;e.className="text-sm "+(c||"text-slate-600")}};
+const getPos=()=>new Promise((ok,no)=>navigator.geolocation.getCurrentPosition(p=>ok({lat:p.coords.latitude,lng:p.coords.longitude,acc:p.coords.accuracy}),no,{enableHighAccuracy:true,timeout:20000,maximumAge:0}));
+const kelasTxt=r=>Object.entries(r.kelas).map(([k,n])=>k+" ("+n+")").join(", ");
+
+A.Presensi=async()=>{
+  const full=!me.idGuru;await getLokasi();
+  const kl=[...new Set(siswa.map(x=>x.kelas))].sort(),mp=[...new Set((await getJadwal()).map(x=>x.mapel).filter(m=>!/istirahat/i.test(m)))].sort();
+  PGG=full?(await all("guru")).sort((a,b)=>(a.nama||"")>(b.nama||"")?1:-1):[];
+  const ok=PGL.lat!=null&&PGL.lng!=null;
+  const lokInfo=ok?`${esc(PGL.nama)} - radius ${fmJ(PGL.radius)} - <a class="underline text-emerald-700" target="_blank" rel="noopener" href="https://www.google.com/maps?q=${PGL.lat},${PGL.lng}">lihat di Maps</a>`:"Lokasi madrasah belum diatur oleh admin.";
+  const form=full?"":`<div class="card space-y-2 mb-4"><h2 class="font-extrabold">📸 Presensi mengajar</h2>
+  <p class="text-xs text-slate-500">📍 ${lokInfo}</p>
+  <p class="text-xs text-slate-500">Presensi hanya bisa dilakukan di dalam radius lokasi madrasah, dengan foto selfie langsung dari kamera. Lakukan per kelas yang Anda ajar.</p>
+  <div class="grid grid-cols-2 gap-2"><input id="pgKls" class="inp" list="pgKlsL" placeholder="Kelas"><datalist id="pgKlsL">${kl.map(k=>`<option value="${esc(k)}">`).join("")}</datalist><input id="pgMp" class="inp" list="pgMpL" placeholder="Mata pelajaran"><datalist id="pgMpL">${mp.map(k=>`<option value="${esc(k)}">`).join("")}</datalist></div>
+  <div id="pgCam" class="hidden"><video id="pgVid" autoplay playsinline muted style="width:100%;border-radius:.75rem;background:#000;transform:scaleX(-1)"></video></div>
+  <img id="pgPrev" class="hidden w-full rounded-xl border" alt="Foto presensi">
+  <p id="pgMsg" class="text-sm text-slate-600"></p>
+  <div class="flex flex-wrap gap-2"><button id="pgB1" class="btn" onclick="pgMulai()" ${ok?"":"disabled"}>Mulai presensi</button><button id="pgB2" class="btn hidden" onclick="pgAmbil()">📷 Ambil foto</button><button id="pgB3" class="btn hidden" onclick="pgKirim()">✅ Kirim presensi</button><button id="pgB4" class="btn2 hidden" onclick="pgMulai()">Ulangi</button></div></div>`;
+  const set=!full?"":`<div class="card space-y-2 mb-4"><h2 class="font-extrabold">📍 Lokasi presensi</h2>
+  <p class="text-xs text-slate-500">Saat ini: ${lokInfo}</p>
+  <p class="text-xs text-slate-500">Isi dengan koordinat (mis. -7.98, 112.63) atau tempel link Google Maps versi panjang. Link pendek (maps.app.goo.gl) tidak bisa dibaca - buka dulu di Maps, lalu salin koordinatnya atau link panjangnya. Anda juga bisa berdiri di lokasi madrasah lalu tekan "Pakai lokasi saya sekarang".</p>
+  <input id="lkNama" class="inp" placeholder="Nama lokasi" value="${esc(PGL.nama)}">
+  <input id="lkKoor" class="inp" placeholder="Koordinat atau link Google Maps" value="${ok?PGL.lat+", "+PGL.lng:""}">
+  <input id="lkRad" type="number" class="inp" placeholder="Radius (meter)" value="${PGL.radius}">
+  <div class="flex flex-wrap gap-2"><button class="btn" onclick="lkSimpan()">Simpan lokasi</button><button class="btn2" onclick="lkPakai()">Pakai lokasi saya sekarang</button></div></div>`;
+  const bulan=pgYmd(new Date()).slice(0,7);
+  const rek=`<div class="card space-y-2 mb-4"><h2 class="font-extrabold">Rekap presensi guru (otomatis)</h2>
+  <div class="grid grid-cols-2 gap-2"><input id="pgBulan" type="month" class="inp" value="${bulan}" onchange="loadPG()">${full?`<select id="pgGuru" class="inp" onchange="renderPG()"><option value="">Semua guru</option>${PGG.map(x=>`<option value="${esc(x.id)}">${esc(x.nama||x.idGuru)}</option>`).join("")}</select>`:"<div></div>"}</div>
+  <button class="btn2" onclick="exportPresensi()">⬇ Ekspor ke Excel</button></div><div id="pgRekap"></div>`;
+  return form+set+rek;
+};
+window.lkSimpan=async()=>{
+  const k=parseKoord($("lkKoor").value),r=+$("lkRad").value;
+  if(!k)return alert("Koordinat tidak terbaca. Isi format: -7.98, 112.63 atau link Google Maps panjang.");
+  if(!(r>=50&&r<=20000))return alert("Radius harus antara 50 dan 20000 meter.");
+  await setDoc(doc(db,"pengaturan","lokasi"),{lat:k.lat,lng:k.lng,radius:r,nama:$("lkNama").value.trim()||"Lokasi madrasah"});
+  alert("Lokasi presensi tersimpan.");go("Presensi");
+};
+window.lkPakai=async()=>{
+  if(!navigator.geolocation)return alert("Browser tidak mendukung lokasi.");
+  try{const p=await getPos();$("lkKoor").value=p.lat.toFixed(6)+", "+p.lng.toFixed(6);alert("Lokasi terisi (akurasi ±"+Math.round(p.acc)+" m). Tekan Simpan lokasi.")}
+  catch(e){alert("Gagal mengambil lokasi. Izinkan akses lokasi dan aktifkan GPS.")}
+};
+window.pgMulai=async()=>{
+  const k=$("pgKls").value.trim(),m=$("pgMp").value.trim();
+  if(!k||!m)return alert("Isi kelas dan mata pelajaran dulu.");
+  if(PGL.lat==null)return alert("Lokasi madrasah belum diatur oleh admin.");
+  pgStop();pgFoto="";pgPos=null;
+  ["pgCam","pgPrev","pgB2","pgB3","pgB4"].forEach(i=>$(i).classList.add("hidden"));$("pgB1").classList.add("hidden");
+  const gagal=t=>{pgStop();if($("pgB1")){$("pgB1").classList.remove("hidden");pgMsg(t,"text-rose-600")}};
+  if(!navigator.geolocation||!navigator.mediaDevices||!navigator.mediaDevices.getUserMedia)return gagal("Browser tidak mendukung kamera/lokasi. Gunakan Chrome atau Safari terbaru dan buka lewat https.");
+  pgMsg("Mengambil lokasi... mohon izinkan akses lokasi.");
+  try{pgPos=await getPos()}catch(e){return gagal("Lokasi gagal diambil. Izinkan akses lokasi dan aktifkan GPS, lalu coba lagi.")}
+  if(!$("pgMsg"))return;
+  if(pgPos.acc>PG_ACC)return gagal("Akurasi lokasi rendah (±"+Math.round(pgPos.acc)+" m). Aktifkan GPS/lokasi akurasi tinggi, lalu coba lagi.");
+  const d=hav(pgPos.lat,pgPos.lng,PGL.lat,PGL.lng);
+  if(d>PGL.radius)return gagal("Anda berada "+fmJ(d)+" dari lokasi madrasah. Batas presensi "+fmJ(PGL.radius)+".");
+  pgMsg("Lokasi sesuai ("+fmJ(d)+" dari madrasah). Menyalakan kamera...","text-emerald-700");
+  try{pgStream=await navigator.mediaDevices.getUserMedia({video:{facingMode:"user",width:{ideal:640},height:{ideal:480}},audio:false})}
+  catch(e){return gagal("Kamera tidak bisa dibuka. Izinkan akses kamera lalu coba lagi.")}
+  if(!$("pgVid"))return pgStop();
+  $("pgVid").srcObject=pgStream;$("pgCam").classList.remove("hidden");$("pgB2").classList.remove("hidden");
+  pgMsg("Lokasi sesuai ("+fmJ(d)+"). Hadapkan wajah ke kamera lalu ambil foto.","text-emerald-700");
+};
+window.pgAmbil=()=>{
+  const v=$("pgVid");if(!v||!v.videoWidth)return alert("Kamera belum siap.");
+  const w=360,h=Math.round(v.videoHeight/v.videoWidth*w),c=document.createElement("canvas");c.width=w;c.height=h;
+  const x=c.getContext("2d");x.drawImage(v,0,0,w,h);x.fillStyle="rgba(0,0,0,.55)";x.fillRect(0,h-22,w,22);x.fillStyle="#fff";x.font="11px sans-serif";
+  x.fillText(new Date().toLocaleString("id-ID")+" | "+pgPos.lat.toFixed(5)+", "+pgPos.lng.toFixed(5),6,h-7);
+  pgFoto=c.toDataURL("image/jpeg",.6);pgStop();
+  $("pgCam").classList.add("hidden");$("pgPrev").src=pgFoto;$("pgPrev").classList.remove("hidden");
+  $("pgB2").classList.add("hidden");$("pgB3").classList.remove("hidden");$("pgB4").classList.remove("hidden");
+  pgMsg("Periksa foto, lalu kirim presensi.");
+};
+window.pgKirim=async()=>{
+  if(!pgFoto||!pgPos)return alert("Ambil foto dulu.");
+  const d=hav(pgPos.lat,pgPos.lng,PGL.lat,PGL.lng);if(d>PGL.radius)return alert("Di luar radius presensi.");
+  const n=new Date();$("pgB3").disabled=true;
+  try{
+    const ref=await addDoc(collection(db,"presensiGuru"),{tgl:pgYmd(n),jam:pgp(n.getHours())+":"+pgp(n.getMinutes()),waktu:n.toISOString(),guruId:key(me.idGuru),idGuru:me.idGuru,nama:me.nama,kelas:$("pgKls").value.trim(),mapel:$("pgMp").value.trim(),lat:pgPos.lat,lng:pgPos.lng,akurasi:Math.round(pgPos.acc),jarak:Math.round(d)});
+    await setDoc(doc(db,"presensiFoto",ref.id),{foto:pgFoto});
+  }catch(e){$("pgB3").disabled=false;return alert("Presensi gagal tersimpan. Periksa koneksi lalu coba lagi.")}
+  pgFoto="";alert("Presensi berhasil tersimpan.");go("Presensi");
+};
+window.loadPG=async()=>{
+  const b=$("pgBulan").value;if(!b){$("pgRekap").innerHTML=empty("Pilih bulan.");return}
+  $("pgRekap").innerHTML=empty("Memuat...");
+  try{
+    const s=await getDocs(query(collection(db,"presensiGuru"),where("tgl",">=",b+"-01"),where("tgl","<=",b+"-31")));
+    PGV=s.docs.map(d=>({id:d.id,...d.data()})).filter(x=>!me.idGuru||x.guruId===key(me.idGuru));
+  }catch(e){$("pgRekap").innerHTML=empty("Gagal memuat data presensi. Periksa koneksi atau aturan Firestore.");return}
+  renderPG();
+};
+const pgDet=()=>{const g=$("pgGuru")?.value||"";return PGV.filter(x=>!g||x.guruId===g).sort((a,b)=>a.waktu>b.waktu?1:-1)};
+const pgRows=()=>{
+  const g=$("pgGuru")?.value||"",m=new Map();
+  const add=(id,nama,idg)=>{if(!m.has(id))m.set(id,{id,nama:nama||idg||id,idGuru:idg||"",hari:new Set(),sesi:0,kelas:{}})};
+  if(me.idGuru)add(key(me.idGuru),me.nama,me.idGuru);else PGG.forEach(x=>add(x.id,x.nama,x.idGuru));
+  PGV.forEach(x=>{add(x.guruId,x.nama,x.idGuru);const r=m.get(x.guruId);r.hari.add(x.tgl);r.sesi++;r.kelas[x.kelas]=(r.kelas[x.kelas]||0)+1});
+  return [...m.values()].filter(r=>!g||r.id===g).sort((a,b)=>a.nama>b.nama?1:-1);
+};
+window.renderPG=()=>{
+  const rows=pgRows(),det=pgDet().reverse(),full=!me.idGuru;
+  $("pgRekap").innerHTML=`<p class="text-sm mb-2">${det.length} sesi mengajar tercatat - ${rows.filter(r=>r.sesi).length} guru hadir</p>`
+  +(rows.length?`<div class="card overflow-x-auto p-0 mb-4"><table class="w-full text-sm"><thead style="background:var(--g);color:#fff"><tr><th class="text-left p-3">Guru</th><th class="p-3">Hari hadir</th><th class="p-3">Sesi</th><th class="text-left p-3">Kelas</th></tr></thead><tbody>${rows.map(r=>`<tr class="border-t"><td class="p-3 font-semibold">${esc(r.nama)}</td><td class="p-3 text-center ${r.hari.size?"":"text-rose-600 font-bold"}">${r.hari.size}</td><td class="p-3 text-center">${r.sesi}</td><td class="p-3 text-xs">${esc(kelasTxt(r))||"-"}</td></tr>`).join("")}</tbody></table></div>`:empty("Belum ada data guru."))
+  +`<h3 class="msec">Riwayat presensi</h3>`+list(det,x=>`<div class="card mb-2 flex justify-between gap-2"><div><b>${esc(x.nama)}</b> <span class="pill bg-emerald-100 text-emerald-700">${esc(x.kelas)}</span><div class="text-sm">${esc(x.mapel)}</div><div class="text-xs text-slate-500">${esc(x.tgl)} ${esc(x.jam)} - ${fmJ(x.jarak||0)} dari lokasi</div></div><div class="flex flex-col gap-1"><button class="btn2" onclick="pgLihat('${x.id}')">Foto</button>${full?`<button class="btn2" onclick="pgHapus('${x.id}')">Hapus</button>`:""}</div></div>`,"Belum ada presensi pada bulan ini.");
+};
+window.pgLihat=async id=>{
+  let d;try{d=await getDoc(doc(db,"presensiFoto",id))}catch(e){return alert("Foto gagal dimuat.")}
+  if(!d.exists())return alert("Foto tidak ditemukan.");
+  const m=document.createElement("div");m.className="modal";m.onclick=()=>m.remove();
+  m.innerHTML=`<div class="modal-box" style="max-width:26rem"><img src="${d.data().foto}" class="w-full rounded-xl" alt="Foto presensi"></div>`;document.body.appendChild(m);
+};
+window.pgHapus=async id=>{if(!confirm("Hapus presensi ini?"))return;await deleteDoc(doc(db,"presensiGuru",id));try{await deleteDoc(doc(db,"presensiFoto",id))}catch(e){}loadPG()};
+window.exportPresensi=()=>{
+  const b=$("pgBulan").value,rows=pgRows(),det=pgDet();
+  if(!b||!det.length)return alert("Tidak ada data presensi untuk diekspor.");
+  const [y,mo]=b.split("-").map(Number),nd=new Date(y,mo,0).getDate();
+  const g=$("pgGuru")?.value,gn=g?(rows[0]?.nama||""):"Semua guru";
+  const s1=[["REKAP PRESENSI GURU"],["Bulan: "+b+" | "+gn+" | Radius presensi: "+PGL.radius+" m"],[],["No","Nama","ID Guru","Hari Hadir","Total Sesi Mengajar","Kelas (jumlah sesi)"],...rows.map((r,i)=>[i+1,r.nama,r.idGuru,r.hari.size,r.sesi,kelasTxt(r)])];
+  const w1=XLSX.utils.aoa_to_sheet(s1);w1["!cols"]=[{wch:5},{wch:28},{wch:14},{wch:11},{wch:20},{wch:40}];
+  const days=Array.from({length:nd},(_,i)=>i+1);
+  const s2=[["REKAP HARIAN (jumlah sesi per tanggal)"],[],["No","Nama",...days,"Total"],...rows.map((r,i)=>{const c=days.map(d=>det.filter(x=>x.guruId===r.id&&x.tgl===b+"-"+pgp(d)).length);return [i+1,r.nama,...c.map(v=>v||""),r.sesi]})];
+  const w2=XLSX.utils.aoa_to_sheet(s2);w2["!cols"]=[{wch:5},{wch:28},...days.map(()=>({wch:4})),{wch:7}];
+  const s3=[["Tanggal","Jam","Nama","ID Guru","Kelas","Mata Pelajaran","Jarak dari Lokasi (m)","Akurasi GPS (m)","Latitude","Longitude"],...det.map(x=>[x.tgl,x.jam,x.nama,x.idGuru,x.kelas,x.mapel,x.jarak,x.akurasi,x.lat,x.lng])];
+  const w3=XLSX.utils.aoa_to_sheet(s3);w3["!cols"]=[{wch:12},{wch:8},{wch:28},{wch:14},{wch:10},{wch:24},{wch:20},{wch:15},{wch:12},{wch:12}];
+  const wb=XLSX.utils.book_new();XLSX.utils.book_append_sheet(wb,w1,"Rekap");XLSX.utils.book_append_sheet(wb,w2,"Rekap Harian");XLSX.utils.book_append_sheet(wb,w3,"Detail Presensi");
+  XLSX.writeFile(wb,"Presensi_Guru_"+b+".xlsx");
 };
 
 // ============ GRUP CHAT (admin + siswa) ============
