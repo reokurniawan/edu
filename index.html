@@ -51,6 +51,22 @@ html{scroll-behavior:smooth}
 .modal-box{background:#fff;border-radius:1.25rem;width:100%;max-width:24rem;padding:1.5rem;position:relative;box-shadow:0 24px 60px rgba(0,0,0,.28)}
 .modal-x{position:absolute;right:.8rem;top:.8rem;width:32px;height:32px;border-radius:50%;font-size:1.3rem;line-height:1;color:#64748b}
 .modal-x:hover{background:#f1efe6}
+input[type=month]{display:block;box-sizing:border-box;width:100%;min-width:0;-webkit-appearance:none;appearance:none;min-height:2.6rem}
+.mcard{position:relative;background:#fff;border:1px solid #e5e2d6;border-radius:1.1rem;padding:1rem;text-align:left;display:flex;flex-direction:column;gap:.25rem;transition:.2s;box-shadow:0 1px 2px rgba(0,0,0,.04)}
+.mcard:hover{border-color:var(--g);transform:translateY(-3px);box-shadow:0 10px 24px rgba(15,81,50,.1)}
+.mic{width:46px;height:46px;border-radius:14px;display:flex;align-items:center;justify-content:center;font-size:1.45rem;margin-bottom:.35rem}
+.mt{font-weight:800;font-size:.95rem}.md{font-size:.72rem;color:#64748b;line-height:1.3}
+.mbd{position:absolute;top:.7rem;right:.7rem;background:#e11d48;color:#fff;font-size:.65rem;font-weight:800;min-width:20px;height:20px;border-radius:10px;display:flex;align-items:center;justify-content:center;padding:0 5px}
+.msec{font-size:.72rem;font-weight:800;letter-spacing:.08em;text-transform:uppercase;color:#64748b;margin:1.4rem 0 .6rem}
+.hstat{background:rgba(255,255,255,.14);border-radius:.9rem;padding:.6rem .5rem;text-align:center}
+.chat-box{height:58vh;min-height:320px;overflow-y:auto;padding:.9rem;background:#efeadd;display:flex;flex-direction:column;gap:.4rem}
+.cm{display:flex}.cm.me{justify-content:flex-end}
+.cb{max-width:82%;background:#fff;border:1px solid #e5e2d6;border-radius:1rem 1rem 1rem .25rem;padding:.45rem .7rem}
+.cm.me .cb{background:var(--g);color:#fff;border-color:var(--g);border-radius:1rem 1rem .25rem 1rem}
+.cn{font-size:.72rem;font-weight:800;color:var(--g2)}.crole{font-weight:600;color:#94a3b8}
+.ct{font-size:.9rem;white-space:pre-wrap;word-break:break-word}
+.cf{font-size:.65rem;opacity:.65;text-align:right;margin-top:.1rem}.cf button{text-decoration:underline}
+.csep{text-align:center;margin:.4rem 0}.csep span{font-size:.68rem;font-weight:700;background:rgba(255,255,255,.75);padding:.15rem .7rem;border-radius:999px;color:#64748b}
 </style>
 </head>
 <body>
@@ -142,7 +158,7 @@ html{scroll-behavior:smooth}
 
 <script type="module">
 import {initializeApp} from "https://www.gstatic.com/firebasejs/11.6.1/firebase-app.js";
-import {getFirestore,collection,getDocs,doc,setDoc,addDoc,updateDoc,deleteDoc,getDoc,writeBatch} from "https://www.gstatic.com/firebasejs/11.6.1/firebase-firestore.js";
+import {getFirestore,collection,getDocs,doc,setDoc,addDoc,updateDoc,deleteDoc,getDoc,writeBatch,onSnapshot,query,where} from "https://www.gstatic.com/firebasejs/11.6.1/firebase-firestore.js";
 
 // === GANTI DENGAN CONFIG FIREBASE BARU ANDA (lihat langkah-langkah) ===
 const firebaseConfig={apiKey:"AIzaSyClGgcUyZj16x1XpbGGFkIdbQC9OSqnvtw",authDomain:"apa-1c339.firebaseapp.com",projectId:"apa-1c339",storageBucket:"apa-1c339.firebasestorage.app",messagingSenderId:"446205639535",appId:"1:446205639535:web:3ac4916c616089f15f869a"};
@@ -167,7 +183,7 @@ window.doLogin=async()=>{
     let g=null;
     if(u.toLowerCase()===ADMIN.u&&p===ADMIN.p) g={nama:"Admin"};
     else if(key(u)){ const d=await getDoc(doc(db,"guru",key(u))); if(d.exists()&&d.data().sandi===p) g=d.data(); }
-    if(g){ isAdmin=true; me={nama:g.nama}; }
+    if(g){ isAdmin=true; me={nama:g.nama,idGuru:g.idGuru||""}; }
     else{ const s=await getDoc(doc(db,"siswa",u)); if(!s.exists()||s.data().tgl!==p)throw 0; me=s.data(); isAdmin=false; }
   }catch(e){$("err").textContent="NISN/ID guru atau sandi salah.";$("err").classList.remove("hidden");if(!saved)openLogin();return}
   sessionStorage.setItem("me",JSON.stringify({u,p}));
@@ -183,26 +199,27 @@ const IC={user:svg('<path d="M20 21v-2a4 4 0 0 0-4-4H8a4 4 0 0 0-4 4v2"/><circle
  out:svg('<path d="M9 21H5a2 2 0 0 1-2-2V5a2 2 0 0 1 2-2h4"/><polyline points="16 17 21 12 16 7"/><line x1="21" y1="12" x2="9" y2="12"/>')};
 window.toggleMenu=e=>{e.stopPropagation();$("menu").classList.toggle("hidden")};
 document.addEventListener("click",()=>$("menu")&&$("menu").classList.add("hidden"));
-window.home=()=>{if(!isAdmin)go("Beranda")};
+window.home=()=>{go(isAdmin?"Menu":"Beranda")};
 function start(){
   closeLogin();$("login").classList.add("hidden");$("app").classList.remove("hidden");
   const t=["Siswa","Guru","Jadwal","Pengumuman","Pelanggaran","Prestasi","Tugas","Absensi","Rekap","Pembayaran","Bantuan"];
-  if(isAdmin){$("tabs").style.display="";$("tabs").innerHTML=t.map(x=>`<button class="tab" data-t="${x}" onclick="go('${x}')">${x==="Rekap"?"Rekap Kehadiran":x}</button>`).join("")}
-  else{$("tabs").style.display="none";$("tabs").innerHTML=""}
+  $("tabs").style.display="none";$("tabs").innerHTML="";
   $("menu").innerHTML=`<div class="px-3 py-2 border-b mb-1"><div class="font-bold text-sm">${esc(me.nama)}</div><div class="text-xs text-slate-500">${isAdmin?"Guru / Admin":esc(me.kelas)}</div></div>`
-   +(isAdmin?"":`<button class="mi" onclick="go('Notifikasi')">${IC.bell}<span>Notifikasi</span><span id="bdg" class="ml-auto"></span></button><button class="mi" onclick="go('Bantuan')">${IC.help}<span>Bantuan (CS)</span></button>`)
+   +(isAdmin?"":`<button class="mi" onclick="go('Notifikasi')">${IC.bell}<span>Notifikasi</span><span id="bdg" class="ml-auto"></span></button><button class="mi" onclick="go('Bantuan')">${IC.help}<span>Bantuan (CS)</span></button><button class="mi" onclick="go('Chat')">${IC.chat}<span>Grup Chat</span></button>`)
    +`<button class="mi" style="color:#be123c" onclick="logout()">${IC.out}<span>Keluar</span></button>`;
   $("acc").innerHTML=IC.user+'<span id="bdg2" class="bdg2" style="display:none"></span>';
-  go(isAdmin?t[0]:"Beranda");
+  go(isAdmin?"Menu":"Beranda");
   if(!isAdmin)refreshBadge();
 }
 window.go=async n=>{
+  if(window.unsubChat){window.unsubChat();window.unsubChat=null}
   tab=n;document.querySelectorAll(".tab").forEach(b=>b.classList.toggle("on",b.dataset.t===n));
   $("main").innerHTML='<p class="text-slate-500">Memuat…</p>';
   if(isAdmin)siswa=await all("siswa");
-  const back=!isAdmin&&n!=="Beranda"?`<button class="btn2 mb-3" onclick="go('Beranda')">← Beranda</button>`:"";
+  const hm=isAdmin?"Menu":"Beranda",back=n!==hm?`<button class="btn2 mb-3" onclick="go('${hm}')">← ${hm}</button>`:"";
   $("main").innerHTML=back+await (isAdmin?A:S)[n]();
   if(isAdmin&&n==="Rekap")loadRekap();
+  if(n==="Chat")initChat();
   window.scrollTo(0,0);
 };
 const opts=(a,sel)=>a.map(s=>`<option value="${s.nisn}">${esc(s.nama)} - ${esc(s.kelas)}</option>`).join("");
@@ -223,7 +240,8 @@ Beranda:async()=>{
   <section class="grid grid-cols-3 gap-3 mt-4">
    <div class="card text-center"><div class="text-3xl font-extrabold text-rose-600">${alpha}</div><div class="text-xs text-slate-500">Alpha</div></div>
    <button class="card text-center" onclick="go('Pelanggaran')"><div class="text-3xl font-extrabold text-amber-600">${mine(pel).length}</div><div class="text-xs text-slate-500">Pelanggaran</div><div class="text-[10px] text-slate-400 mt-1">Lihat semua ›</div></button>
-   <button class="card text-center" onclick="go('Prestasi')"><div class="text-3xl font-extrabold" style="color:var(--g)">${mine(pr).length}</div><div class="text-xs text-slate-500">Prestasi</div><div class="text-[10px] text-slate-400 mt-1">Lihat semua ›</div></button></section>`;
+   <button class="card text-center" onclick="go('Prestasi')"><div class="text-3xl font-extrabold" style="color:var(--g)">${mine(pr).length}</div><div class="text-xs text-slate-500">Prestasi</div><div class="text-[10px] text-slate-400 mt-1">Lihat semua ›</div></button></section>
+  <section class="mt-4"><button class="card w-full flex items-center gap-3 text-left" onclick="go('Chat')"><span class="text-3xl">💬</span><span><b class="block">Grup Chat</b><span class="text-xs text-slate-500">Ngobrol dengan teman sekelas dan guru</span></span><span class="ml-auto text-slate-400">›</span></button></section>`;
 },
 Pelanggaran:async()=>`<h2 class="font-extrabold mb-2">Semua Pelanggaran</h2>`+list((await all("pelanggaran")).filter(x=>x.nisn===me.nisn).sort((a,b)=>b.waktu>a.waktu?1:-1),x=>`<div class="card mb-2" style="border-left:4px solid #e11d48">⚠️ <b>${esc(x.ket)}</b><div class="text-xs text-slate-500">${esc(x.waktu)}</div></div>`,"Tidak ada catatan pelanggaran."),
 Prestasi:async()=>`<h2 class="font-extrabold mb-2">Semua Prestasi</h2>`+list((await all("prestasi")).filter(x=>x.nisn===me.nisn),x=>`<div class="card mb-2" style="border-left:4px solid var(--gold)">🏆 <b>${esc(x.judul)}</b><div class="text-xs text-slate-500">${esc(x.tgl)} - ${esc(x.ket)}</div></div>`,"Belum ada prestasi."),
@@ -397,6 +415,102 @@ window.exportRekap=()=>{
   const wb=XLSX.utils.book_new();XLSX.utils.book_append_sheet(wb,w1,"Rekap");XLSX.utils.book_append_sheet(wb,w2,"Detail Harian");
   XLSX.writeFile(wb,"Rekap_Kehadiran_"+d1+"_sd_"+d2+".xlsx");
 };
+
+// ============ MENU KARTU ADMIN ============
+IC.chat=svg('<path d="M21 15a2 2 0 0 1-2 2H7l-4 4V5a2 2 0 0 1 2-2h14a2 2 0 0 1 2 2z"/>');
+const MENU=[
+ ["Akademik",[["Jadwal","📅","Jadwal pelajaran semua kelas","#e0f2fe"],["Tugas","📝","Periksa & nilai tugas siswa","#fef3c7"],["Absensi","✅","Catat kehadiran harian","#dcfce7"],["Rekap","🗓️","Rekap kehadiran & ekspor Excel","#ede9fe","Rekap Kehadiran"],["Jurnal","📓","Isi jurnal mengajar guru","#fce7f3","Jurnal Guru"]]],
+ ["Data Madrasah",[["Siswa","🎓","Upload & kelola data siswa","#e0e7ff"],["Guru","👩‍🏫","Akun & sandi guru","#ccfbf1"]]],
+ ["Kesiswaan",[["Pelanggaran","⚠️","Catatan kedisiplinan","#ffe4e6"],["Prestasi","🏆","Capaian & penghargaan siswa","#fef9c3"]]],
+ ["Layanan",[["Pengumuman","📢","Kirim info ke semua siswa","#ffedd5"],["Pembayaran","💳","QRIS & laporan pembayaran","#d1fae5"],["Bantuan","🎧","Balas pesan dari siswa","#cffafe"],["Chat","💬","Grup chat guru & siswa","#dbeafe","Grup Chat"]]]
+];
+A.Menu=async()=>{
+  const [gu,pb,bt]=await Promise.all([all("guru"),all("pembayaran"),all("bantuan")]);
+  const nb={Pembayaran:pb.filter(x=>x.status==="Menunggu").length,Bantuan:bt.filter(x=>!x.balasan).length};
+  const kls=new Set(siswa.map(x=>x.kelas)).size;
+  const tgl=new Date().toLocaleDateString("id-ID",{weekday:"long",day:"numeric",month:"long",year:"numeric"});
+  return `<section class="hero p-6"><p class="text-sm opacity-80">Assalamu'alaikum,</p><h1 class="text-2xl sm:text-3xl font-extrabold">${esc(me.nama)}</h1><p class="text-xs opacity-75 mt-1">${tgl}</p>
+  <div class="grid grid-cols-3 gap-3 mt-5 relative z-10"><div class="hstat"><div class="text-2xl font-extrabold">${siswa.length}</div><div class="text-[11px] opacity-80">Siswa</div></div><div class="hstat"><div class="text-2xl font-extrabold">${gu.length}</div><div class="text-[11px] opacity-80">Guru</div></div><div class="hstat"><div class="text-2xl font-extrabold">${kls}</div><div class="text-[11px] opacity-80">Kelas</div></div></div></section>`
+  +MENU.map(([sec,items])=>`<h2 class="msec">${sec}</h2><div class="grid grid-cols-2 sm:grid-cols-3 gap-3">`+items.map(([k,ic,d,bg,lb])=>`<button class="mcard" onclick="go('${k}')"><span class="mic" style="background:${bg}">${ic}</span><span class="mt">${lb||k}</span><span class="md">${d}</span>${nb[k]?`<span class="mbd">${nb[k]}</span>`:""}</button>`).join("")+`</div>`).join("");
+};
+
+// ============ JURNAL GURU ============
+let JN=[],JNV=[];
+const isOwner=x=>!me.idGuru||x.guruId===key(me.idGuru);
+const jnCards=r=>list(r,x=>`<div class="card mb-2"><div class="flex justify-between gap-2"><div><b>${esc(x.mapel)}</b> <span class="pill bg-emerald-100 text-emerald-700">${esc(x.kelas)}</span><div class="text-xs text-slate-500 mt-0.5">${esc(x.tgl)}${x.jam?" - "+esc(x.jam):""} - ${esc(x.guru)}</div></div>${isOwner(x)?`<button class="btn2 h-fit" onclick="hapus('jurnal','${x.id}','Jurnal')">Hapus</button>`:""}</div>
+ <div class="text-sm mt-2 whitespace-pre-line"><b>Materi:</b> ${esc(x.materi)}</div>${x.kegiatan?`<div class="text-sm mt-1 whitespace-pre-line"><b>Kegiatan:</b> ${esc(x.kegiatan)}</div>`:""}${x.absen?`<div class="text-sm mt-1"><b>Siswa tidak hadir:</b> ${esc(x.absen)}</div>`:""}${x.catatan?`<div class="text-sm mt-1 whitespace-pre-line"><b>Catatan/kendala:</b> ${esc(x.catatan)}</div>`:""}</div>`,"Belum ada jurnal.");
+A.Jurnal=async()=>{
+  JN=(await all("jurnal")).sort((a,b)=>((b.tgl||"")+(b.dibuat||""))>((a.tgl||"")+(a.dibuat||""))?1:-1);JNV=JN;
+  const kl=[...new Set(siswa.map(x=>x.kelas))].sort(),mp=[...new Set((await getJadwal()).map(x=>x.mapel).filter(m=>!/istirahat/i.test(m)))].sort();
+  const gu=[...new Set(JN.map(x=>x.guru).filter(Boolean))].sort();
+  return `<div class="card space-y-2 mb-4"><h2 class="font-extrabold">📓 Isi jurnal mengajar</h2>
+  <div class="grid grid-cols-2 gap-2"><div><label class="text-xs text-slate-500">Tanggal</label><input id="jnTgl" type="date" class="inp" value="${today()}"></div><div><label class="text-xs text-slate-500">Jam ke / waktu</label><input id="jnJam" class="inp" placeholder="mis. 1-2 atau 07:00-08:30"></div></div>
+  <div class="grid grid-cols-2 gap-2"><div><label class="text-xs text-slate-500">Kelas</label><input id="jnKls" class="inp" list="jnKlsL" placeholder="Kelas"><datalist id="jnKlsL">${kl.map(k=>`<option value="${esc(k)}">`).join("")}</datalist></div><div><label class="text-xs text-slate-500">Mata pelajaran</label><input id="jnMp" class="inp" list="jnMpL" placeholder="Mata pelajaran"><datalist id="jnMpL">${mp.map(k=>`<option value="${esc(k)}">`).join("")}</datalist></div></div>
+  <div><label class="text-xs text-slate-500">Nama guru</label><input id="jnGuru" class="inp" value="${esc(me.nama)}"></div>
+  <textarea id="jnMateri" class="inp" rows="2" placeholder="Materi / topik yang diajarkan"></textarea>
+  <textarea id="jnKeg" class="inp" rows="3" placeholder="Kegiatan pembelajaran (opsional)"></textarea>
+  <input id="jnAbsen" class="inp" placeholder="Siswa tidak hadir (opsional, tulis nama)">
+  <textarea id="jnCat" class="inp" rows="2" placeholder="Catatan / kendala (opsional)"></textarea>
+  <button class="btn" onclick="saveJurnal()">Simpan jurnal</button></div>
+  <div class="card mb-4 space-y-2"><div class="grid grid-cols-2 gap-2"><select id="jnFilter" class="inp" onchange="renderJurnal()"><option value="">Semua guru</option>${gu.map(x=>`<option>${esc(x)}</option>`).join("")}</select><input id="jnBulan" type="month" class="inp" onchange="renderJurnal()"></div><button class="btn2" onclick="exportJurnal()">⬇ Ekspor ke Excel</button></div>
+  <div id="jnList"><p class="text-sm mb-2">${JN.length} jurnal</p>${jnCards(JN)}</div>`;
+};
+window.renderJurnal=()=>{
+  const g=$("jnFilter").value,b=$("jnBulan").value;
+  JNV=JN.filter(x=>(!g||x.guru===g)&&(!b||(x.tgl||"").startsWith(b)));
+  $("jnList").innerHTML=`<p class="text-sm mb-2">${JNV.length} jurnal</p>`+jnCards(JNV);
+};
+window.saveJurnal=async()=>{
+  const v=id=>$(id).value.trim(),d={tgl:v("jnTgl"),jam:v("jnJam"),kelas:v("jnKls"),mapel:v("jnMp"),guru:v("jnGuru")||me.nama,materi:v("jnMateri"),kegiatan:v("jnKeg"),absen:v("jnAbsen"),catatan:v("jnCat")};
+  if(!d.tgl||!d.kelas||!d.mapel||!d.materi)return alert("Isi tanggal, kelas, mata pelajaran, dan materi.");
+  await addDoc(collection(db,"jurnal"),{...d,guruId:key(me.idGuru||"admin"),dibuat:new Date().toISOString()});
+  go("Jurnal");
+};
+window.exportJurnal=()=>{
+  if(!JNV.length)return alert("Tidak ada jurnal untuk diekspor.");
+  const ws=XLSX.utils.aoa_to_sheet([["JURNAL GURU"],[],["No","Tanggal","Jam","Kelas","Mata Pelajaran","Guru","Materi","Kegiatan","Siswa Tidak Hadir","Catatan/Kendala"],...[...JNV].sort((a,b)=>a.tgl>b.tgl?1:-1).map((x,i)=>[i+1,x.tgl,x.jam,x.kelas,x.mapel,x.guru,x.materi,x.kegiatan,x.absen,x.catatan])]);
+  ws["!cols"]=[{wch:5},{wch:12},{wch:14},{wch:10},{wch:22},{wch:24},{wch:32},{wch:36},{wch:22},{wch:28}];
+  const wb=XLSX.utils.book_new();XLSX.utils.book_append_sheet(wb,ws,"Jurnal");XLSX.writeFile(wb,"Jurnal_Guru_"+today()+".xlsx");
+};
+
+// ============ GRUP CHAT (admin + siswa) ============
+window.unsubChat=null;
+let chatRoom="umum",chatMsgs=[],chatFirst=true;
+const chatUid=()=>isAdmin?"g_"+key(me.idGuru||"admin"):"s_"+me.nisn;
+const chatRooms=()=>{const r=[{id:"umum",label:"💬 Umum"}];
+  (isAdmin?[...new Set(siswa.map(s=>s.kelas))].sort():[me.kelas]).filter(Boolean).forEach(k=>r.push({id:"kelas:"+k,label:"🏫 "+k}));return r};
+const chatPage=async()=>`<div class="card p-0 overflow-hidden"><div class="p-3 flex gap-2 overflow-x-auto" id="crooms" style="border-bottom:1px solid #e5e2d6">${chatRooms().map((r,i)=>`<button class="tab" onclick="openRoom(${i})">${esc(r.label)}</button>`).join("")}</div>
+ <div id="cbox" class="chat-box"></div>
+ <div class="p-3 flex gap-2" style="border-top:1px solid #e5e2d6"><input id="cin" class="inp" placeholder="Tulis pesan…" maxlength="500" autocomplete="off"><button class="btn" onclick="sendChat()">Kirim</button></div></div>
+ <p class="text-xs text-slate-500 mt-2">Grup Umum diikuti semua guru dan siswa. Grup kelas khusus untuk siswa kelas tersebut dan guru.</p>`;
+S.Chat=chatPage;A.Chat=chatPage;
+window.initChat=()=>{openRoom(0);$("cin").addEventListener("keydown",e=>{if(e.key==="Enter"&&!e.shiftKey){e.preventDefault();sendChat()}})};
+window.openRoom=i=>{
+  const r=chatRooms()[i];if(!r||!$("cbox"))return;
+  chatRoom=r.id;chatFirst=true;chatMsgs=[];
+  document.querySelectorAll("#crooms .tab").forEach((b,k)=>b.classList.toggle("on",k===i));
+  if(window.unsubChat)window.unsubChat();
+  $("cbox").innerHTML=empty("Memuat…");
+  window.unsubChat=onSnapshot(query(collection(db,"chat"),where("room","==",chatRoom)),s=>{
+    chatMsgs=s.docs.map(d=>({id:d.id,...d.data()})).sort((a,b)=>a.waktu>b.waktu?1:-1).slice(-200);drawChat();
+  },()=>{if($("cbox"))$("cbox").innerHTML=empty("Gagal memuat chat. Periksa koneksi atau aturan Firestore.")});
+};
+const drawChat=()=>{
+  const b=$("cbox");if(!b)return;
+  const near=b.scrollHeight-b.scrollTop-b.clientHeight<90;let last="";
+  b.innerHTML=chatMsgs.length?chatMsgs.map(m=>{
+    const d=new Date(m.waktu),ok=!isNaN(d),day=ok?d.toLocaleDateString("id-ID",{weekday:"long",day:"numeric",month:"long"}):"",
+     sep=day&&day!==last?`<div class="csep"><span>${day}</span></div>`:"";if(day)last=day;
+    const mine=m.uid===chatUid(),t=ok?d.toLocaleTimeString("id-ID",{hour:"2-digit",minute:"2-digit"}):"",can=mine||(isAdmin&&!me.idGuru);
+    return sep+`<div class="cm ${mine?"me":""}"><div class="cb">${mine?"":`<div class="cn">${esc(m.nama)} <span class="crole">${esc(m.role)}${m.kelas?" - "+esc(m.kelas):""}</span></div>`}<div class="ct">${esc(m.teks)}</div><div class="cf">${t}${can?` - <button onclick="delChat('${m.id}')">hapus</button>`:""}</div></div></div>`}).join(""):empty("Belum ada pesan. Mulai obrolan!");
+  if(chatFirst||near)b.scrollTop=b.scrollHeight;chatFirst=false;
+};
+window.sendChat=async()=>{
+  const i=$("cin");if(!i)return;const t=i.value.trim();if(!t)return;i.value="";i.focus();
+  try{await addDoc(collection(db,"chat"),{room:chatRoom,uid:chatUid(),nama:me.nama,role:isAdmin?(me.idGuru?"Guru":"Admin"):"Siswa",kelas:isAdmin?"":(me.kelas||""),teks:t,waktu:new Date().toISOString()})}
+  catch(e){alert("Pesan gagal terkirim.");i.value=t}
+};
+window.delChat=async id=>{if(confirm("Hapus pesan ini?"))await deleteDoc(doc(db,"chat",id))};
 </script>
 </body>
 </html>
