@@ -6,6 +6,8 @@
 <title>MyIgi - MA Insan Generasi Islami</title>
 <script src="https://cdn.tailwindcss.com"></script>
 <script src="https://cdnjs.cloudflare.com/ajax/libs/xlsx/0.18.5/xlsx.full.min.js"></script>
+<script src="https://cdnjs.cloudflare.com/ajax/libs/qrcode-generator/1.4.4/qrcode.min.js"></script>
+<script src="https://unpkg.com/html5-qrcode@2.3.8/html5-qrcode.min.js"></script>
 <link href="https://fonts.googleapis.com/css2?family=Plus+Jakarta+Sans:wght@400;600;800&display=swap" rel="stylesheet">
 <style>
 :root{--g:#0f5132;--g2:#157347;--gold:#c8962e;--bg:#f6f4ee;--ink:#1c2b24}
@@ -205,7 +207,7 @@ function start(){
   const t=["Siswa","Guru","Jadwal","Pengumuman","Pelanggaran","Prestasi","Tugas","Absensi","Rekap","Pembayaran","Bantuan"];
   $("tabs").style.display="none";$("tabs").innerHTML="";
   $("menu").innerHTML=`<div class="px-3 py-2 border-b mb-1"><div class="font-bold text-sm">${esc(me.nama)}</div><div class="text-xs text-slate-500">${isAdmin?"Guru / Admin":esc(me.kelas)}</div></div>`
-   +(isAdmin?"":`<button class="mi" onclick="go('Notifikasi')">${IC.bell}<span>Notifikasi</span><span id="bdg" class="ml-auto"></span></button><button class="mi" onclick="go('Bantuan')">${IC.help}<span>Bantuan (CS)</span></button><button class="mi" onclick="go('Chat')">${IC.chat}<span>Grup Chat</span></button>`)
+   +(isAdmin?"":`<button class="mi" onclick="go('Notifikasi')">${IC.bell}<span>Notifikasi</span><span id="bdg" class="ml-auto"></span></button><button class="mi" onclick="go('KartuID')"><span style="font-size:1.2rem">🪪</span><span>Kartu ID &amp; QR</span></button><button class="mi" onclick="go('Bantuan')">${IC.help}<span>Bantuan (CS)</span></button><button class="mi" onclick="go('Chat')">${IC.chat}<span>Grup Chat</span></button>`)
    +`<button class="mi" style="color:#be123c" onclick="logout()">${IC.out}<span>Keluar</span></button>`;
   $("acc").innerHTML=IC.user+'<span id="bdg2" class="bdg2" style="display:none"></span>';
   go(isAdmin?"Menu":"Beranda");
@@ -214,6 +216,7 @@ function start(){
 window.go=async n=>{
   if(window.unsubChat){window.unsubChat();window.unsubChat=null}
   if(window.pgStop)window.pgStop();
+  if(window.kgStop)window.kgStop();
   tab=n;document.querySelectorAll(".tab").forEach(b=>b.classList.toggle("on",b.dataset.t===n));
   $("main").innerHTML='<p class="text-slate-500">Memuat…</p>';
   if(isAdmin)siswa=await all("siswa");
@@ -222,6 +225,8 @@ window.go=async n=>{
   if(isAdmin&&n==="Rekap")loadRekap();
   if(isAdmin&&n==="Presensi")loadPG();
   if(n==="Chat")initChat();
+  if(n==="KartuID")renderID();
+  if(isAdmin&&n==="RekapKegiatan")loadRkg();
   window.scrollTo(0,0);
 };
 const opts=(a,sel)=>a.map(s=>`<option value="${s.nisn}">${esc(s.nama)} - ${esc(s.kelas)}</option>`).join("");
@@ -243,7 +248,8 @@ Beranda:async()=>{
    <div class="card text-center"><div class="text-3xl font-extrabold text-rose-600">${alpha}</div><div class="text-xs text-slate-500">Alpha</div></div>
    <button class="card text-center" onclick="go('Pelanggaran')"><div class="text-3xl font-extrabold text-amber-600">${mine(pel).length}</div><div class="text-xs text-slate-500">Pelanggaran</div><div class="text-[10px] text-slate-400 mt-1">Lihat semua ›</div></button>
    <button class="card text-center" onclick="go('Prestasi')"><div class="text-3xl font-extrabold" style="color:var(--g)">${mine(pr).length}</div><div class="text-xs text-slate-500">Prestasi</div><div class="text-[10px] text-slate-400 mt-1">Lihat semua ›</div></button></section>
-  <section class="mt-4"><button class="card w-full flex items-center gap-3 text-left" onclick="go('Chat')"><span class="text-3xl">💬</span><span><b class="block">Grup Chat</b><span class="text-xs text-slate-500">Ngobrol dengan teman sekelas dan guru</span></span><span class="ml-auto text-slate-400">›</span></button></section>`;
+  <section class="mt-4"><button class="card w-full flex items-center gap-3 text-left" onclick="go('Chat')"><span class="text-3xl">💬</span><span><b class="block">Grup Chat</b><span class="text-xs text-slate-500">Ngobrol dengan teman sekelas dan guru</span></span><span class="ml-auto text-slate-400">›</span></button></section>
+  <section class="mt-3"><button class="card w-full flex items-center gap-3 text-left" onclick="go('KartuID')"><span class="text-3xl">🪪</span><span><b class="block">Kartu ID &amp; QR Code</b><span class="text-xs text-slate-500">Lihat dan download ID card Anda</span></span><span class="ml-auto text-slate-400">›</span></button></section>`;
 },
 Pelanggaran:async()=>`<h2 class="font-extrabold mb-2">Semua Pelanggaran</h2>`+list((await all("pelanggaran")).filter(x=>x.nisn===me.nisn).sort((a,b)=>b.waktu>a.waktu?1:-1),x=>`<div class="card mb-2" style="border-left:4px solid #e11d48">⚠️ <b>${esc(x.ket)}</b><div class="text-xs text-slate-500">${esc(x.waktu)}</div></div>`,"Tidak ada catatan pelanggaran."),
 Prestasi:async()=>`<h2 class="font-extrabold mb-2">Semua Prestasi</h2>`+list((await all("prestasi")).filter(x=>x.nisn===me.nisn),x=>`<div class="card mb-2" style="border-left:4px solid var(--gold)">🏆 <b>${esc(x.judul)}</b><div class="text-xs text-slate-500">${esc(x.tgl)} - ${esc(x.ket)}</div></div>`,"Belum ada prestasi."),
@@ -424,7 +430,8 @@ const MENU=[
  ["Akademik",[["Jadwal","📅","Jadwal pelajaran semua kelas","#e0f2fe"],["Tugas","📝","Periksa & nilai tugas siswa","#fef3c7"],["Absensi","✅","Catat kehadiran harian","#dcfce7"],["Rekap","🗓️","Rekap kehadiran & ekspor Excel","#ede9fe","Rekap Kehadiran"],["Jurnal","📓","Isi jurnal mengajar guru","#fce7f3","Jurnal Guru"],["Presensi","📸","Absen guru dengan kamera & lokasi","#fee2e2","Presensi Guru"]]],
  ["Data Madrasah",[["Siswa","🎓","Upload & kelola data siswa","#e0e7ff"],["Guru","👩‍🏫","Akun & sandi guru","#ccfbf1"]]],
  ["Kesiswaan",[["Pelanggaran","⚠️","Catatan kedisiplinan","#ffe4e6"],["Prestasi","🏆","Capaian & penghargaan siswa","#fef9c3"]]],
- ["Layanan",[["Pengumuman","📢","Kirim info ke semua siswa","#ffedd5"],["Pembayaran","💳","QRIS & laporan pembayaran","#d1fae5"],["Bantuan","🎧","Balas pesan dari siswa","#cffafe"],["Chat","💬","Grup chat guru & siswa","#dbeafe","Grup Chat"]]]
+ ["Layanan",[["Pengumuman","📢","Kirim info ke semua siswa","#ffedd5"],["Pembayaran","💳","QRIS & laporan pembayaran","#d1fae5"],["Bantuan","🎧","Balas pesan dari siswa","#cffafe"],["Chat","💬","Grup chat guru & siswa","#dbeafe","Grup Chat"]]],
+ ["Kegiatan Madrasah",[["Kegiatan","🎯","Buat kegiatan & scan QR siswa untuk absen","#fae8ff","Absen Kegiatan"],["RekapKegiatan","📊","Rekap absen kegiatan & ekspor Excel","#e0f2fe","Rekap Kegiatan"]]]
 ];
 A.Menu=async()=>{
   const [gu,pb,bt]=await Promise.all([all("guru"),all("pembayaran"),all("bantuan")]);
@@ -657,6 +664,211 @@ window.sendChat=async()=>{
   catch(e){alert("Pesan gagal terkirim.");i.value=t}
 };
 window.delChat=async id=>{if(confirm("Hapus pesan ini?"))await deleteDoc(doc(db,"chat",id))};
+
+// ============ QR SISWA & KARTU ID ============
+try{if(window.qrcode&&qrcode.stringToBytesFuncs&&qrcode.stringToBytesFuncs["UTF-8"])qrcode.stringToBytes=qrcode.stringToBytesFuncs["UTF-8"]}catch(e){}
+const qrTeks=s=>"Nama: "+s.nama+"\nKelas: "+s.kelas+"\nNISN: "+s.nisn;
+const drawQR=(x,cx,cy,size,t)=>{
+  const q=qrcode(0,"M");q.addData(t);q.make();
+  const n=q.getModuleCount(),c=Math.max(1,Math.floor(size/n)),o=Math.floor((size-c*n)/2);
+  x.fillStyle="#000";
+  for(let r=0;r<n;r++)for(let k=0;k<n;k++)if(q.isDark(r,k))x.fillRect(cx+o+k*c,cy+o+r*c,c,c);
+};
+const makeID=async s=>{
+  try{await document.fonts.load("800 30px 'Plus Jakarta Sans'");await document.fonts.load("600 30px 'Plus Jakarta Sans'")}catch(e){}
+  const W=720,H=1140,c=document.createElement("canvas");c.width=W;c.height=H;
+  const x=c.getContext("2d"),F="'Plus Jakarta Sans',system-ui,sans-serif";
+  const rr=(a,b,w,h,r)=>{x.beginPath();x.moveTo(a+r,b);x.arcTo(a+w,b,a+w,b+h,r);x.arcTo(a+w,b+h,a,b+h,r);x.arcTo(a,b+h,a,b,r);x.arcTo(a,b,a+w,b,r);x.closePath()};
+  x.fillStyle="#f6f4ee";x.fillRect(0,0,W,H);
+  x.save();rr(0,0,W,H,48);x.clip();
+  x.fillStyle="#fff";x.fillRect(0,0,W,H);
+  const g=x.createLinearGradient(0,0,W,300);g.addColorStop(0,"#0b3d27");g.addColorStop(.6,"#0f5132");g.addColorStop(1,"#1f8a5b");
+  x.fillStyle=g;x.fillRect(0,0,W,300);
+  x.strokeStyle="rgba(200,150,46,.4)";x.lineWidth=40;x.beginPath();x.arc(W-30,10,130,0,7);x.stroke();
+  x.fillStyle="#fff";x.textAlign="center";
+  x.font="800 64px "+F;x.fillText("MyIgi",W/2,115);
+  x.font="600 28px "+F;x.fillText("MA Insan Generasi Islami",W/2,160);
+  x.fillStyle="#c8962e";rr(W/2-170,200,340,52,26);x.fill();
+  x.fillStyle="#1c2b24";x.font="800 24px "+F;x.fillText("KARTU IDENTITAS SISWA",W/2,235);
+  x.fillStyle="#fff";x.strokeStyle="#e5e2d6";x.lineWidth=4;rr(W/2-260,330,520,520,28);x.fill();x.stroke();
+  drawQR(x,W/2-220,370,440,qrTeks(s));
+  x.fillStyle="#1c2b24";let fs=44;x.font="800 "+fs+"px "+F;
+  while(x.measureText(s.nama).width>W-80&&fs>22){fs-=2;x.font="800 "+fs+"px "+F}
+  x.fillText(s.nama,W/2,925);
+  x.fillStyle="#0f5132";x.font="800 36px "+F;x.fillText("Kelas: "+s.kelas,W/2,985);
+  x.fillStyle="#64748b";x.font="600 30px "+F;x.fillText("NISN: "+s.nisn,W/2,1040);
+  x.fillStyle="#0f5132";x.fillRect(0,H-56,W,56);
+  x.fillStyle="#fff";x.font="600 22px "+F;x.fillText("Scan QR untuk absensi kegiatan",W/2,H-20);
+  x.restore();
+  return c;
+};
+let idCanvas=null;
+S.KartuID=async()=>`<div class="card text-center space-y-3"><h2 class="font-extrabold">Kartu ID Siswa</h2>
+ <p id="idMsg" class="text-sm text-slate-500">Membuat kartu…</p>
+ <img id="idPrev" class="mx-auto rounded-2xl border hidden" style="max-width:320px;width:100%" alt="Kartu ID">
+ <div><button class="btn" onclick="dlID()">⬇ Download ID Card</button></div>
+ <p class="text-xs text-slate-500">QR code pada kartu ini unik untuk Anda dan dipakai untuk absen kegiatan. Jangan dibagikan ke orang lain.</p></div>`;
+window.renderID=async()=>{
+  try{
+    if(typeof qrcode==="undefined")throw 0;
+    idCanvas=await makeID(me);
+    const im=$("idPrev");if(!im)return;
+    im.src=idCanvas.toDataURL("image/png");im.classList.remove("hidden");$("idMsg").classList.add("hidden");
+  }catch(e){if($("idMsg"))$("idMsg").textContent="Gagal membuat kartu. Periksa koneksi internet lalu muat ulang halaman."}
+};
+window.dlID=()=>{
+  if(!idCanvas)return alert("Kartu belum siap. Tunggu sebentar.");
+  const a=document.createElement("a");a.href=idCanvas.toDataURL("image/png");
+  a.download="ID_Card_"+String(me.nama).replace(/[^\w]+/g,"_")+".png";
+  document.body.appendChild(a);a.click();a.remove();
+};
+
+// ============ ABSEN KEGIATAN (scan QR siswa) ============
+let kgScan=null,kgCur=null,kgHadir=new Map(),kgLock=false,kgLastN="",kgLastT=0;
+window.kgStop=async()=>{const s=kgScan;kgScan=null;if(s){try{await s.stop()}catch(e){}try{s.clear()}catch(e){}}};
+const kgMsg=(t,c)=>{const e=$("kgMsg");if(e){e.textContent=t;e.className="text-sm font-semibold "+(c||"text-slate-600")}};
+const jamTxt=w=>{const d=new Date(w);return isNaN(d)?"":d.toLocaleTimeString("id-ID",{hour:"2-digit",minute:"2-digit"})};
+const tglTxt=t=>{const d=new Date(t+"T00:00:00");return isNaN(d)?esc(t):d.toLocaleDateString("id-ID",{weekday:"long",day:"numeric",month:"long",year:"numeric"})};
+const beep=ok=>{try{const C=new (window.AudioContext||window.webkitAudioContext)(),o=C.createOscillator(),g=C.createGain();o.frequency.value=ok?880:300;g.gain.value=.08;o.connect(g);g.connect(C.destination);o.start();setTimeout(()=>{o.stop();C.close()},ok?150:300)}catch(e){}};
+const kgSort=a=>a.sort((x,y)=>((y.tgl||"")+(y.dibuat||""))>((x.tgl||"")+(x.dibuat||""))?1:-1);
+
+A.Kegiatan=async()=>{
+  const [ks,hd]=await Promise.all([all("kegiatan"),all("kehadiranKegiatan")]);
+  kgSort(ks);
+  return `<div class="card space-y-2 mb-4"><h2 class="font-extrabold">🎯 Buat kegiatan baru</h2>
+  <input id="kgNama" class="inp" placeholder="Nama kegiatan (mis. Upacara Senin, Maulid Nabi)">
+  <div><label class="text-xs text-slate-500">Tanggal</label><input id="kgTgl" type="date" class="inp" value="${today()}"></div>
+  <button class="btn" onclick="kgBuat()">Buat kegiatan</button></div>`
+  +list(ks,x=>{const n=hd.filter(h=>h.kegiatanId===x.id).length;
+   return `<div class="card mb-2"><div class="flex justify-between gap-2"><div><b>${esc(x.nama)}</b><div class="text-xs text-slate-500">${tglTxt(x.tgl)}</div></div><span class="pill bg-emerald-100 text-emerald-700 h-fit">${n} hadir</span></div>
+   <div class="flex flex-wrap gap-2 mt-2"><button class="btn" onclick="kgBuka('${x.id}')">📷 Scan absen</button><button class="btn2" onclick="kgRekap('${x.id}')">Rekap</button><button class="btn2" onclick="kgHapus('${x.id}')">Hapus</button></div></div>`},"Belum ada kegiatan. Buat kegiatan dulu, lalu scan QR siswa.");
+};
+window.kgBuat=async()=>{
+  const n=$("kgNama").value.trim(),t=$("kgTgl").value;
+  if(!n||!t)return alert("Isi nama kegiatan dan tanggal.");
+  await addDoc(collection(db,"kegiatan"),{nama:n,tgl:t,dibuat:new Date().toISOString(),oleh:me.nama});
+  go("Kegiatan");
+};
+window.kgHapus=async id=>{
+  if(!confirm("Hapus kegiatan ini beserta seluruh data kehadirannya?"))return;
+  const s=await getDocs(query(collection(db,"kehadiranKegiatan"),where("kegiatanId","==",id)));
+  for(let i=0;i<s.docs.length;i+=400){const b=writeBatch(db);s.docs.slice(i,i+400).forEach(d=>b.delete(d.ref));await b.commit()}
+  await deleteDoc(doc(db,"kegiatan",id));
+  go("Kegiatan");
+};
+window.kgRekap=id=>{window.rgPre=id;go("RekapKegiatan")};
+window.kgBuka=async id=>{
+  await kgStop();
+  const k=(await all("kegiatan")).find(x=>x.id===id);if(!k)return alert("Kegiatan tidak ditemukan.");
+  kgCur=k;kgLock=false;kgLastN="";
+  const h=(await getDocs(query(collection(db,"kehadiranKegiatan"),where("kegiatanId","==",id)))).docs.map(d=>d.data());
+  kgHadir=new Map(h.map(x=>[x.nisn,x]));
+  $("main").innerHTML=`<button class="btn2 mb-3" onclick="go('Kegiatan')">← Kegiatan</button>
+  <div class="card space-y-3 mb-4"><div class="flex justify-between gap-2"><div><h2 class="font-extrabold">${esc(k.nama)}</h2><div class="text-xs text-slate-500">${tglTxt(k.tgl)}</div></div><span id="kgCount" class="pill bg-emerald-100 text-emerald-700 h-fit"></span></div>
+  <div id="kgReader" class="hidden" style="width:100%;border-radius:.75rem;overflow:hidden"></div>
+  <p id="kgMsg" class="text-sm text-slate-600">Tekan "Mulai scan", lalu arahkan kamera ke QR pada ID card siswa. Siswa yang berhasil discan otomatis berstatus Hadir.</p>
+  <div class="flex gap-2"><button id="kgB1" class="btn" onclick="kgMulai()">📷 Mulai scan</button><button id="kgB2" class="btn2 hidden" onclick="kgBerhenti()">Berhenti</button></div>
+  <div class="flex gap-2"><input id="kgNisn" class="inp" inputmode="numeric" placeholder="Atau ketik NISN manual" onkeydown="if(event.key==='Enter'){event.stopPropagation();kgManual()}"><button class="btn" onclick="kgManual()">Catat</button></div></div>
+  <h3 class="msec">Siswa yang sudah hadir</h3><div id="kgList"></div>`;
+  kgDraw();window.scrollTo(0,0);
+};
+const kgDraw=()=>{
+  const a=[...kgHadir.values()].sort((p,q)=>p.waktu<q.waktu?1:-1);
+  if($("kgCount"))$("kgCount").textContent=a.length+" hadir";
+  if($("kgList"))$("kgList").innerHTML=list(a,x=>`<div class="card mb-2 flex justify-between items-center gap-2"><div><b>${esc(x.nama)}</b> <span class="pill bg-emerald-100 text-emerald-700">${esc(x.kelas)}</span><div class="text-xs text-slate-500">${esc(x.nisn)} - ${jamTxt(x.waktu)}</div></div><button class="btn2" onclick="kgBatal('${esc(x.nisn)}')">Batalkan</button></div>`,"Belum ada siswa yang discan.");
+};
+const kgProses=async txt=>{
+  if(!kgCur||kgLock)return;
+  const m=String(txt).match(/NISN:\s*(\S+)/i),nisn=m?m[1]:String(txt).trim();
+  const now=Date.now();
+  if(nisn===kgLastN&&now-kgLastT<3000)return;
+  kgLastN=nisn;kgLastT=now;
+  const s=siswa.find(x=>x.nisn===nisn);
+  if(!s){beep(false);return kgMsg("QR tidak dikenali atau siswa tidak terdaftar: "+nisn.slice(0,40),"text-rose-600")}
+  if(kgHadir.has(nisn)){beep(false);return kgMsg(s.nama+" ("+s.kelas+") sudah tercatat hadir.","text-amber-600")}
+  kgLock=true;
+  try{
+    const rec={kegiatanId:kgCur.id,nisn,nama:s.nama,kelas:s.kelas,status:"H",waktu:new Date().toISOString()};
+    await setDoc(doc(db,"kehadiranKegiatan",kgCur.id+"_"+nisn),rec);
+    kgHadir.set(nisn,rec);kgDraw();beep(true);
+    kgMsg("✅ Hadir: "+s.nama+" ("+s.kelas+")","text-emerald-700");
+  }catch(e){kgMsg("Gagal menyimpan. Periksa koneksi atau aturan Firestore.","text-rose-600")}
+  setTimeout(()=>{kgLock=false},700);
+};
+window.kgManual=()=>{const i=$("kgNisn");if(!i)return;const v=i.value.trim();if(!v)return;i.value="";kgLastN="";kgProses(v)};
+window.kgBatal=async nisn=>{
+  if(!kgCur||!confirm("Batalkan kehadiran siswa ini?"))return;
+  await deleteDoc(doc(db,"kehadiranKegiatan",kgCur.id+"_"+nisn));
+  kgHadir.delete(nisn);kgLastN="";kgDraw();
+};
+window.kgMulai=async()=>{
+  if(typeof Html5Qrcode==="undefined")return alert("Library scanner gagal dimuat. Periksa koneksi internet lalu muat ulang.");
+  await kgStop();
+  $("kgReader").classList.remove("hidden");$("kgB1").classList.add("hidden");$("kgB2").classList.remove("hidden");
+  kgMsg("Menyalakan kamera...");
+  const sc=new Html5Qrcode("kgReader");kgScan=sc;
+  try{
+    await sc.start({facingMode:"environment"},{fps:10,qrbox:{width:240,height:240}},t=>kgProses(t),()=>{});
+    kgMsg("Kamera aktif. Arahkan ke QR siswa.","text-emerald-700");
+  }catch(e){
+    kgScan=null;if(!$("kgReader"))return;
+    $("kgReader").classList.add("hidden");$("kgB1").classList.remove("hidden");$("kgB2").classList.add("hidden");
+    kgMsg("Kamera tidak bisa dibuka. Izinkan akses kamera (harus lewat https) atau pakai input NISN manual.","text-rose-600");
+  }
+};
+window.kgBerhenti=async()=>{
+  await kgStop();if(!$("kgReader"))return;
+  $("kgReader").classList.add("hidden");$("kgB1").classList.remove("hidden");$("kgB2").classList.add("hidden");kgMsg("Scan dihentikan.");
+};
+
+// ============ REKAP ABSEN KEGIATAN ============
+let RG=null;
+A.RekapKegiatan=async()=>{
+  const ks=kgSort(await all("kegiatan")),kl=[...new Set(siswa.map(x=>x.kelas))].sort(),pre=window.rgPre||"";window.rgPre="";
+  return `<div class="card space-y-2 mb-4"><h2 class="font-extrabold">📊 Rekap absen kegiatan</h2>
+  <select id="rgK" class="inp" onchange="loadRkg()"><option value="">Semua kegiatan (ringkasan)</option>${ks.map(k=>`<option value="${esc(k.id)}" ${k.id===pre?"selected":""}>${esc(k.nama)} - ${esc(k.tgl)}</option>`).join("")}</select>
+  <select id="rgKls" class="inp" onchange="loadRkg()"><option value="">Semua kelas</option>${kl.map(x=>`<option>${esc(x)}</option>`).join("")}</select>
+  <button class="btn" onclick="exportRkg()">⬇ Ekspor ke Excel</button></div><div id="rgOut"></div>`;
+};
+window.loadRkg=async()=>{
+  const kid=$("rgK").value,kls=$("rgKls").value;$("rgOut").innerHTML=empty("Memuat…");
+  const [ks,hd]=await Promise.all([all("kegiatan"),all("kehadiranKegiatan")]);
+  if(!$("rgOut"))return;
+  const sis=siswa.filter(s=>!kls||s.kelas===kls).sort((a,b)=>a.kelas===b.kelas?(a.nama>b.nama?1:-1):(a.kelas>b.kelas?1:-1));
+  const th=c=>`<th class="p-3 ${c||""}">`;
+  if(kid){
+    const k=ks.find(x=>x.id===kid);if(!k){RG=null;$("rgOut").innerHTML=empty("Kegiatan tidak ditemukan.");return}
+    const hm=new Map(hd.filter(x=>x.kegiatanId===kid).map(x=>[x.nisn,x]));
+    const rows=sis.map(s=>{const r=hm.get(s.nisn);return{nama:s.nama,kelas:s.kelas,nisn:s.nisn,hadir:!!r,jam:r?jamTxt(r.waktu):""}});
+    const h=rows.filter(r=>r.hadir).length;RG={mode:"one",k,rows,kls};
+    $("rgOut").innerHTML=`<p class="text-sm mb-2"><b>${esc(k.nama)}</b> - ${tglTxt(k.tgl)}<br>Hadir ${h} dari ${rows.length} siswa (${rows.length?Math.round(h/rows.length*100):0}%)</p>`
+     +(rows.length?`<div class="card overflow-x-auto p-0"><table class="w-full text-sm"><thead style="background:var(--g);color:#fff"><tr><th class="text-left p-3">Nama</th>${th()}Kelas</th>${th()}Status</th>${th()}Jam</th></tr></thead><tbody>${rows.map(r=>`<tr class="border-t text-center"><td class="p-3 text-left font-semibold">${esc(r.nama)}</td><td class="p-3 whitespace-nowrap">${esc(r.kelas)}</td><td class="p-3">${r.hadir?'<span class="pill bg-emerald-100 text-emerald-700">Hadir</span>':'<span class="pill bg-rose-100 text-rose-700">Tidak hadir</span>'}</td><td class="p-3">${r.jam||"-"}</td></tr>`).join("")}</tbody></table></div>`:empty("Tidak ada siswa."));
+  }else{
+    const kk=[...ks].sort((a,b)=>a.tgl>b.tgl?1:-1),set=new Set(hd.map(x=>x.kegiatanId+"|"+x.nisn));
+    const rows=sis.map(s=>{const m=kk.map(k=>set.has(k.id+"|"+s.nisn)),h=m.filter(Boolean).length;return{nama:s.nama,kelas:s.kelas,nisn:s.nisn,m,h,pct:kk.length?Math.round(h/kk.length*100):null}});
+    RG={mode:"all",kk,rows,kls};
+    $("rgOut").innerHTML=`<p class="text-sm mb-2">${rows.length} siswa - ${kk.length} kegiatan</p>`
+     +(kk.length&&rows.length?`<div class="card overflow-x-auto p-0"><table class="w-full text-sm"><thead style="background:var(--g);color:#fff"><tr><th class="text-left p-3">Nama</th>${th()}Kelas</th>${th()}Hadir</th>${th()}Tidak</th>${th()}%</th></tr></thead><tbody>${rows.map(r=>`<tr class="border-t text-center"><td class="p-3 text-left font-semibold">${esc(r.nama)}</td><td class="p-3 whitespace-nowrap">${esc(r.kelas)}</td><td class="p-3">${r.h}</td><td class="p-3 ${kk.length-r.h?"text-rose-600 font-bold":""}">${kk.length-r.h}</td><td class="p-3">${r.pct==null?"-":r.pct+"%"}</td></tr>`).join("")}</tbody></table></div>`:empty("Belum ada kegiatan atau siswa."));
+  }
+};
+window.exportRkg=()=>{
+  if(!RG||!RG.rows.length)return alert("Tidak ada data untuk diekspor.");
+  const wb=XLSX.utils.book_new();
+  if(RG.mode==="one"){
+    const {k,rows,kls}=RG;
+    const ws=XLSX.utils.aoa_to_sheet([["REKAP ABSEN KEGIATAN"],["Kegiatan: "+k.nama+" | Tanggal: "+k.tgl+(kls?" | Kelas: "+kls:" | Semua kelas")],[],["No","Nama","Kelas","NISN","Status","Jam Scan"],...rows.map((r,i)=>[i+1,r.nama,r.kelas,r.nisn,r.hadir?"Hadir":"Tidak hadir",r.jam])]);
+    ws["!cols"]=[{wch:5},{wch:28},{wch:12},{wch:14},{wch:12},{wch:10}];
+    XLSX.utils.book_append_sheet(wb,ws,"Rekap");
+    XLSX.writeFile(wb,"Absen_Kegiatan_"+String(k.nama).replace(/[^\w]+/g,"_")+"_"+k.tgl+".xlsx");
+  }else{
+    const {kk,rows,kls}=RG;
+    if(!kk.length)return alert("Belum ada kegiatan.");
+    const ws=XLSX.utils.aoa_to_sheet([["REKAP ABSEN SEMUA KEGIATAN"],[kls?"Kelas: "+kls:"Semua kelas"],[],["No","Nama","Kelas","NISN",...kk.map(k=>k.nama+" ("+k.tgl+")"),"Total Hadir","% Hadir"],...rows.map((r,i)=>[i+1,r.nama,r.kelas,r.nisn,...r.m.map(v=>v?"Hadir":"-"),r.h,r.pct==null?"":r.pct+"%"])]);
+    ws["!cols"]=[{wch:5},{wch:28},{wch:12},{wch:14},...kk.map(()=>({wch:18})),{wch:11},{wch:9}];
+    XLSX.utils.book_append_sheet(wb,ws,"Rekap");
+    XLSX.writeFile(wb,"Absen_Kegiatan_Semua_"+today()+".xlsx");
+  }
+};
 </script>
 </body>
 </html>
