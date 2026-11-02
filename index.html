@@ -1146,14 +1146,14 @@ const ppPDF=d=>{
 let PPL=[],PPV=[];
 const ppStat={"Menunggu":"bg-amber-100 text-amber-700","Terverifikasi":"bg-sky-100 text-sky-700","Diterima":"bg-emerald-100 text-emerald-700","Ditolak":"bg-rose-100 text-rose-700"};
 const ppCards=a=>`<p class="text-sm mb-2">${a.length} pendaftar</p>`+list(a,x=>`<div class="card mb-2"><div class="flex justify-between gap-2"><div><b>${esc(x.nama)}</b><div class="text-xs text-slate-500">${esc(x.noDaftar)} - NISN ${esc(x.nisn)}</div><div class="text-xs text-slate-500">${esc(x.sekolah)} - ${esc(x.jalur)}</div><div class="text-xs text-slate-400">${fmtWaktu(x.dibuat)}</div></div><span class="pill ${ppStat[x.status]||"bg-slate-100"} h-fit">${esc(x.status)}</span></div>
- <div class="flex flex-wrap gap-2 mt-2"><button class="btn" onclick="ppDetail('${esc(x.id)}')">Detail</button><button class="btn2" onclick="ppUnduhId('${esc(x.id)}')">⬇ PDF</button>${me.idGuru?"":`<button class="btn2" onclick="hapus('ppdb','${esc(x.id)}','PPDB')">Hapus</button>`}</div></div>`,"Belum ada pendaftar.");
+ <div class="flex flex-wrap gap-2 mt-2"><button class="btn" onclick="ppDetail('${esc(x.id)}')">Detail</button><button class="btn2" onclick="ppUnduhId('${esc(x.id)}')">⬇ PDF</button><button class="btn2" style="color:#be123c" onclick="hapus('ppdb','${esc(x.id)}','PPDB')">🗑 Hapus</button></div></div>`,"Belum ada pendaftar.");
 A.PPDB=async()=>{
   const full=!me.idGuru,s=await getPPset();
   PPL=(await all("ppdb")).sort((a,b)=>(b.dibuat||"")>(a.dibuat||"")?1:-1);PPV=PPL;
   const set=full?`<div class="card space-y-2 mb-4"><h2 class="font-extrabold">Pengaturan PPDB</h2><div class="grid grid-cols-2 gap-2"><div><label class="text-xs text-slate-500">Tahun ajaran</label><input id="psTA" class="inp" value="${esc(s.ta)}" placeholder="2027/2028"></div><div><label class="text-xs text-slate-500">Pendaftaran</label><select id="psBuka" class="inp"><option value="1" ${s.buka!==false?"selected":""}>Dibuka</option><option value="0" ${s.buka===false?"selected":""}>Ditutup</option></select></div></div><button class="btn" onclick="ppSimpanSet()">Simpan pengaturan</button></div>`:"";
   return set+`<div class="card space-y-2 mb-4"><h2 class="font-extrabold">📋 Data pendaftar PPDB ${esc(s.ta)}</h2><input id="pfQ" class="inp" placeholder="Cari nama / NISN / NIK / no. pendaftaran" oninput="ppFilter()">
   <div class="grid grid-cols-2 gap-2"><select id="pfJ" class="inp" onchange="ppFilter()"><option value="">Semua jalur</option>${JALUR.map(j=>`<option>${esc(j.n)}</option>`).join("")}</select><select id="pfS" class="inp" onchange="ppFilter()"><option value="">Semua status</option>${Object.keys(ppStat).map(k=>`<option>${k}</option>`).join("")}</select></div>
-  <button class="btn2" onclick="exportPPDB()">⬇ Ekspor ke Excel</button></div><div id="ppList">${ppCards(PPL)}</div>`;
+  <div class="flex flex-wrap gap-2"><button class="btn2" onclick="exportPPDB()">⬇ Ekspor ke Excel</button><button class="btn2" style="color:#be123c" onclick="ppHapusSemua()">🗑 Hapus semua hasil filter</button></div></div><div id="ppList">${ppCards(PPL)}</div>`;
 };
 window.ppSimpanSet=async()=>{const ta=$("psTA").value.trim();if(!/^\d{4}\/\d{4}$/.test(ta))return alert("Format tahun ajaran: 2027/2028");await setDoc(doc(db,"pengaturan","ppdb"),{ta,buka:$("psBuka").value==="1"});alert("Tersimpan.");go("PPDB")};
 window.ppFilter=()=>{const q=$("pfQ").value.toLowerCase().trim(),j=$("pfJ").value,s=$("pfS").value;
@@ -1167,10 +1167,18 @@ window.ppDetail=async id=>{
   <div class="text-sm space-y-1">${R.map(([l,k])=>d[k]?`<div class="flex gap-2"><span class="text-slate-500 shrink-0" style="width:9rem">${l}</span><span class="font-semibold break-words min-w-0">${esc(d[k])}</span></div>`:"").join("")}</div>
   <div class="grid grid-cols-2 gap-2 mt-3 text-center"><div><img src="${d.ttdSiswa||""}" class="border rounded-lg bg-white w-full" alt=""><div class="text-[11px] text-slate-500">TTD calon siswa</div></div><div><img src="${d.ttdOrtu||""}" class="border rounded-lg bg-white w-full" alt=""><div class="text-[11px] text-slate-500">TTD ortu/wali</div></div></div>
   <div class="flex gap-2 mt-3"><select id="pdSt" class="inp">${Object.keys(ppStat).map(k=>`<option ${k===d.status?"selected":""}>${k}</option>`).join("")}</select><button class="btn" id="pdSv">Simpan</button></div>
-  <button class="btn2 w-full mt-2" id="pdPdf">⬇ Unduh berkas PDF</button></div>`;
+  <button class="btn2 w-full mt-2" id="pdPdf">⬇ Unduh berkas PDF</button><button class="btn2 w-full mt-2" style="color:#be123c" id="pdDel">🗑 Hapus data pendaftar ini</button></div>`;
   document.body.appendChild(m);
   $("pdSv").onclick=async()=>{await updateDoc(doc(db,"ppdb",d.id),{status:$("pdSt").value});d.status=$("pdSt").value;alert("Status tersimpan.");m.remove();go("PPDB")};
   $("pdPdf").onclick=()=>ppUnduh(d);
+  $("pdDel").onclick=async()=>{if(!confirm("Hapus data pendaftar "+d.nama+"? Data tidak bisa dikembalikan."))return;await deleteDoc(doc(db,"ppdb",d.id));m.remove();go("PPDB")};
+};
+window.ppHapusSemua=async()=>{
+  if(!PPV.length)return alert("Tidak ada data untuk dihapus.");
+  if(!confirm("Hapus "+PPV.length+" data pendaftar yang sedang tampil (sesuai filter)? Data tidak bisa dikembalikan."))return;
+  if(PPV.length>1&&prompt('Ketik HAPUS untuk melanjutkan.')!=="HAPUS")return;
+  for(let i=0;i<PPV.length;i+=400){const b=writeBatch(db);PPV.slice(i,i+400).forEach(x=>b.delete(doc(db,"ppdb",x.id)));await b.commit()}
+  go("PPDB");
 };
 window.exportPPDB=()=>{
   if(!PPV.length)return alert("Tidak ada data untuk diekspor.");
