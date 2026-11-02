@@ -8,6 +8,7 @@
 <script src="https://cdnjs.cloudflare.com/ajax/libs/xlsx/0.18.5/xlsx.full.min.js"></script>
 <script src="https://cdnjs.cloudflare.com/ajax/libs/qrcode-generator/1.4.4/qrcode.min.js"></script>
 <script src="https://unpkg.com/html5-qrcode@2.3.8/html5-qrcode.min.js"></script>
+<script src="https://cdnjs.cloudflare.com/ajax/libs/jspdf/2.5.1/jspdf.umd.min.js"></script>
 <link href="https://fonts.googleapis.com/css2?family=Plus+Jakarta+Sans:wght@400;600;800&display=swap" rel="stylesheet">
 <style>
 :root{--g:#0f5132;--g2:#157347;--gold:#c8962e;--bg:#f6f4ee;--ink:#1c2b24}
@@ -69,6 +70,9 @@ input[type=month]{display:block;box-sizing:border-box;width:100%;min-width:0;-we
 .ct{font-size:.9rem;white-space:pre-wrap;word-break:break-word}
 .cf{font-size:.65rem;opacity:.65;text-align:right;margin-top:.1rem}.cf button{text-decoration:underline}
 .csep{text-align:center;margin:.4rem 0}.csep span{font-size:.68rem;font-weight:700;background:rgba(255,255,255,.75);padding:.15rem .7rem;border-radius:999px;color:#64748b}
+.ppov{position:fixed;inset:0;z-index:90;background:var(--bg);overflow-y:auto}
+canvas.sigpad{touch-action:none;width:100%;height:auto;border:1.5px dashed #94a3b8;border-radius:.75rem;background:#fff;cursor:crosshair;display:block}
+.ppband{background:linear-gradient(135deg,#fff8e6,#fdf1cf);border:1px solid #ecd9a0;border-radius:1.25rem}
 </style>
 </head>
 <body>
@@ -76,8 +80,8 @@ input[type=month]{display:block;box-sizing:border-box;width:100%;min-width:0;-we
 <!-- NAVBAR -->
 <header class="lp-nav"><div class="max-w-5xl mx-auto px-4 py-3 flex items-center justify-between">
   <div><div class="font-extrabold text-xl leading-none" style="color:var(--g)">MyIgi</div><div class="text-[11px] text-slate-500">MA Insan Generasi Islami</div></div>
-  <nav class="hidden sm:flex items-center gap-6 text-sm font-semibold text-slate-600"><a href="#fitur" class="hover:text-emerald-800">Fitur</a><a href="#cara" class="hover:text-emerald-800">Cara Kerja</a><a href="#sosmed" class="hover:text-emerald-800">Sosial Media</a></nav>
-  <button class="btn" onclick="openLogin()">Masuk</button>
+  <nav class="hidden sm:flex items-center gap-6 text-sm font-semibold text-slate-600"><a href="#fitur" class="hover:text-emerald-800">Fitur</a><a href="#cara" class="hover:text-emerald-800">Cara Kerja</a><a href="#ppdb" class="hover:text-emerald-800">PPDB</a><a href="#sosmed" class="hover:text-emerald-800">Sosial Media</a></nav>
+  <div class="flex gap-2"><button class="btn2 hidden sm:block" onclick="openPPDB()">Daftar PPDB</button><button class="btn" onclick="openLogin()">Masuk</button></div>
 </div></header>
 
 <!-- HERO -->
@@ -85,7 +89,7 @@ input[type=month]{display:block;box-sizing:border-box;width:100%;min-width:0;-we
   <span class="pill" style="background:rgba(200,150,46,.25);color:#f5dfa8;font-size:.78rem;padding:.3rem .9rem">✨ Portal Digital Madrasah</span>
   <h1 class="text-3xl sm:text-5xl font-extrabold mt-4 leading-tight max-w-2xl">Satu aplikasi untuk seluruh urusan sekolah Anda.</h1>
   <p class="mt-4 text-base sm:text-lg opacity-90 max-w-xl">MyIgi menghadirkan jadwal pelajaran, tugas, absensi, pembayaran, hingga pengumuman madrasah dalam satu genggaman. Cukup masuk dengan NISN, semua informasi siap dibuka kapan saja dan di mana saja.</p>
-  <div class="flex flex-wrap gap-3 mt-8"><button class="lp-btn" onclick="openLogin()">Masuk ke MyIgi →</button><a href="#fitur" class="lp-btn2">Lihat fitur</a></div>
+  <div class="flex flex-wrap gap-3 mt-8"><button class="lp-btn" onclick="openLogin()">Masuk ke MyIgi →</button><a href="#fitur" class="lp-btn2">Lihat fitur</a><button class="lp-btn2" onclick="openPPDB()">📋 Daftar PPDB</button></div>
   <div class="grid grid-cols-3 gap-4 mt-12 max-w-md text-center sm:text-left">
     <div><div class="text-2xl font-extrabold">24/7</div><div class="text-xs opacity-75">Akses kapan saja</div></div>
     <div><div class="text-2xl font-extrabold">1 Akun</div><div class="text-xs opacity-75">Untuk semua fitur</div></div>
@@ -120,6 +124,20 @@ input[type=month]{display:block;box-sizing:border-box;width:100%;min-width:0;-we
   <div class="text-center mt-10"><button class="lp-btn" onclick="openLogin()">Masuk sekarang</button></div>
 </div></section>
 
+<!-- PPDB -->
+<section id="ppdb" class="max-w-5xl mx-auto px-4 pb-14"><div class="ppband p-6 sm:p-10">
+  <p class="text-sm font-bold" style="color:var(--gold)">PPDB ONLINE</p>
+  <h2 class="text-2xl sm:text-3xl font-extrabold mt-1">Pendaftaran Peserta Didik Baru MA Insan Generasi Islami</h2>
+  <p class="text-slate-600 mt-2 text-sm sm:text-base max-w-2xl">Isi formulir, tanda tangan langsung di layar, lalu unduh berkas pendaftaran lengkap dengan surat pernyataan dan QR code keaslian. Tanpa perlu membuat akun.</p>
+  <div class="grid sm:grid-cols-4 gap-4 mt-6 text-sm">
+    <div class="flex gap-3"><div class="stp">1</div><div><b>Isi formulir</b><p class="text-slate-500 text-xs mt-0.5">Data diri, asal sekolah, orang tua, dan jalur.</p></div></div>
+    <div class="flex gap-3"><div class="stp">2</div><div><b>Tanda tangan</b><p class="text-slate-500 text-xs mt-0.5">Langsung di layar, surat dibuat otomatis.</p></div></div>
+    <div class="flex gap-3"><div class="stp">3</div><div><b>Unduh berkas</b><p class="text-slate-500 text-xs mt-0.5">PDF berisi formulir, surat, dan QR code.</p></div></div>
+    <div class="flex gap-3"><div class="stp">4</div><div><b>Daftar ulang</b><p class="text-slate-500 text-xs mt-0.5">Bawa SKL, KK, dan berkas yang diunduh.</p></div></div>
+  </div>
+  <div class="flex flex-wrap gap-3 mt-7"><button class="lp-btn" onclick="openPPDB()">Daftar PPDB sekarang</button><button class="btn2" style="padding:.8rem 1.4rem;border-radius:999px" onclick="openPPDB('ulang')">Unduh ulang berkas</button></div>
+</div></section>
+
 <!-- SOSMED -->
 <section id="sosmed" class="max-w-5xl mx-auto px-4 py-14">
   <div class="text-center max-w-xl mx-auto"><p class="text-sm font-bold" style="color:var(--gold)">TERHUBUNG BERSAMA KAMI</p><h2 class="text-2xl sm:text-3xl font-extrabold mt-1">Ikuti kabar terbaru madrasah</h2><p class="text-slate-500 mt-2 text-sm sm:text-base">Kegiatan, prestasi, dan momen kebersamaan keluarga besar MA Insan Generasi Islami.</p></div>
@@ -135,6 +153,23 @@ input[type=month]{display:block;box-sizing:border-box;width:100%;min-width:0;-we
   <button class="lp-btn" style="padding:.55rem 1.3rem;font-size:.85rem" onclick="openLogin()">Masuk</button>
   <div class="text-xs opacity-60">&copy; <span id="yr"></span> MyIgi. Seluruh hak cipta dilindungi.</div>
 </div></footer>
+
+<!-- OVERLAY PPDB -->
+<div id="ppdbOv" class="ppov hidden"><div class="max-w-2xl mx-auto p-4 pb-20 space-y-4">
+  <div class="flex items-center justify-between"><div><div class="font-extrabold text-xl" style="color:var(--g)">PPDB Online</div><div class="text-xs text-slate-500">MA INSAN GENERASI ISLAMI - TA <span id="ppTA"></span></div></div><button class="btn2" onclick="closePPDB()">✕ Tutup</button></div>
+  <div id="ppClosed" class="card hidden text-center py-8"><div class="text-4xl">🔒</div><b class="block mt-2">Pendaftaran sedang ditutup</b><p class="text-sm text-slate-500 mt-1">Silakan hubungi pihak madrasah untuk informasi lebih lanjut.</p><button class="btn2 mt-3" onclick="openPPDB('ulang')">Unduh ulang berkas</button></div>
+  <div id="ppMain"><div class="flex gap-2 mb-3"><button id="ppT1" class="tab on" onclick="ppMode('form')">Daftar baru</button><button id="ppT2" class="tab" onclick="ppMode('ulang')">Unduh ulang berkas</button></div>
+   <div id="ppForm" class="space-y-4"></div>
+   <div id="ppUlang" class="card space-y-2 hidden"><h2 class="font-extrabold">Unduh ulang berkas</h2><p class="text-xs text-slate-500">Masukkan nomor pendaftaran dan NIK yang Anda daftarkan.</p>
+    <input id="ppUlNo" class="inp" placeholder="Nomor pendaftaran (mis. PPDB-2027-12345)"><input id="ppUlNik" class="inp" inputmode="numeric" placeholder="NIK (16 digit)"><p id="ppUlErr" class="text-sm text-rose-600 hidden"></p><button class="btn w-full" onclick="ppCari()">Unduh berkas PDF</button></div></div>
+  <div id="ppSukses" class="hidden space-y-4">
+   <div class="card text-center space-y-2"><div class="text-4xl">✅</div><h2 class="font-extrabold text-lg">Pendaftaran berhasil</h2><p class="text-sm"><b id="ppNm"></b></p>
+    <div class="text-xs text-slate-500">Nomor pendaftaran</div><div id="ppNo" class="text-2xl font-extrabold" style="color:var(--g)"></div>
+    <img id="ppQr" class="mx-auto border rounded-xl" style="width:170px" alt="QR keaslian"><p class="text-xs text-slate-500">QR code ini juga ada di berkas PDF dan akan dipindai petugas untuk membuktikan keaslian.</p>
+    <button class="btn w-full" onclick="ppUnduhBaru()">⬇ Download berkas (formulir &amp; surat pernyataan)</button></div>
+   <div class="card" style="background:#fbf3df;border-color:#ecd9a0"><b>📌 Saat daftar ulang ke sekolah, bawa:</b><ol class="list-decimal ml-5 mt-1 text-sm space-y-0.5"><li><b>SKL</b> (Surat Keterangan Lulus)</li><li><b>KK</b> (Kartu Keluarga)</li><li><b>Berkas yang diunduh</b> setelah mengisi formulir (dicetak)</li></ol><p class="text-xs text-slate-500 mt-2">Simpan nomor pendaftaran Anda. Jika berkas hilang, unduh ulang lewat menu "Unduh ulang berkas".</p></div>
+   <button class="btn2 w-full" onclick="closePPDB()">Selesai</button></div>
+</div></div>
 
 <!-- POP UP LOGIN -->
 <div id="loginModal" class="modal hidden" onclick="if(event.target===this)closeLogin()">
@@ -217,6 +252,7 @@ window.go=async n=>{
   if(window.unsubChat){window.unsubChat();window.unsubChat=null}
   if(window.pgStop)window.pgStop();
   if(window.kgStop)window.kgStop();
+  if(window.vpStop)window.vpStop();
   tab=n;document.querySelectorAll(".tab").forEach(b=>b.classList.toggle("on",b.dataset.t===n));
   $("main").innerHTML='<p class="text-slate-500">Memuat…</p>';
   if(isAdmin)siswa=await all("siswa");
@@ -430,12 +466,13 @@ const MENU=[
  ["Akademik",[["Jadwal","📅","Jadwal pelajaran semua kelas","#e0f2fe"],["Tugas","📝","Periksa & nilai tugas siswa","#fef3c7"],["Absensi","✅","Catat kehadiran harian","#dcfce7"],["Rekap","🗓️","Rekap kehadiran & ekspor Excel","#ede9fe","Rekap Kehadiran"],["Jurnal","📓","Isi jurnal mengajar guru","#fce7f3","Jurnal Guru"],["Presensi","📸","Absen guru dengan kamera & lokasi","#fee2e2","Presensi Guru"]]],
  ["Data Madrasah",[["Siswa","🎓","Upload & kelola data siswa","#e0e7ff"],["Guru","👩‍🏫","Akun & sandi guru","#ccfbf1"]]],
  ["Kesiswaan",[["Pelanggaran","⚠️","Catatan kedisiplinan","#ffe4e6"],["Prestasi","🏆","Capaian & penghargaan siswa","#fef9c3"]]],
+ ["PPDB",[["PPDB","📋","Data pendaftar & unduh berkas PDF","#fef3c7","Data PPDB"],["VerifPPDB","🔍","Scan QR cek keaslian berkas","#dcfce7","Verifikasi QR"]]],
  ["Layanan",[["Pengumuman","📢","Kirim info ke semua siswa","#ffedd5"],["Pembayaran","💳","QRIS & laporan pembayaran","#d1fae5"],["Bantuan","🎧","Balas pesan dari siswa","#cffafe"],["Chat","💬","Grup chat guru & siswa","#dbeafe","Grup Chat"]]],
  ["Kegiatan Madrasah",[["Kegiatan","🎯","Buat kegiatan & scan QR siswa untuk absen","#fae8ff","Absen Kegiatan"],["RekapKegiatan","📊","Rekap absen kegiatan & ekspor Excel","#e0f2fe","Rekap Kegiatan"]]]
 ];
 A.Menu=async()=>{
-  const [gu,pb,bt]=await Promise.all([all("guru"),all("pembayaran"),all("bantuan")]);
-  const nb={Pembayaran:pb.filter(x=>x.status==="Menunggu").length,Bantuan:bt.filter(x=>!x.balasan).length};
+  const [gu,pb,bt,pp]=await Promise.all([all("guru"),all("pembayaran"),all("bantuan"),all("ppdb")]);
+  const nb={Pembayaran:pb.filter(x=>x.status==="Menunggu").length,Bantuan:bt.filter(x=>!x.balasan).length,PPDB:pp.filter(x=>x.status==="Menunggu").length};
   const kls=new Set(siswa.map(x=>x.kelas)).size;
   const tgl=new Date().toLocaleDateString("id-ID",{weekday:"long",day:"numeric",month:"long",year:"numeric"});
   return `<section class="hero p-6"><p class="text-sm opacity-80">Assalamu'alaikum,</p><h1 class="text-2xl sm:text-3xl font-extrabold">${esc(me.nama)}</h1><p class="text-xs opacity-75 mt-1">${tgl}</p>
@@ -869,6 +906,312 @@ window.exportRkg=()=>{
     XLSX.writeFile(wb,"Absen_Kegiatan_Semua_"+today()+".xlsx");
   }
 };
+
+// ============ PPDB ============
+const PEMINATAN=["MIPA (Matematika & IPA)","IPS (Ilmu Pengetahuan Sosial)","Keagamaan (Ilmu Agama)"];
+const JALUR=[
+ {n:"Jalur Zonasi",d:"Berdasarkan jarak domisili ke madrasah.",l:"Jarak rumah ke madrasah (km)",ph:"mis. 2.5"},
+ {n:"Jalur Afirmasi",d:"Untuk keluarga prasejahtera atau penyandang disabilitas.",l:"Dasar afirmasi",ph:"mis. KIP / PKH / DTKS / Disabilitas + nomor kartu"},
+ {n:"Jalur Perpindahan Tugas Orang Tua/Wali",d:"Untuk anak dari orang tua/wali yang berpindah tugas.",l:"Instansi & nomor surat tugas",ph:"mis. Dinas ... / No. SK ..."},
+ {n:"Jalur Prestasi",d:"Prestasi akademik maupun non-akademik.",l:"Nama prestasi, tingkat & tahun",ph:"mis. Juara 1 OSN Matematika tingkat kabupaten 2025"}];
+const PP_PEND=["Tidak sekolah","SD/MI","SMP/MTs","SMA/MA/SMK","D1-D3","S1","S2/S3"];
+const PP_GAJI=["Tidak berpenghasilan","< Rp1.000.000","Rp1.000.000 - Rp2.000.000","Rp2.000.000 - Rp5.000.000","Rp5.000.000 - Rp10.000.000","> Rp10.000.000"];
+const BLN=["Januari","Februari","Maret","April","Mei","Juni","Juli","Agustus","September","Oktober","November","Desember"];
+const tglID=t=>{const d=new Date(t+"T00:00:00");return isNaN(d)?(t||"-"):d.getDate()+" "+BLN[d.getMonth()]+" "+d.getFullYear()};
+const dash=v=>(v===undefined||v===null||String(v).trim()==="")?"-":String(v);
+const ppv=id=>($(id)?.value||"").trim();
+const ppTA=()=>{const n=new Date(),y=n.getFullYear(),s=n.getMonth()>=6?y+1:y;return s+"/"+(s+1)};
+let PPS={ta:ppTA(),buka:true},PPD=null,ppPads={},ppBuilt=false;
+const getPPset=async()=>{let s={ta:ppTA(),buka:true};try{const d=await getDoc(doc(db,"pengaturan","ppdb"));if(d.exists())s={...s,...d.data()}}catch(e){}PPS=s;return s};
+const rndKode=n=>{const a=new Uint8Array(n),A="ABCDEFGHJKLMNPQRSTUVWXYZ23456789";crypto.getRandomValues(a);return[...a].map(v=>A[v%A.length]).join("")};
+const ppQRteks=d=>"MA INSAN GENERASI ISLAMI\nPPDB "+d.ta+"\nNo: "+d.noDaftar+"\nNama: "+d.nama+"\nKode: "+d.kode;
+const ppQRurl=d=>{const c=document.createElement("canvas");c.width=c.height=420;const x=c.getContext("2d");x.fillStyle="#fff";x.fillRect(0,0,420,420);drawQR(x,20,20,380,ppQRteks(d));return c.toDataURL("image/png")};
+
+const fld=(id,l,o={})=>{
+  const lab=`<label class="text-xs text-slate-500">${l}${o.r?' <span class="text-rose-600">*</span>':""}</label>`;
+  if(o.sel)return `<div class="${o.c||""}">${lab}<select id="pp_${id}" class="inp">${o.ph?`<option value="">${esc(o.ph)}</option>`:""}${o.sel.map(v=>`<option value="${esc(v)}">${esc(v)}</option>`).join("")}</select></div>`;
+  if(o.t==="area")return `<div class="${o.c||""}">${lab}<textarea id="pp_${id}" class="inp" rows="2" placeholder="${esc(o.ph||"")}"></textarea></div>`;
+  return `<div class="${o.c||""}">${lab}<input id="pp_${id}" type="${o.t||"text"}" class="inp" placeholder="${esc(o.ph||"")}" ${o.m?`maxlength="${o.m}"`:""} ${o.im?`inputmode="${o.im}"`:""} ${o.v?`value="${esc(o.v)}"`:""}></div>`};
+const g2=(...a)=>`<div class="grid grid-cols-2 gap-2">${a.join("")}</div>`;
+
+const ppBuild=()=>{
+  if(ppBuilt)return;ppBuilt=true;
+  $("ppForm").innerHTML=`
+  <div class="card space-y-2"><h2 class="font-extrabold">1. Data Pribadi Calon Peserta Didik</h2>
+   ${fld("nama","Nama lengkap (sesuai ijazah/KK)",{r:1})}
+   ${g2(fld("panggilan","Nama panggilan"),fld("jk","Jenis kelamin",{r:1,sel:["Laki-laki","Perempuan"]}))}
+   ${g2(fld("nik","NIK (16 digit)",{r:1,im:"numeric",m:16}),fld("nisn","NISN (10 digit)",{r:1,im:"numeric",m:10}))}
+   ${g2(fld("tempat","Tempat lahir",{r:1}),fld("tgl","Tanggal lahir",{r:1,t:"date"}))}
+   ${g2(fld("agama","Agama",{sel:["Islam","Kristen","Katolik","Hindu","Buddha","Konghucu","Lainnya"]}),fld("wn","Kewarganegaraan",{sel:["WNI","WNA"]}))}
+   ${g2(fld("tb","Tinggi badan (cm)",{t:"number",im:"numeric"}),fld("bb","Berat badan (kg)",{t:"number",im:"numeric"}))}
+   ${fld("alamat","Alamat lengkap (jalan, RT/RW)",{r:1,t:"area"})}
+   ${g2(fld("desa","Desa/Kelurahan"),fld("kec","Kecamatan"))}
+   ${fld("kab","Kabupaten/Kota")}</div>
+  <div class="card space-y-2"><h2 class="font-extrabold">2. Riwayat Pendidikan Asal</h2>
+   ${fld("sekolah","Nama sekolah asal (SMP/MTs)",{r:1})}
+   ${g2(fld("noIjazah","Nomor ijazah / SKL"),fld("thLulus","Tahun lulus",{t:"number",im:"numeric",ph:"mis. 2027"}))}
+   ${fld("rapor","Nilai rata-rata rapor (0-100)",{t:"number",im:"decimal",ph:"mis. 85.5"})}</div>
+  <div class="card space-y-2"><h2 class="font-extrabold">3. Data Orang Tua / Wali</h2>
+   <p class="text-xs font-bold" style="color:var(--g)">AYAH</p>
+   ${fld("ayah","Nama lengkap ayah")}${g2(fld("ayahKerja","Pekerjaan"),fld("ayahPend","Pendidikan terakhir",{sel:PP_PEND,ph:"-- Pilih --"}))}${fld("ayahGaji","Penghasilan rata-rata per bulan",{sel:PP_GAJI,ph:"-- Pilih --"})}
+   <p class="text-xs font-bold pt-2" style="color:var(--g)">IBU</p>
+   ${fld("ibu","Nama lengkap ibu")}${g2(fld("ibuKerja","Pekerjaan"),fld("ibuPend","Pendidikan terakhir",{sel:PP_PEND,ph:"-- Pilih --"}))}${fld("ibuGaji","Penghasilan rata-rata per bulan",{sel:PP_GAJI,ph:"-- Pilih --"})}
+   <p class="text-xs font-bold pt-2" style="color:var(--g)">WALI (isi jika ada)</p>
+   ${g2(fld("wali","Nama lengkap wali"),fld("waliKerja","Pekerjaan wali"))}
+   <p class="text-xs font-bold pt-2" style="color:var(--g)">KONTAK</p>
+   ${fld("telp","Nomor telepon / WhatsApp",{r:1,t:"tel",im:"tel",ph:"08xxxxxxxxxx"})}
+   ${fld("alamatOrtu","Alamat orang tua/wali (kosongkan jika sama dengan alamat siswa)",{t:"area"})}</div>
+  <div class="card space-y-2"><h2 class="font-extrabold">4. Pilihan Jalur Pendaftaran</h2>
+   ${fld("jalur","Jalur pendaftaran",{r:1,sel:JALUR.map(j=>j.n)})}
+   <p id="ppJd" class="text-xs text-slate-500"></p>
+   <div><label id="ppJl" class="text-xs text-slate-500"></label><input id="pp_jalurKet" class="inp"></div></div>
+  <div class="card space-y-2"><h2 class="font-extrabold">5. Pilihan Peminatan / Program</h2><p class="text-xs text-slate-500">Isi sebagai pilihan 1, 2, dan 3 (opsional).</p>
+   ${fld("min1","Pilihan 1",{sel:PEMINATAN,ph:"-- Pilih --"})}${fld("min2","Pilihan 2",{sel:PEMINATAN,ph:"-- Pilih --"})}${fld("min3","Pilihan 3",{sel:PEMINATAN,ph:"-- Pilih --"})}</div>
+  <div class="card space-y-3"><h2 class="font-extrabold">6. Surat Pernyataan &amp; Tanda Tangan</h2>
+   <p class="text-xs text-slate-500">Surat pernyataan dibuat otomatis dari data di atas dan ikut terunduh dalam berkas PDF Anda.</p>
+   <label class="flex gap-2 text-sm"><input type="checkbox" id="pp_c1" class="mt-1"><span><b>Pernyataan Keaslian Dokumen.</b> Seluruh data dan dokumen yang saya lampirkan adalah sah dan benar. Jika terbukti palsu, saya bersedia didiskualifikasi.</span></label>
+   <label class="flex gap-2 text-sm"><input type="checkbox" id="pp_c2" class="mt-1"><span><b>Pernyataan Mematuhi Tata Tertib.</b> Saya bersedia menaati peraturan disiplin dan kode etik MA Insan Generasi Islami.</span></label>
+   ${g2(fld("ttdSebagai","Orang tua/wali yang menandatangani",{sel:["Ayah","Ibu","Wali"]}),fld("tglSurat","Tanggal surat",{t:"date"}))}
+   <div><div class="flex justify-between items-center"><label class="text-xs text-slate-500">Tanda tangan calon peserta didik <span class="text-rose-600">*</span></label><button class="btn2" onclick="ppPads.siswa.clear()">Hapus</button></div><canvas id="ppSig1" class="sigpad" width="400" height="160"></canvas></div>
+   <div><div class="flex justify-between items-center"><label class="text-xs text-slate-500">Tanda tangan orang tua/wali <span class="text-rose-600">*</span></label><button class="btn2" onclick="ppPads.ortu.clear()">Hapus</button></div><canvas id="ppSig2" class="sigpad" width="400" height="160"></canvas></div>
+   <p class="text-xs text-slate-500">Tanda tangan dengan jari atau mouse langsung pada kotak di atas.</p>
+   <p id="ppErr" class="text-sm text-rose-600 hidden"></p>
+   <button id="ppBtn" class="btn w-full" onclick="ppKirim()">Kirim pendaftaran</button></div>`;
+  $("pp_jalur").addEventListener("change",ppJalur);
+};
+window.ppJalur=()=>{const j=JALUR.find(x=>x.n===$("pp_jalur").value)||JALUR[0];$("ppJd").textContent=j.d;$("ppJl").innerHTML=j.l+' <span class="text-rose-600">*</span>';$("pp_jalurKet").placeholder=j.ph};
+const ppShow=m=>{$("ppMain").classList.toggle("hidden",m==="sukses"||m==="closed");$("ppForm").classList.toggle("hidden",m!=="form");$("ppUlang").classList.toggle("hidden",m!=="ulang");$("ppSukses").classList.toggle("hidden",m!=="sukses");$("ppClosed").classList.toggle("hidden",m!=="closed");
+  $("ppT1").classList.toggle("on",m==="form");$("ppT2").classList.toggle("on",m==="ulang")};
+const initPad=id=>{
+  const c=$(id),x=c.getContext("2d");x.lineWidth=2.6;x.lineCap="round";x.lineJoin="round";x.strokeStyle="#111";
+  const st={c,empty:true,on:false,clear(){x.clearRect(0,0,c.width,c.height);st.empty=true}};
+  const pt=e=>{const r=c.getBoundingClientRect();return[(e.clientX-r.left)*c.width/r.width,(e.clientY-r.top)*c.height/r.height]};
+  c.addEventListener("pointerdown",e=>{e.preventDefault();try{c.setPointerCapture(e.pointerId)}catch(_){}st.on=true;const[a,b]=pt(e);x.beginPath();x.moveTo(a,b);x.lineTo(a+.1,b+.1);x.stroke()});
+  c.addEventListener("pointermove",e=>{if(!st.on)return;e.preventDefault();const[a,b]=pt(e);x.lineTo(a,b);x.stroke();x.beginPath();x.moveTo(a,b);st.empty=false});
+  const up=()=>{st.on=false};c.addEventListener("pointerup",up);c.addEventListener("pointercancel",up);
+  return st;
+};
+window.openPPDB=async(mode)=>{
+  $("ppdbOv").classList.remove("hidden");document.body.style.overflow="hidden";$("ppdbOv").scrollTop=0;
+  const s=await getPPset();$("ppTA").textContent=s.ta;
+  if(s.buka===false&&mode!=="ulang"){ppShow("closed");return}
+  ppBuild();ppShow(mode==="ulang"?"ulang":"form");
+  if(!ppPads.siswa){ppPads.siswa=initPad("ppSig1");ppPads.ortu=initPad("ppSig2")}
+  if(!$("pp_tglSurat").value)$("pp_tglSurat").value=pgYmd(new Date());
+  ppJalur();
+};
+window.ppMode=m=>{ppShow(m);if(m==="form"&&ppBuilt&&!ppPads.siswa){ppPads.siswa=initPad("ppSig1");ppPads.ortu=initPad("ppSig2")}};
+window.closePPDB=()=>{$("ppdbOv").classList.add("hidden");document.body.style.overflow=""};
+
+const ppErr=t=>{const e=$("ppErr");e.textContent=t;e.classList.remove("hidden");e.scrollIntoView({block:"center",behavior:"smooth"})};
+window.ppKirim=async()=>{
+  $("ppErr").classList.add("hidden");
+  const v=ppv,d={};
+  ["nama","panggilan","jk","nik","nisn","tempat","tgl","agama","wn","tb","bb","alamat","desa","kec","kab","sekolah","noIjazah","thLulus","rapor","ayah","ayahKerja","ayahPend","ayahGaji","ibu","ibuKerja","ibuPend","ibuGaji","wali","waliKerja","telp","alamatOrtu","jalur","jalurKet","min1","min2","min3","ttdSebagai","tglSurat"].forEach(k=>d[k]=v("pp_"+k));
+  d.nik=d.nik.replace(/\D/g,"");d.nisn=d.nisn.replace(/\D/g,"");d.telp=d.telp.replace(/[^\d+]/g,"");
+  const need=[["nama","Nama lengkap"],["nik","NIK"],["nisn","NISN"],["tempat","Tempat lahir"],["tgl","Tanggal lahir"],["alamat","Alamat lengkap"],["sekolah","Nama sekolah asal"],["telp","Nomor telepon/WhatsApp"],["jalurKet","Keterangan jalur"],["tglSurat","Tanggal surat"]];
+  for(const[k,l]of need)if(!d[k])return ppErr(l+" wajib diisi.");
+  if(!/^\d{16}$/.test(d.nik))return ppErr("NIK harus 16 digit angka.");
+  if(!/^\d{10}$/.test(d.nisn))return ppErr("NISN harus 10 digit angka.");
+  if(d.telp.replace(/\D/g,"").length<9)return ppErr("Nomor telepon/WhatsApp tidak valid.");
+  if(d.rapor!==""&&!(+d.rapor>=0&&+d.rapor<=100))return ppErr("Nilai rata-rata rapor harus 0-100.");
+  if(!d.ayah&&!d.ibu&&!d.wali)return ppErr("Isi minimal satu nama: ayah, ibu, atau wali.");
+  const ms=[d.min1,d.min2,d.min3].filter(Boolean);if(new Set(ms).size!==ms.length)return ppErr("Pilihan peminatan tidak boleh sama.");
+  d.ortuNama=d.ttdSebagai==="Ayah"?d.ayah:d.ttdSebagai==="Ibu"?d.ibu:d.wali;
+  if(!d.ortuNama)return ppErr("Nama "+d.ttdSebagai.toLowerCase()+" belum diisi, padahal dipilih sebagai penandatangan.");
+  if(!$("pp_c1").checked||!$("pp_c2").checked)return ppErr("Centang kedua pernyataan terlebih dahulu.");
+  if(ppPads.siswa.empty)return ppErr("Tanda tangan calon peserta didik belum diisi.");
+  if(ppPads.ortu.empty)return ppErr("Tanda tangan orang tua/wali belum diisi.");
+  if(!d.alamatOrtu)d.alamatOrtu=d.alamat;
+  $("ppBtn").disabled=true;$("ppBtn").textContent="Menyimpan...";
+  try{
+    const s=await getPPset();
+    const dup=await getDocs(query(collection(db,"ppdb"),where("nik","==",d.nik)));
+    if(!dup.empty){$("ppBtn").disabled=false;$("ppBtn").textContent="Kirim pendaftaran";return ppErr("NIK ini sudah terdaftar. Gunakan menu 'Unduh ulang berkas' dengan nomor pendaftaran Anda.")}
+    let no="";for(let i=0;i<8;i++){const t="PPDB-"+s.ta.slice(0,4)+"-"+String(Math.floor(Math.random()*90000)+10000);if(!(await getDoc(doc(db,"ppdb",t))).exists()){no=t;break}}
+    if(!no)throw new Error("no");
+    Object.assign(d,{noDaftar:no,kode:rndKode(10),ta:s.ta,status:"Menunggu",dibuat:new Date().toISOString(),ttdSiswa:ppPads.siswa.c.toDataURL("image/png"),ttdOrtu:ppPads.ortu.c.toDataURL("image/png")});
+    await setDoc(doc(db,"ppdb",no),d);
+    PPD=d;
+  }catch(e){$("ppBtn").disabled=false;$("ppBtn").textContent="Kirim pendaftaran";return ppErr("Pendaftaran gagal tersimpan. Periksa koneksi internet lalu coba lagi.")}
+  $("ppBtn").disabled=false;$("ppBtn").textContent="Kirim pendaftaran";
+  $("ppNo").textContent=PPD.noDaftar;$("ppNm").textContent=PPD.nama;$("ppQr").src=ppQRurl(PPD);
+  ppShow("sukses");$("ppdbOv").scrollTop=0;
+};
+window.ppUnduhBaru=()=>ppUnduh(PPD);
+window.ppDaftarLagi=()=>{location.reload()};
+window.ppCari=async()=>{
+  const no=ppv("ppUlNo").toUpperCase(),nik=ppv("ppUlNik").replace(/\D/g,"");const e=$("ppUlErr");e.classList.add("hidden");
+  if(!no||!nik){e.textContent="Isi nomor pendaftaran dan NIK.";e.classList.remove("hidden");return}
+  try{const s=await getDoc(doc(db,"ppdb",no));if(!s.exists()||s.data().nik!==nik)throw 0;PPD=s.data();ppUnduh(PPD)}
+  catch(x){e.textContent="Data tidak ditemukan. Periksa nomor pendaftaran dan NIK.";e.classList.remove("hidden")}
+};
+
+// ---- PDF berkas ----
+window.ppUnduh=d=>{
+  if(!window.jspdf)return alert("Library PDF gagal dimuat. Periksa koneksi internet lalu muat ulang halaman.");
+  try{
+    const p=ppPDF(d);p.save("Berkas_PPDB_"+String(d.nama).replace(/[^\w]+/g,"_")+"_"+d.noDaftar+".pdf");
+  }catch(e){alert("Gagal membuat PDF: "+(e.message||e))}
+};
+const ppPDF=d=>{
+  const p=new window.jspdf.jsPDF({unit:"mm",format:"a4"});
+  const L=18,R=192,W=R-L,qr=ppQRurl(d);let y=0,cur="";
+  const head=j=>{
+    const cx=L+(W-28)/2;
+    p.setFont("helvetica","bold");p.setTextColor(15,81,50);p.setFontSize(14);p.text("MA INSAN GENERASI ISLAMI",cx,17,{align:"center"});
+    p.setFontSize(10);p.setTextColor(28,43,36);p.text("PENERIMAAN PESERTA DIDIK BARU (PPDB)",cx,23,{align:"center"});
+    p.setFont("helvetica","normal");p.setFontSize(9);p.text("Tahun Ajaran "+d.ta,cx,28,{align:"center"});
+    p.addImage(qr,"PNG",R-25,9,25,25);
+    p.setDrawColor(15,81,50);p.setLineWidth(.7);p.line(L,37,R,37);p.setLineWidth(.2);p.line(L,38.2,R,38.2);
+    p.setTextColor(0);p.setFont("helvetica","bold");p.setFontSize(12);p.text(j,(L+R)/2,47,{align:"center"});y=55;
+  };
+  const page=j=>{p.addPage();cur=j;head(j)};
+  const ens=h=>{if(y+h>278)page(cur)};
+  const sec=t=>{ens(14);p.setFillColor(232,243,236);p.rect(L,y-4.6,W,7,"F");p.setFont("helvetica","bold");p.setFontSize(10);p.setTextColor(15,81,50);p.text(t,L+2,y);p.setTextColor(0);y+=7.5};
+  const row=(l,v)=>{p.setFont("helvetica","normal");p.setFontSize(9.5);const ls=p.splitTextToSize(dash(v),W-52);ens(ls.length*4.8+1);p.text(l,L+2,y);p.text(":",L+46,y);p.text(ls,L+50,y);y+=ls.length*4.8+1.2};
+  const para=(t,ind)=>{p.setFont("helvetica","normal");p.setFontSize(10);const ls=p.splitTextToSize(t,W-(ind||0));ens(ls.length*5+2);p.text(ls,L+(ind||0),y);y+=ls.length*5+2};
+  const num=(a)=>a.forEach((t,i)=>{p.setFont("helvetica","normal");p.setFontSize(10);const ls=p.splitTextToSize(t,W-9);ens(ls.length*5+2);p.text((i+1)+".",L+2,y);p.text(ls,L+9,y);y+=ls.length*5+2});
+  const ttd=()=>{
+    ens(66);p.setFont("helvetica","normal");p.setFontSize(10);p.setTextColor(0);
+    p.text("Dibuat pada tanggal "+tglID(d.tglSurat),R,y,{align:"right"});y+=7;
+    const c1=L+32,c2=R-32;
+    p.text("Calon Peserta Didik,",c1,y,{align:"center"});p.text("Orang Tua/Wali ("+d.ttdSebagai+"),",c2,y,{align:"center"});
+    p.setDrawColor(150);p.setLineDashPattern([1.2,1.2],0);p.rect(c1+22,y+3,22,17);p.setLineDashPattern([],0);p.setFontSize(7);p.setTextColor(120);p.text("Meterai",c1+33,y+10.5,{align:"center"});p.text("Rp10.000",c1+33,y+14,{align:"center"});p.setTextColor(0);
+    p.addImage(d.ttdSiswa,"PNG",c1-22,y+3,44,17.6);p.addImage(d.ttdOrtu,"PNG",c2-22,y+3,44,17.6);
+    y+=26;p.setFont("helvetica","bold");p.setFontSize(10);
+    [[d.nama,c1],[d.ortuNama,c2]].forEach(([n,cx])=>{p.text(n,cx,y,{align:"center"});const w=p.getTextWidth(n);p.setDrawColor(0);p.line(cx-w/2,y+1,cx+w/2,y+1)});
+    y+=12;
+  };
+  const ident=()=>{
+    para("Yang bertanda tangan di bawah ini:");
+    p.setFont("helvetica","bold");p.setFontSize(9.5);ens(6);p.text("Calon peserta didik",L+2,y);y+=5;
+    row("Nama lengkap",d.nama);row("NISN",d.nisn);row("Asal sekolah",d.sekolah);row("Jalur pendaftaran",d.jalur);y+=1;
+    p.setFont("helvetica","bold");p.setFontSize(9.5);ens(6);p.text("Orang tua/wali",L+2,y);y+=5;
+    row("Nama lengkap",d.ortuNama);row("Sebagai",d.ttdSebagai);row("No. telepon/WA",d.telp);y+=3;
+  };
+
+  // Halaman 1: formulir
+  cur="FORMULIR PENDAFTARAN CALON PESERTA DIDIK";head(cur);
+  p.setFont("helvetica","bold");p.setFontSize(10);p.text("No. Pendaftaran: "+d.noDaftar,L+2,y);p.setFont("helvetica","normal");p.setFontSize(9);p.text("Tanggal daftar: "+tglID(String(d.dibuat).slice(0,10)),R,y,{align:"right"});y+=8;
+  sec("A. DATA PRIBADI");
+  row("Nama lengkap",d.nama);row("Nama panggilan",d.panggilan);row("NIK",d.nik);row("NISN",d.nisn);row("Tempat, tanggal lahir",d.tempat+", "+tglID(d.tgl));row("Jenis kelamin",d.jk);row("Agama",d.agama);row("Kewarganegaraan",d.wn);
+  row("Tinggi / berat badan",(d.tb?d.tb+" cm":"-")+" / "+(d.bb?d.bb+" kg":"-"));row("Alamat lengkap",d.alamat);row("Desa/Kelurahan",d.desa);row("Kecamatan",d.kec);row("Kabupaten/Kota",d.kab);y+=2;
+  sec("B. RIWAYAT PENDIDIKAN ASAL");
+  row("Nama sekolah asal",d.sekolah);row("Nomor ijazah/SKL",d.noIjazah);row("Tahun lulus",d.thLulus);row("Rata-rata rapor",d.rapor);y+=2;
+  sec("C. DATA ORANG TUA / WALI");
+  row("Nama ayah",d.ayah);row("Pekerjaan ayah",d.ayahKerja);row("Pendidikan ayah",d.ayahPend);row("Penghasilan ayah",d.ayahGaji);
+  row("Nama ibu",d.ibu);row("Pekerjaan ibu",d.ibuKerja);row("Pendidikan ibu",d.ibuPend);row("Penghasilan ibu",d.ibuGaji);
+  if(d.wali){row("Nama wali",d.wali);row("Pekerjaan wali",d.waliKerja)}
+  row("Telepon/WhatsApp",d.telp);row("Alamat orang tua/wali",d.alamatOrtu);y+=2;
+  sec("D. JALUR PENDAFTARAN");
+  row("Jalur",d.jalur);row("Keterangan",d.jalurKet);y+=2;
+  if(d.min1||d.min2||d.min3){sec("E. PILIHAN PEMINATAN / PROGRAM");row("Pilihan 1",d.min1);row("Pilihan 2",d.min2);row("Pilihan 3",d.min3);y+=2}
+
+  // Surat keaslian
+  page("SURAT PERNYATAAN KEASLIAN DOKUMEN");ident();
+  para("Dengan ini menyatakan dengan sesungguhnya bahwa:");
+  num(["Seluruh data yang diisikan pada formulir pendaftaran PPDB MA Insan Generasi Islami Tahun Ajaran "+d.ta+" adalah benar dan sesuai dengan keadaan yang sebenarnya.",
+   "Seluruh dokumen yang diunggah atau dilampirkan, termasuk SKL/ijazah, Kartu Keluarga, dan dokumen pendukung jalur pendaftaran, adalah asli, sah, dan benar.",
+   "Apabila di kemudian hari terbukti terdapat data atau dokumen yang dipalsukan atau tidak benar, kami bersedia didiskualifikasi dari proses seleksi atau dibatalkan penerimaannya sebagai peserta didik tanpa menuntut apa pun kepada madrasah.",
+   "Surat pernyataan ini dibuat dengan penuh kesadaran dan tanpa paksaan dari pihak mana pun."]);
+  y+=2;para("Demikian surat pernyataan ini dibuat untuk dipergunakan sebagaimana mestinya.");y+=4;ttd();
+
+  // Surat tata tertib
+  page("SURAT PERNYATAAN MEMATUHI TATA TERTIB MADRASAH");ident();
+  para("Dengan ini menyatakan bersedia dan sanggup:");
+  num(["Mematuhi seluruh peraturan, tata tertib, dan kode etik MA Insan Generasi Islami yang berlaku.",
+   "Hadir tepat waktu, berseragam sesuai ketentuan, serta menjaga akhlak dan sopan santun kepada guru, karyawan, dan sesama siswa.",
+   "Mengikuti kegiatan pembelajaran dan kegiatan keagamaan madrasah dengan penuh tanggung jawab.",
+   "Tidak terlibat perkelahian, perundungan, penyalahgunaan narkoba, minuman keras, rokok, judi, pornografi, atau perbuatan lain yang melanggar hukum dan norma agama.",
+   "Menjaga kebersihan, ketertiban, serta sarana dan prasarana madrasah.",
+   "Menerima sanksi sesuai ketentuan madrasah apabila melanggar tata tertib."]);
+  y+=1;para("Kami sebagai orang tua/wali bersedia mendukung, membimbing, dan turut bertanggung jawab atas kepatuhan putra/putri kami terhadap tata tertib tersebut.");y+=4;ttd();
+
+  // Info daftar ulang
+  ens(52);p.setFillColor(251,243,223);p.setDrawColor(200,150,46);p.setLineWidth(.5);p.roundedRect(L,y,W,44,2,2,"FD");
+  p.setFont("helvetica","bold");p.setFontSize(11);p.setTextColor(120,80,0);p.text("INFORMASI DAFTAR ULANG",L+4,y+8);
+  p.setTextColor(28,43,36);p.setFont("helvetica","normal");p.setFontSize(10);
+  p.text("Saat datang untuk daftar ulang ke MA Insan Generasi Islami, harap membawa:",L+4,y+15);
+  p.setFont("helvetica","bold");p.text("1.  SKL (Surat Keterangan Lulus)",L+8,y+22);p.text("2.  KK (Kartu Keluarga)",L+8,y+28);p.text("3.  Berkas ini (hasil unduhan) yang sudah dicetak",L+8,y+34);
+  p.setFont("helvetica","normal");p.setFontSize(8.5);p.text("Petugas akan memindai QR code pada berkas ini di panel admin untuk membuktikan keasliannya.",L+4,y+40.5);
+
+  const n=p.getNumberOfPages();
+  for(let i=1;i<=n;i++){p.setPage(i);p.setFont("helvetica","normal");p.setFontSize(7.5);p.setTextColor(100);p.setDrawColor(200);p.setLineWidth(.2);p.line(L,284,R,284);
+    p.text("No. Pendaftaran: "+d.noDaftar+"  |  MA Insan Generasi Islami - PPDB "+d.ta,L,288.5);p.text("Keaslian berkas dapat dicek dengan memindai QR code pada panel admin.",L,292.5);p.text("Hal "+i+"/"+n,R,288.5,{align:"right"})}
+  return p;
+};
+
+// ============ ADMIN: DATA PPDB ============
+let PPL=[],PPV=[];
+const ppStat={"Menunggu":"bg-amber-100 text-amber-700","Terverifikasi":"bg-sky-100 text-sky-700","Diterima":"bg-emerald-100 text-emerald-700","Ditolak":"bg-rose-100 text-rose-700"};
+const ppCards=a=>`<p class="text-sm mb-2">${a.length} pendaftar</p>`+list(a,x=>`<div class="card mb-2"><div class="flex justify-between gap-2"><div><b>${esc(x.nama)}</b><div class="text-xs text-slate-500">${esc(x.noDaftar)} - NISN ${esc(x.nisn)}</div><div class="text-xs text-slate-500">${esc(x.sekolah)} - ${esc(x.jalur)}</div><div class="text-xs text-slate-400">${fmtWaktu(x.dibuat)}</div></div><span class="pill ${ppStat[x.status]||"bg-slate-100"} h-fit">${esc(x.status)}</span></div>
+ <div class="flex flex-wrap gap-2 mt-2"><button class="btn" onclick="ppDetail('${esc(x.id)}')">Detail</button><button class="btn2" onclick="ppUnduhId('${esc(x.id)}')">⬇ PDF</button>${me.idGuru?"":`<button class="btn2" onclick="hapus('ppdb','${esc(x.id)}','PPDB')">Hapus</button>`}</div></div>`,"Belum ada pendaftar.");
+A.PPDB=async()=>{
+  const full=!me.idGuru,s=await getPPset();
+  PPL=(await all("ppdb")).sort((a,b)=>(b.dibuat||"")>(a.dibuat||"")?1:-1);PPV=PPL;
+  const set=full?`<div class="card space-y-2 mb-4"><h2 class="font-extrabold">Pengaturan PPDB</h2><div class="grid grid-cols-2 gap-2"><div><label class="text-xs text-slate-500">Tahun ajaran</label><input id="psTA" class="inp" value="${esc(s.ta)}" placeholder="2027/2028"></div><div><label class="text-xs text-slate-500">Pendaftaran</label><select id="psBuka" class="inp"><option value="1" ${s.buka!==false?"selected":""}>Dibuka</option><option value="0" ${s.buka===false?"selected":""}>Ditutup</option></select></div></div><button class="btn" onclick="ppSimpanSet()">Simpan pengaturan</button></div>`:"";
+  return set+`<div class="card space-y-2 mb-4"><h2 class="font-extrabold">📋 Data pendaftar PPDB ${esc(s.ta)}</h2><input id="pfQ" class="inp" placeholder="Cari nama / NISN / NIK / no. pendaftaran" oninput="ppFilter()">
+  <div class="grid grid-cols-2 gap-2"><select id="pfJ" class="inp" onchange="ppFilter()"><option value="">Semua jalur</option>${JALUR.map(j=>`<option>${esc(j.n)}</option>`).join("")}</select><select id="pfS" class="inp" onchange="ppFilter()"><option value="">Semua status</option>${Object.keys(ppStat).map(k=>`<option>${k}</option>`).join("")}</select></div>
+  <button class="btn2" onclick="exportPPDB()">⬇ Ekspor ke Excel</button></div><div id="ppList">${ppCards(PPL)}</div>`;
+};
+window.ppSimpanSet=async()=>{const ta=$("psTA").value.trim();if(!/^\d{4}\/\d{4}$/.test(ta))return alert("Format tahun ajaran: 2027/2028");await setDoc(doc(db,"pengaturan","ppdb"),{ta,buka:$("psBuka").value==="1"});alert("Tersimpan.");go("PPDB")};
+window.ppFilter=()=>{const q=$("pfQ").value.toLowerCase().trim(),j=$("pfJ").value,s=$("pfS").value;
+  PPV=PPL.filter(x=>(!j||x.jalur===j)&&(!s||x.status===s)&&(!q||[x.nama,x.nisn,x.nik,x.noDaftar].some(v=>String(v||"").toLowerCase().includes(q))));$("ppList").innerHTML=ppCards(PPV)};
+window.ppUnduhId=async id=>{const d=PPL.find(x=>x.id===id)||(await getDoc(doc(db,"ppdb",id))).data();if(d)ppUnduh(d)};
+window.ppDetail=async id=>{
+  let d=PPL.find(x=>x.id===id);if(!d){const s=await getDoc(doc(db,"ppdb",id));if(!s.exists())return alert("Data tidak ditemukan.");d={id,...s.data()}}
+  const R=[["No. pendaftaran","noDaftar"],["Nama lengkap","nama"],["Nama panggilan","panggilan"],["NIK","nik"],["NISN","nisn"],["Tempat lahir","tempat"],["Tanggal lahir","tgl"],["Jenis kelamin","jk"],["Agama","agama"],["Kewarganegaraan","wn"],["Tinggi (cm)","tb"],["Berat (kg)","bb"],["Alamat","alamat"],["Desa/Kel.","desa"],["Kecamatan","kec"],["Kab/Kota","kab"],["Sekolah asal","sekolah"],["No. ijazah/SKL","noIjazah"],["Tahun lulus","thLulus"],["Rata-rata rapor","rapor"],["Ayah","ayah"],["Pekerjaan ayah","ayahKerja"],["Pendidikan ayah","ayahPend"],["Penghasilan ayah","ayahGaji"],["Ibu","ibu"],["Pekerjaan ibu","ibuKerja"],["Pendidikan ibu","ibuPend"],["Penghasilan ibu","ibuGaji"],["Wali","wali"],["Pekerjaan wali","waliKerja"],["Telepon/WA","telp"],["Alamat ortu/wali","alamatOrtu"],["Jalur","jalur"],["Keterangan jalur","jalurKet"],["Pilihan 1","min1"],["Pilihan 2","min2"],["Pilihan 3","min3"],["Penandatangan ortu","ortuNama"]];
+  const m=document.createElement("div");m.className="modal";m.onclick=e=>{if(e.target===m)m.remove()};
+  m.innerHTML=`<div class="modal-box" style="max-width:30rem;max-height:90vh;overflow:auto"><button class="modal-x" onclick="this.closest('.modal').remove()">&times;</button><h3 class="font-extrabold text-lg pr-8">${esc(d.nama)}</h3><p class="text-xs text-slate-500 mb-3">${esc(d.noDaftar)} - TA ${esc(d.ta)}</p>
+  <div class="text-sm space-y-1">${R.map(([l,k])=>d[k]?`<div class="flex gap-2"><span class="text-slate-500 shrink-0" style="width:9rem">${l}</span><span class="font-semibold break-words min-w-0">${esc(d[k])}</span></div>`:"").join("")}</div>
+  <div class="grid grid-cols-2 gap-2 mt-3 text-center"><div><img src="${d.ttdSiswa||""}" class="border rounded-lg bg-white w-full" alt=""><div class="text-[11px] text-slate-500">TTD calon siswa</div></div><div><img src="${d.ttdOrtu||""}" class="border rounded-lg bg-white w-full" alt=""><div class="text-[11px] text-slate-500">TTD ortu/wali</div></div></div>
+  <div class="flex gap-2 mt-3"><select id="pdSt" class="inp">${Object.keys(ppStat).map(k=>`<option ${k===d.status?"selected":""}>${k}</option>`).join("")}</select><button class="btn" id="pdSv">Simpan</button></div>
+  <button class="btn2 w-full mt-2" id="pdPdf">⬇ Unduh berkas PDF</button></div>`;
+  document.body.appendChild(m);
+  $("pdSv").onclick=async()=>{await updateDoc(doc(db,"ppdb",d.id),{status:$("pdSt").value});d.status=$("pdSt").value;alert("Status tersimpan.");m.remove();go("PPDB")};
+  $("pdPdf").onclick=()=>ppUnduh(d);
+};
+window.exportPPDB=()=>{
+  if(!PPV.length)return alert("Tidak ada data untuk diekspor.");
+  const C=[["No. Pendaftaran","noDaftar"],["Status","status"],["Nama","nama"],["Panggilan","panggilan"],["NIK","nik"],["NISN","nisn"],["Tempat Lahir","tempat"],["Tanggal Lahir","tgl"],["JK","jk"],["Agama","agama"],["Kewarganegaraan","wn"],["Tinggi","tb"],["Berat","bb"],["Alamat","alamat"],["Desa","desa"],["Kecamatan","kec"],["Kab/Kota","kab"],["Sekolah Asal","sekolah"],["No Ijazah/SKL","noIjazah"],["Tahun Lulus","thLulus"],["Rapor","rapor"],["Ayah","ayah"],["Pekerjaan Ayah","ayahKerja"],["Pendidikan Ayah","ayahPend"],["Penghasilan Ayah","ayahGaji"],["Ibu","ibu"],["Pekerjaan Ibu","ibuKerja"],["Pendidikan Ibu","ibuPend"],["Penghasilan Ibu","ibuGaji"],["Wali","wali"],["Pekerjaan Wali","waliKerja"],["Telepon/WA","telp"],["Alamat Ortu","alamatOrtu"],["Jalur","jalur"],["Keterangan Jalur","jalurKet"],["Pilihan 1","min1"],["Pilihan 2","min2"],["Pilihan 3","min3"],["Waktu Daftar","dibuat"]];
+  const ws=XLSX.utils.aoa_to_sheet([C.map(c=>c[0]),...PPV.map(x=>C.map(([l,k])=>x[k]??""))]);ws["!cols"]=C.map(()=>({wch:20}));
+  const wb=XLSX.utils.book_new();XLSX.utils.book_append_sheet(wb,ws,"PPDB");XLSX.writeFile(wb,"Data_PPDB_"+today()+".xlsx");
+};
+
+// ============ ADMIN: VERIFIKASI QR PPDB ============
+let vpScan=null,vpBusy=false;
+window.vpStop=async()=>{const s=vpScan;vpScan=null;if(s){try{await s.stop()}catch(e){}try{s.clear()}catch(e){}}};
+A.VerifPPDB=async()=>`<div class="card space-y-3 mb-4"><h2 class="font-extrabold">🔍 Verifikasi keaslian berkas PPDB</h2>
+ <p class="text-xs text-slate-500">Scan QR code pada berkas yang dibawa calon siswa saat daftar ulang. Sistem mencocokkan QR dengan data pendaftaran di database.</p>
+ <div id="vpReader" class="hidden" style="width:100%;border-radius:.75rem;overflow:hidden"></div>
+ <p id="vpMsg" class="text-sm text-slate-600"></p>
+ <div class="flex gap-2"><button id="vpB1" class="btn" onclick="vpMulai()">📷 Mulai scan</button><button id="vpB2" class="btn2 hidden" onclick="vpBerhenti()">Berhenti</button></div>
+ <textarea id="vpTxt" class="inp" rows="3" placeholder="Atau tempel isi QR di sini"></textarea><button class="btn2" onclick="vpCek($('vpTxt').value)">Cek manual</button></div><div id="vpOut"></div>`;
+window.vpMulai=async()=>{
+  if(typeof Html5Qrcode==="undefined")return alert("Library scanner gagal dimuat. Periksa koneksi internet lalu muat ulang.");
+  await vpStop();vpBusy=false;
+  $("vpReader").classList.remove("hidden");$("vpB1").classList.add("hidden");$("vpB2").classList.remove("hidden");$("vpMsg").textContent="Menyalakan kamera...";
+  const sc=new Html5Qrcode("vpReader");vpScan=sc;
+  try{await sc.start({facingMode:"environment"},{fps:10,qrbox:{width:240,height:240}},async t=>{if(vpBusy)return;vpBusy=true;await vpBerhenti();vpCek(t)},()=>{});$("vpMsg").textContent="Kamera aktif. Arahkan ke QR pada berkas."}
+  catch(e){vpScan=null;if(!$("vpReader"))return;$("vpReader").classList.add("hidden");$("vpB1").classList.remove("hidden");$("vpB2").classList.add("hidden");$("vpMsg").textContent="Kamera tidak bisa dibuka. Izinkan akses kamera (harus lewat https) atau tempel isi QR manual."}
+};
+window.vpBerhenti=async()=>{await vpStop();if(!$("vpReader"))return;$("vpReader").classList.add("hidden");$("vpB1").classList.remove("hidden");$("vpB2").classList.add("hidden");$("vpMsg").textContent=""};
+window.vpCek=async txt=>{
+  const out=$("vpOut");if(!out)return;txt=String(txt||"");
+  const no=(txt.match(/^No:\s*(\S+)/m)||[])[1],kode=(txt.match(/^Kode:\s*(\S+)/m)||[])[1];
+  const bad=(m)=>{beep(false);out.innerHTML=`<div class="card" style="border:2px solid #e11d48;background:#fff1f2"><div class="text-2xl font-extrabold text-rose-600">❌ TIDAK VALID</div><p class="text-sm mt-1">${esc(m)}</p></div>`;vpBusy=false};
+  if(!no||!kode)return bad("Isi QR bukan berkas PPDB MA Insan Generasi Islami.");
+  out.innerHTML=empty("Memeriksa…");
+  let s;try{s=await getDoc(doc(db,"ppdb",no))}catch(e){return bad("Gagal terhubung ke database. Periksa koneksi.")}
+  if(!s.exists()||s.data().kode!==kode)return bad("Nomor pendaftaran atau kode tidak cocok dengan data di database. Berkas ini kemungkinan palsu.");
+  const d={id:s.id,...s.data()};beep(true);vpBusy=false;
+  out.innerHTML=`<div class="card" style="border:2px solid #16a34a;background:#f0fdf4"><div class="text-2xl font-extrabold text-emerald-700">✅ BERKAS ASLI</div><p class="text-xs text-slate-500">Terdaftar di database MA Insan Generasi Islami</p>
+   <div class="mt-2 text-sm space-y-0.5"><div><b>${esc(d.nama)}</b></div><div>No. pendaftaran: ${esc(d.noDaftar)}</div><div>NISN: ${esc(d.nisn)}</div><div>Sekolah asal: ${esc(d.sekolah)}</div><div>Jalur: ${esc(d.jalur)}</div><div>Daftar: ${fmtWaktu(d.dibuat)}</div><div>Status: <span class="pill ${ppStat[d.status]||"bg-slate-100"}">${esc(d.status)}</span></div></div>
+   <div class="flex flex-wrap gap-2 mt-3"><button class="btn" onclick="ppDetail('${esc(d.id)}')">Lihat data lengkap</button>${d.status==="Menunggu"?`<button class="btn2" onclick="vpOk('${esc(d.id)}')">Tandai Terverifikasi</button>`:""}</div></div>`;
+};
+window.vpOk=async id=>{await updateDoc(doc(db,"ppdb",id),{status:"Terverifikasi"});const k=await getDoc(doc(db,"ppdb",id));vpCek("No: "+id+"\nKode: "+k.data().kode)};
+
 </script>
 </body>
 </html>
