@@ -558,11 +558,18 @@ A.Presensi=async()=>{
   <input id="lkKoor" class="inp" placeholder="Koordinat atau link Google Maps" value="${ok?PGL.lat+", "+PGL.lng:""}">
   <input id="lkRad" type="number" class="inp" placeholder="Radius (meter)" value="${PGL.radius}">
   <div class="flex flex-wrap gap-2"><button class="btn" onclick="lkSimpan()">Simpan lokasi</button><button class="btn2" onclick="lkPakai()">Pakai lokasi saya sekarang</button></div></div>`;
-  const bulan=pgYmd(new Date()).slice(0,7);
+  const hari=pgYmd(new Date());
+  const izin=`<div class="card space-y-2 mb-4"><h2 class="font-extrabold">📝 Izin tidak hadir</h2>
+  <p class="text-xs text-slate-500">Ajukan izin jika tidak dapat mengajar. Tidak perlu foto dan lokasi, tetapi keterangan izin wajib diisi.</p>
+  ${full?`<select id="izGuru" class="inp"><option value="">Pilih guru</option>${PGG.map(x=>`<option value="${esc(x.id)}">${esc(x.nama||x.idGuru)}</option>`).join("")}</select>`:""}
+  <div class="grid grid-cols-2 gap-2"><label class="text-xs text-slate-500">Dari tanggal<input id="izTgl" type="date" class="inp" value="${hari}"></label><label class="text-xs text-slate-500">Sampai tanggal (opsional)<input id="izTgl2" type="date" class="inp"></label></div>
+  <textarea id="izKet" class="inp" rows="3" placeholder="Keterangan izin (mis. sakit, keperluan keluarga, dinas luar)"></textarea>
+  <button class="btn" onclick="izKirim()">Kirim izin</button></div>`;
+  const bulan=hari.slice(0,7);
   const rek=`<div class="card space-y-2 mb-4"><h2 class="font-extrabold">Rekap presensi guru (otomatis)</h2>
   <div class="grid grid-cols-2 gap-2"><input id="pgBulan" type="month" class="inp" value="${bulan}" onchange="loadPG()">${full?`<select id="pgGuru" class="inp" onchange="renderPG()"><option value="">Semua guru</option>${PGG.map(x=>`<option value="${esc(x.id)}">${esc(x.nama||x.idGuru)}</option>`).join("")}</select>`:"<div></div>"}</div>
   <button class="btn2" onclick="exportPresensi()">⬇ Ekspor ke Excel</button></div><div id="pgRekap"></div>`;
-  return form+set+rek;
+  return form+izin+set+rek;
 };
 window.lkSimpan=async()=>{
   const k=parseKoord($("lkKoor").value),r=+$("lkRad").value;
@@ -617,6 +624,22 @@ window.pgKirim=async()=>{
   }catch(e){$("pgB3").disabled=false;return alert("Presensi gagal tersimpan. Periksa koneksi lalu coba lagi.")}
   pgFoto="";alert("Presensi berhasil tersimpan.");go("Presensi");
 };
+window.izKirim=async()=>{
+  const full=!me.idGuru,t1=$("izTgl").value,t2=$("izTgl2").value||t1,ket=$("izKet").value.trim();
+  let g;
+  if(full){g=PGG.find(x=>x.id===$("izGuru").value);if(!g)return alert("Pilih guru dulu.")}
+  else g={id:key(me.idGuru),nama:me.nama,idGuru:me.idGuru};
+  if(!t1)return alert("Isi tanggal izin.");
+  if(t2<t1)return alert("Tanggal akhir tidak boleh sebelum tanggal mulai.");
+  if(!ket)return alert("Keterangan izin wajib diisi.");
+  const dates=[];for(let d=new Date(t1+"T00:00:00");pgYmd(d)<=t2&&dates.length<=31;d.setDate(d.getDate()+1))dates.push(pgYmd(d));
+  if(dates.length>31)return alert("Maksimal 31 hari dalam satu pengajuan.");
+  if(!confirm("Kirim izin untuk "+dates.length+" hari ("+t1+(t2!==t1?" s/d "+t2:"")+")?"))return;
+  try{
+    for(const t of dates)await addDoc(collection(db,"presensiGuru"),{status:"Izin",ket,tgl:t,jam:"",waktu:new Date(t+"T07:00:00").toISOString(),dicatat:new Date().toISOString(),guruId:g.id,idGuru:g.idGuru,nama:g.nama,kelas:"",mapel:"",jarak:0});
+  }catch(e){return alert("Izin gagal tersimpan. Periksa koneksi lalu coba lagi.")}
+  alert("Izin berhasil tersimpan.");go("Presensi");
+};
 window.loadPG=async()=>{
   const b=$("pgBulan").value;if(!b){$("pgRekap").innerHTML=empty("Pilih bulan.");return}
   $("pgRekap").innerHTML=empty("Memuat...");
@@ -629,16 +652,16 @@ window.loadPG=async()=>{
 const pgDet=()=>{const g=$("pgGuru")?.value||"";return PGV.filter(x=>!g||x.guruId===g).sort((a,b)=>a.waktu>b.waktu?1:-1)};
 const pgRows=()=>{
   const g=$("pgGuru")?.value||"",m=new Map();
-  const add=(id,nama,idg)=>{if(!m.has(id))m.set(id,{id,nama:nama||idg||id,idGuru:idg||"",hari:new Set(),sesi:0,kelas:{}})};
+  const add=(id,nama,idg)=>{if(!m.has(id))m.set(id,{id,nama:nama||idg||id,idGuru:idg||"",hari:new Set(),izin:new Set(),sesi:0,kelas:{}})};
   if(me.idGuru)add(key(me.idGuru),me.nama,me.idGuru);else PGG.forEach(x=>add(x.id,x.nama,x.idGuru));
-  PGV.forEach(x=>{add(x.guruId,x.nama,x.idGuru);const r=m.get(x.guruId);r.hari.add(x.tgl);r.sesi++;r.kelas[x.kelas]=(r.kelas[x.kelas]||0)+1});
+  PGV.forEach(x=>{add(x.guruId,x.nama,x.idGuru);const r=m.get(x.guruId);if(x.status==="Izin"){r.izin.add(x.tgl);return}r.hari.add(x.tgl);r.sesi++;r.kelas[x.kelas]=(r.kelas[x.kelas]||0)+1});
   return [...m.values()].filter(r=>!g||r.id===g).sort((a,b)=>a.nama>b.nama?1:-1);
 };
 window.renderPG=()=>{
   const rows=pgRows(),det=pgDet().reverse(),full=!me.idGuru;
-  $("pgRekap").innerHTML=`<p class="text-sm mb-2">${det.length} sesi mengajar tercatat - ${rows.filter(r=>r.sesi).length} guru hadir</p>`
-  +(rows.length?`<div class="card overflow-x-auto p-0 mb-4"><table class="w-full text-sm"><thead style="background:var(--g);color:#fff"><tr><th class="text-left p-3">Guru</th><th class="p-3">Hari hadir</th><th class="p-3">Sesi</th><th class="text-left p-3">Kelas</th></tr></thead><tbody>${rows.map(r=>`<tr class="border-t"><td class="p-3 font-semibold">${esc(r.nama)}</td><td class="p-3 text-center ${r.hari.size?"":"text-rose-600 font-bold"}">${r.hari.size}</td><td class="p-3 text-center">${r.sesi}</td><td class="p-3 text-xs">${esc(kelasTxt(r))||"-"}</td></tr>`).join("")}</tbody></table></div>`:empty("Belum ada data guru."))
-  +`<h3 class="msec">Riwayat presensi</h3>`+list(det,x=>`<div class="card mb-2 flex justify-between gap-2"><div><b>${esc(x.nama)}</b> <span class="pill bg-emerald-100 text-emerald-700">${esc(x.kelas)}</span><div class="text-sm">${esc(x.mapel)}</div><div class="text-xs text-slate-500">${esc(x.tgl)} ${esc(x.jam)} - ${fmJ(x.jarak||0)} dari lokasi</div></div><div class="flex flex-col gap-1"><button class="btn2" onclick="pgLihat('${x.id}')">Foto</button>${full?`<button class="btn2" onclick="pgHapus('${x.id}')">Hapus</button>`:""}</div></div>`,"Belum ada presensi pada bulan ini.");
+  $("pgRekap").innerHTML=`<p class="text-sm mb-2">${det.filter(x=>x.status!=="Izin").length} sesi mengajar tercatat - ${rows.filter(r=>r.sesi).length} guru hadir - ${det.filter(x=>x.status==="Izin").length} izin</p>`
+  +(rows.length?`<div class="card overflow-x-auto p-0 mb-4"><table class="w-full text-sm"><thead style="background:var(--g);color:#fff"><tr><th class="text-left p-3">Guru</th><th class="p-3">Hari hadir</th><th class="p-3">Izin</th><th class="p-3">Sesi</th><th class="text-left p-3">Kelas</th></tr></thead><tbody>${rows.map(r=>`<tr class="border-t"><td class="p-3 font-semibold">${esc(r.nama)}</td><td class="p-3 text-center ${r.hari.size?"":"text-rose-600 font-bold"}">${r.hari.size}</td><td class="p-3 text-center ${r.izin.size?"text-amber-600 font-bold":""}">${r.izin.size}</td><td class="p-3 text-center">${r.sesi}</td><td class="p-3 text-xs">${esc(kelasTxt(r))||"-"}</td></tr>`).join("")}</tbody></table></div>`:empty("Belum ada data guru."))
+  +`<h3 class="msec">Riwayat presensi</h3>`+list(det,x=>x.status==="Izin"?`<div class="card mb-2 flex justify-between gap-2"><div><b>${esc(x.nama)}</b> <span class="pill bg-amber-100 text-amber-700">Izin</span><div class="text-sm whitespace-pre-line"><b>Keterangan:</b> ${esc(x.ket||"-")}</div><div class="text-xs text-slate-500">${esc(x.tgl)}</div></div>${full?`<div class="flex flex-col gap-1"><button class="btn2" onclick="pgHapus('${x.id}')">Hapus</button></div>`:""}</div>`:`<div class="card mb-2 flex justify-between gap-2"><div><b>${esc(x.nama)}</b> <span class="pill bg-emerald-100 text-emerald-700">${esc(x.kelas)}</span><div class="text-sm">${esc(x.mapel)}</div><div class="text-xs text-slate-500">${esc(x.tgl)} ${esc(x.jam)} - ${fmJ(x.jarak||0)} dari lokasi</div></div><div class="flex flex-col gap-1"><button class="btn2" onclick="pgLihat('${x.id}')">Foto</button>${full?`<button class="btn2" onclick="pgHapus('${x.id}')">Hapus</button>`:""}</div></div>`,"Belum ada presensi pada bulan ini.");
 };
 window.pgLihat=async id=>{
   let d;try{d=await getDoc(doc(db,"presensiFoto",id))}catch(e){return alert("Foto gagal dimuat.")}
@@ -652,13 +675,13 @@ window.exportPresensi=()=>{
   if(!b||!det.length)return alert("Tidak ada data presensi untuk diekspor.");
   const [y,mo]=b.split("-").map(Number),nd=new Date(y,mo,0).getDate();
   const g=$("pgGuru")?.value,gn=g?(rows[0]?.nama||""):"Semua guru";
-  const s1=[["REKAP PRESENSI GURU"],["Bulan: "+b+" | "+gn+" | Radius presensi: "+PGL.radius+" m"],[],["No","Nama","ID Guru","Hari Hadir","Total Sesi Mengajar","Kelas (jumlah sesi)"],...rows.map((r,i)=>[i+1,r.nama,r.idGuru,r.hari.size,r.sesi,kelasTxt(r)])];
-  const w1=XLSX.utils.aoa_to_sheet(s1);w1["!cols"]=[{wch:5},{wch:28},{wch:14},{wch:11},{wch:20},{wch:40}];
+  const s1=[["REKAP PRESENSI GURU"],["Bulan: "+b+" | "+gn+" | Radius presensi: "+PGL.radius+" m"],[],["No","Nama","ID Guru","Hari Hadir","Hari Izin","Total Sesi Mengajar","Kelas (jumlah sesi)"],...rows.map((r,i)=>[i+1,r.nama,r.idGuru,r.hari.size,r.izin.size,r.sesi,kelasTxt(r)])];
+  const w1=XLSX.utils.aoa_to_sheet(s1);w1["!cols"]=[{wch:5},{wch:28},{wch:14},{wch:11},{wch:10},{wch:20},{wch:40}];
   const days=Array.from({length:nd},(_,i)=>i+1);
-  const s2=[["REKAP HARIAN (jumlah sesi per tanggal)"],[],["No","Nama",...days,"Total"],...rows.map((r,i)=>{const c=days.map(d=>det.filter(x=>x.guruId===r.id&&x.tgl===b+"-"+pgp(d)).length);return [i+1,r.nama,...c.map(v=>v||""),r.sesi]})];
+  const s2=[["REKAP HARIAN (jumlah sesi per tanggal, I = izin)"],[],["No","Nama",...days,"Total"],...rows.map((r,i)=>{const c=days.map(d=>{const t=b+"-"+pgp(d),n=det.filter(x=>x.guruId===r.id&&x.tgl===t&&x.status!=="Izin").length;return n||(r.izin.has(t)?"I":0)});return [i+1,r.nama,...c.map(v=>v||""),r.sesi]})];
   const w2=XLSX.utils.aoa_to_sheet(s2);w2["!cols"]=[{wch:5},{wch:28},...days.map(()=>({wch:4})),{wch:7}];
-  const s3=[["Tanggal","Jam","Nama","ID Guru","Kelas","Mata Pelajaran","Jarak dari Lokasi (m)","Akurasi GPS (m)","Latitude","Longitude"],...det.map(x=>[x.tgl,x.jam,x.nama,x.idGuru,x.kelas,x.mapel,x.jarak,x.akurasi,x.lat,x.lng])];
-  const w3=XLSX.utils.aoa_to_sheet(s3);w3["!cols"]=[{wch:12},{wch:8},{wch:28},{wch:14},{wch:10},{wch:24},{wch:20},{wch:15},{wch:12},{wch:12}];
+  const s3=[["Tanggal","Jam","Status","Keterangan Izin","Nama","ID Guru","Kelas","Mata Pelajaran","Jarak dari Lokasi (m)","Akurasi GPS (m)","Latitude","Longitude"],...det.map(x=>x.status==="Izin"?[x.tgl,"","Izin",x.ket||"",x.nama,x.idGuru,"","","","","",""]:[x.tgl,x.jam,"Hadir","",x.nama,x.idGuru,x.kelas,x.mapel,x.jarak,x.akurasi,x.lat,x.lng])];
+  const w3=XLSX.utils.aoa_to_sheet(s3);w3["!cols"]=[{wch:12},{wch:8},{wch:9},{wch:40},{wch:28},{wch:14},{wch:10},{wch:24},{wch:20},{wch:15},{wch:12},{wch:12}];
   const wb=XLSX.utils.book_new();XLSX.utils.book_append_sheet(wb,w1,"Rekap");XLSX.utils.book_append_sheet(wb,w2,"Rekap Harian");XLSX.utils.book_append_sheet(wb,w3,"Detail Presensi");
   XLSX.writeFile(wb,"Presensi_Guru_"+b+".xlsx");
 };
