@@ -200,7 +200,7 @@ import {getFirestore,collection,getDocs,doc,setDoc,addDoc,updateDoc,deleteDoc,ge
 // === GANTI DENGAN CONFIG FIREBASE BARU ANDA (lihat langkah-langkah) ===
 const firebaseConfig={apiKey:"AIzaSyClGgcUyZj16x1XpbGGFkIdbQC9OSqnvtw",authDomain:"apa-1c339.firebaseapp.com",projectId:"apa-1c339",storageBucket:"apa-1c339.firebasestorage.app",messagingSenderId:"446205639535",appId:"1:446205639535:web:3ac4916c616089f15f869a"};
 const db=getFirestore(initializeApp(firebaseConfig));
-const ADMIN={u:"admin",p:"RUGEK.aja234817"};
+const ADMINS=[{u:"admin",p:"RUGEK.aja234817",nama:"Admin"},{u:"adm234817",p:"22112004",nama:"Admin"}]; // akun admin bawaan (akses semua fitur)
 const key=s=>String(s??"").toLowerCase().replace(/[^a-z0-9]/g,"");
 const DEF_JADWAL=[{"kelas": 10, "mapel": "Matematika", "jam": "07:00 - 08:30", "guru": "Budi Santoso, S.Pd."}, {"kelas": 10, "mapel": "Bahasa Indonesia", "jam": "08:30 - 10:00", "guru": "Siti Aminah, M.Pd."}, {"kelas": 10, "mapel": "Istirahat", "jam": "10:00 - 10:30", "guru": "-"}, {"kelas": 10, "mapel": "Ilmu Pengetahuan Alam (IPA)", "jam": "10:30 - 12:00", "guru": "Drs. Ahmad Hidayat"}, {"kelas": 10, "mapel": "Pendidikan Pancasila", "jam": "12:45 - 14:15", "guru": "Dewi Lestari, S.H."}, {"kelas": 11, "mapel": "Matematika", "jam": "07:00 - 08:30", "guru": "Budi Santoso, S.Pd."}, {"kelas": 11, "mapel": "Bahasa Indonesia", "jam": "08:30 - 10:00", "guru": "Siti Aminah, M.Pd."}, {"kelas": 11, "mapel": "Istirahat", "jam": "10:00 - 10:30", "guru": "-"}, {"kelas": 11, "mapel": "Ilmu Pengetahuan Alam (IPA)", "jam": "10:30 - 12:00", "guru": "Drs. Ahmad Hidayat"}, {"kelas": 11, "mapel": "Pendidikan Pancasila", "jam": "12:45 - 14:15", "guru": "Dewi Lestari, S.H."}, {"kelas": 12, "mapel": "Matematika", "jam": "07:00 - 08:30", "guru": "Budi Santoso, S.Pd."}, {"kelas": 12, "mapel": "Bahasa Indonesia", "jam": "08:30 - 10:00", "guru": "Siti Aminah, M.Pd."}, {"kelas": 12, "mapel": "Istirahat", "jam": "10:00 - 10:30", "guru": "-"}, {"kelas": 12, "mapel": "Ilmu Pengetahuan Alam (IPA)", "jam": "10:30 - 12:00", "guru": "Drs. Ahmad Hidayat"}, {"kelas": 12, "mapel": "Pendidikan Pancasila", "jam": "12:45 - 14:15", "guru": "Dewi Lestari, S.H."}];
 const $=id=>document.getElementById(id);
@@ -223,7 +223,8 @@ window.doLogin=async()=>{
   const norm=v=>String(v??"").trim();
   try{
     let g=null,found=false;
-    if(u.toLowerCase()===ADMIN.u&&p===ADMIN.p) g={nama:"Admin",role:"admin"};
+    const ad=ADMINS.find(x=>x.u===u.toLowerCase()&&x.p===p);
+    if(ad) g={nama:ad.nama,role:"admin"};
     else if(key(u)){
       let d=await getDoc(doc(db,"guru",key(u))),dt=d.exists()?d.data():null;
       if(!dt){ // cadangan: cari berdasarkan field idGuru (mis. data lama yang ID dokumennya beda)
