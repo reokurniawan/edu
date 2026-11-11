@@ -218,14 +218,24 @@ window.closeLogin=()=>$("loginModal").classList.add("hidden");
 document.addEventListener("keydown",e=>{if(e.key==="Escape")closeLogin();if(e.key==="Enter"&&!$("loginModal").classList.contains("hidden"))doLogin()});
 $("yr").textContent=new Date().getFullYear();
 window.doLogin=async()=>{
-  const u=$("u").value.trim(),p=$("p").value.trim();$("err").classList.add("hidden");
+  const u=$("u").value.trim(),p=$("p").value.trim(),E=$("err");E.classList.add("hidden");
+  const fail=m=>{E.textContent=m;E.classList.remove("hidden");if(!saved)openLogin()};
+  const norm=v=>String(v??"").trim();
   try{
-    let g=null;
+    let g=null,found=false;
     if(u.toLowerCase()===ADMIN.u&&p===ADMIN.p) g={nama:"Admin",role:"admin"};
-    else if(key(u)){ const d=await getDoc(doc(db,"guru",key(u))); if(d.exists()&&d.data().sandi===p) g=d.data(); }
+    else if(key(u)){
+      let d=await getDoc(doc(db,"guru",key(u))),dt=d.exists()?d.data():null;
+      if(!dt){ // cadangan: cari berdasarkan field idGuru (mis. data lama yang ID dokumennya beda)
+        const sem=(await all("guru")).find(x=>key(x.idGuru)===key(u)||key(x.id)===key(u));
+        if(sem)dt=sem;
+      }
+      if(dt){found=true;if(norm(dt.sandi)===p)g=dt}
+    }
     if(g){ isAdmin=true; me={nama:g.nama,idGuru:g.idGuru||"",role:String(g.role||"guru").toLowerCase()==="admin"?"admin":"guru"}; }
-    else{ const s=await getDoc(doc(db,"siswa",u)); if(!s.exists()||s.data().tgl!==p)throw 0; me=s.data(); isAdmin=false; }
-  }catch(e){$("err").textContent="NISN/ID guru atau sandi salah.";$("err").classList.remove("hidden");if(!saved)openLogin();return}
+    else if(found){return fail("Sandi salah untuk ID ini. Cek lagi sandi di menu Guru (huruf besar/kecil berpengaruh, angka nol di depan bisa hilang jika file Excel berformat angka).")}
+    else{ const s=await getDoc(doc(db,"siswa",u)); if(!s.exists())return fail("ID/NISN \""+u+"\" tidak ditemukan di database."); if(norm(s.data().tgl)!==p)return fail("Sandi salah. Sandi siswa adalah tanggal lahir (ddmmyyyy)."); me=s.data(); isAdmin=false; }
+  }catch(e){console.error("Login error:",e);return fail("Gagal terhubung ke database ("+(e.code||e.message||"error")+"). Jika 'permission-denied', periksa Rules Firestore.")}
   sessionStorage.setItem("me",JSON.stringify({u,p}));
   start();
 };
