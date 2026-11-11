@@ -208,6 +208,8 @@ const esc=s=>String(s??"").replace(/[&<>"]/g,c=>({"&":"&amp;","<":"&lt;",">":"&g
 const all=async n=>(await getDocs(collection(db,n))).docs.map(d=>({id:d.id,...d.data()}));
 const today=()=>new Date().toISOString().slice(0,10);
 let me=null,isAdmin=false,tab="",siswa=[];
+// Role: Admin = akun admin (tanpa idGuru, akses semua). Guru = akun di tab Guru (hanya Akademik, Kegiatan Madrasah, Grup Chat).
+const GURU_OK=new Set(["Menu","Jadwal","Tugas","Absensi","Rekap","Jurnal","Presensi","Kegiatan","RekapKegiatan","Chat"]);
 
 const saved=sessionStorage.getItem("me");
 window.openLogin=()=>{$("loginModal").classList.remove("hidden");setTimeout(()=>$("u").focus(),50)};
@@ -241,7 +243,7 @@ function start(){
   closeLogin();$("login").classList.add("hidden");$("app").classList.remove("hidden");
   const t=["Siswa","Guru","Jadwal","Pengumuman","Pelanggaran","Prestasi","Tugas","Absensi","Rekap","Pembayaran","Bantuan"];
   $("tabs").style.display="none";$("tabs").innerHTML="";
-  $("menu").innerHTML=`<div class="px-3 py-2 border-b mb-1"><div class="font-bold text-sm">${esc(me.nama)}</div><div class="text-xs text-slate-500">${isAdmin?"Guru / Admin":esc(me.kelas)}</div></div>`
+  $("menu").innerHTML=`<div class="px-3 py-2 border-b mb-1"><div class="font-bold text-sm">${esc(me.nama)}</div><div class="text-xs text-slate-500">${isAdmin?(me.idGuru?"Guru":"Admin"):esc(me.kelas)}</div></div>`
    +(isAdmin?"":`<button class="mi" onclick="go('Notifikasi')">${IC.bell}<span>Notifikasi</span><span id="bdg" class="ml-auto"></span></button><button class="mi" onclick="go('KartuID')"><span style="font-size:1.2rem">🪪</span><span>Kartu ID &amp; QR</span></button><button class="mi" onclick="go('Bantuan')">${IC.help}<span>Bantuan (CS)</span></button><button class="mi" onclick="go('Chat')">${IC.chat}<span>Grup Chat</span></button>`)
    +`<button class="mi" style="color:#be123c" onclick="logout()">${IC.out}<span>Keluar</span></button>`;
   $("acc").innerHTML=IC.user+'<span id="bdg2" class="bdg2" style="display:none"></span>';
@@ -249,6 +251,7 @@ function start(){
   if(!isAdmin)refreshBadge();
 }
 window.go=async n=>{
+  if(isAdmin&&me.idGuru&&!GURU_OK.has(n))n="Menu";
   if(window.unsubChat){window.unsubChat();window.unsubChat=null}
   if(window.pgStop)window.pgStop();
   if(window.kgStop)window.kgStop();
@@ -477,7 +480,7 @@ A.Menu=async()=>{
   const tgl=new Date().toLocaleDateString("id-ID",{weekday:"long",day:"numeric",month:"long",year:"numeric"});
   return `<section class="hero p-6"><p class="text-sm opacity-80">Assalamu'alaikum,</p><h1 class="text-2xl sm:text-3xl font-extrabold">${esc(me.nama)}</h1><p class="text-xs opacity-75 mt-1">${tgl}</p>
   <div class="grid grid-cols-3 gap-3 mt-5 relative z-10"><div class="hstat"><div class="text-2xl font-extrabold">${siswa.length}</div><div class="text-[11px] opacity-80">Siswa</div></div><div class="hstat"><div class="text-2xl font-extrabold">${gu.length}</div><div class="text-[11px] opacity-80">Guru</div></div><div class="hstat"><div class="text-2xl font-extrabold">${kls}</div><div class="text-[11px] opacity-80">Kelas</div></div></div></section>`
-  +MENU.map(([sec,items])=>`<h2 class="msec">${sec}</h2><div class="grid grid-cols-2 sm:grid-cols-3 gap-3">`+items.map(([k,ic,d,bg,lb])=>`<button class="mcard" onclick="go('${k}')"><span class="mic" style="background:${bg}">${ic}</span><span class="mt">${lb||k}</span><span class="md">${d}</span>${nb[k]?`<span class="mbd">${nb[k]}</span>`:""}</button>`).join("")+`</div>`).join("");
+  +(me.idGuru?MENU.map(([s,it])=>[s==="Layanan"?"Grup Chat":s,it.filter(x=>GURU_OK.has(x[0]))]).filter(x=>x[1].length).sort((a,b)=>(a[0]==="Grup Chat")-(b[0]==="Grup Chat")):MENU).map(([sec,items])=>`<h2 class="msec">${sec}</h2><div class="grid grid-cols-2 sm:grid-cols-3 gap-3">`+items.map(([k,ic,d,bg,lb])=>`<button class="mcard" onclick="go('${k}')"><span class="mic" style="background:${bg}">${ic}</span><span class="mt">${lb||k}</span><span class="md">${d}</span>${nb[k]?`<span class="mbd">${nb[k]}</span>`:""}</button>`).join("")+`</div>`).join("");
 };
 
 // ============ JURNAL GURU ============
