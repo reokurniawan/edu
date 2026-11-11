@@ -520,6 +520,11 @@ window.exportJurnal=()=>{
 };
 
 // ============ PRESENSI GURU (kamera + lokasi) ============
+const PG_IN_M=6*60+45,PG_OUT_M=12*60+10; // Clock In maks 06.45, Clock Out mulai 12.10
+const pgMnt=s=>{const[a,b]=String(s||"0:0").split(":");return(+a)*60+(+b)},pgNow=n=>n.getHours()*60+n.getMinutes();
+const pgIsIzin=x=>x.status==="Izin",pgIsOut=x=>x.jenis==="pulang",pgIsIn=x=>!pgIsIzin(x)&&!pgIsOut(x);
+const pgLate=x=>pgIsIn(x)&&(x.terlambat!==undefined?x.terlambat:pgMnt(x.jam)>PG_IN_M);
+const pgLupa=r=>[...r.hari].filter(t=>!r.out.has(t)&&t<pgYmd(new Date())).length;
 const PG_ACC=300; // akurasi GPS maksimal (meter) agar lokasi dianggap valid
 const pgp=n=>String(n).padStart(2,"0");
 const pgYmd=d=>d.getFullYear()+"-"+pgp(d.getMonth()+1)+"-"+pgp(d.getDate());
@@ -530,8 +535,8 @@ const parseKoord=s=>{s=String(s||"").trim();const pp=parsePlus(s);if(pp)return p
 const OLC="23456789CFGHJMPQRVWX";
 const parsePlus=s=>{const m=String(s||"").toUpperCase().match(/([23456789CFGHJMPQRVWX]{8}\+[23456789CFGHJMPQRVWX]{2})/);if(!m)return null;const c=m[1].replace("+","");let la=-90,ln=-180,r=20;for(let i=0;i<10;i+=2){la+=OLC.indexOf(c[i])*r;ln+=OLC.indexOf(c[i+1])*r;if(i<8)r/=20}return{lat:+(la+r/2).toFixed(7),lng:+(ln+r/2).toFixed(7)}};
 // Lokasi bawaan (Plus Code 6P5M3G5Q+2P); admin bisa mengubahnya di menu Presensi Guru
-let PGL={lat:-6.9424375,lng:113.5393125,radius:1000,nama:"Lokasi madrasah"},PGV=[],PGG=[],pgStream=null,pgPos=null,pgFoto="";
-const getLokasi=async()=>{try{const d=await getDoc(doc(db,"pengaturan","lokasi"));if(d.exists())PGL={...PGL,...d.data()}}catch(e){}return PGL};
+let PGL={lat:-6.9424375,lng:113.5393125,radius:300,nama:"Lokasi madrasah"},pgJ="masuk",PGT=[],PGV=[],PGG=[],pgStream=null,pgPos=null,pgFoto="";
+const getLokasi=async()=>{try{const d=await getDoc(doc(db,"pengaturan","lokasi"));if(d.exists()){PGL={...PGL,...d.data()};if(d.data().rv!==2)PGL.radius=300}}catch(e){}return PGL};
 window.pgStop=()=>{if(pgStream){pgStream.getTracks().forEach(t=>t.stop());pgStream=null}};
 const pgMsg=(t,c)=>{const e=$("pgMsg");if(e){e.textContent=t;e.className="text-sm "+(c||"text-slate-600")}};
 const getPos=()=>new Promise((ok,no)=>navigator.geolocation.getCurrentPosition(p=>ok({lat:p.coords.latitude,lng:p.coords.longitude,acc:p.coords.accuracy}),no,{enableHighAccuracy:true,timeout:20000,maximumAge:0}));
@@ -543,14 +548,19 @@ A.Presensi=async()=>{
   PGG=full?(await all("guru")).sort((a,b)=>(a.nama||"")>(b.nama||"")?1:-1):[];
   const ok=PGL.lat!=null&&PGL.lng!=null;
   const lokInfo=ok?`${esc(PGL.nama)} - radius ${fmJ(PGL.radius)} - <a class="underline text-emerald-700" target="_blank" rel="noopener" href="https://www.google.com/maps?q=${PGL.lat},${PGL.lng}">lihat di Maps</a>`:"Lokasi madrasah belum diatur oleh admin.";
-  const form=full?"":`<div class="card space-y-2 mb-4"><h2 class="font-extrabold">📸 Presensi mengajar</h2>
+  const hari0=pgYmd(new Date());PGT=[];
+  if(!full){try{const q=await getDocs(query(collection(db,"presensiGuru"),where("tgl","==",hari0)));PGT=q.docs.map(d=>({id:d.id,...d.data()})).filter(x=>x.guruId===key(me.idGuru))}catch(e){}}
+  const tIn=PGT.find(pgIsIn),tOut=PGT.find(pgIsOut),tIzin=PGT.find(pgIsIzin);
+  const form=full?"":`<div class="card space-y-2 mb-4"><h2 class="font-extrabold">📸 Presensi guru (Clock In / Clock Out)</h2>
   <p class="text-xs text-slate-500">📍 ${lokInfo}</p>
-  <p class="text-xs text-slate-500">Presensi hanya bisa dilakukan di dalam radius lokasi madrasah, dengan foto selfie langsung dari kamera. Lakukan per kelas yang Anda ajar.</p>
-  <div class="grid grid-cols-2 gap-2"><input id="pgKls" class="inp" list="pgKlsL" placeholder="Kelas"><datalist id="pgKlsL">${kl.map(k=>`<option value="${esc(k)}">`).join("")}</datalist><input id="pgMp" class="inp" list="pgMpL" placeholder="Mata pelajaran"><datalist id="pgMpL">${mp.map(k=>`<option value="${esc(k)}">`).join("")}</datalist></div>
+  <p class="text-xs text-slate-500">Clock In / Clock Out hanya bisa dilakukan di dalam radius lokasi madrasah, dengan foto selfie langsung dari kamera.<br>⏰ Clock In maksimal jam 06.45; lewat dari itu tercatat <b>terlambat</b>. Clock Out mulai jam 12.10; pulang lebih awal wajib mengisi alasan.</p>
+  <div class="text-sm rounded-xl p-3 border bg-slate-50">Hari ini: ${tIzin?`<b class="text-amber-700">Izin</b>`:`Clock In <b>${tIn?esc(tIn.jam):"-"}</b>${tIn&&pgLate(tIn)?` <span class="pill bg-rose-100 text-rose-700">Terlambat</span>`:""} · Clock Out <b>${tOut?esc(tOut.jam):"-"}</b>${tOut&&tOut.pulangAwal?` <span class="pill bg-amber-100 text-amber-700">Pulang awal</span>`:""}`}</div>
+  <div class="grid grid-cols-2 gap-2"><input id="pgKls" class="inp" list="pgKlsL" placeholder="Kelas (opsional)"><datalist id="pgKlsL">${kl.map(k=>`<option value="${esc(k)}">`).join("")}</datalist><input id="pgMp" class="inp" list="pgMpL" placeholder="Mata pelajaran (opsional)"><datalist id="pgMpL">${mp.map(k=>`<option value="${esc(k)}">`).join("")}</datalist></div>
+  <textarea id="pgAls" class="inp" rows="2" placeholder="Alasan pulang lebih awal (wajib diisi jika Clock Out sebelum jam 12.10)"></textarea>
   <div id="pgCam" class="hidden"><video id="pgVid" autoplay playsinline muted style="width:100%;border-radius:.75rem;background:#000;transform:scaleX(-1)"></video></div>
   <img id="pgPrev" class="hidden w-full rounded-xl border" alt="Foto presensi">
   <p id="pgMsg" class="text-sm text-slate-600"></p>
-  <div class="flex flex-wrap gap-2"><button id="pgB1" class="btn" onclick="pgMulai()">Mulai presensi</button><button id="pgB2" class="btn hidden" onclick="pgAmbil()">📷 Ambil foto</button><button id="pgB3" class="btn hidden" onclick="pgKirim()">✅ Kirim presensi</button><button id="pgB4" class="btn2 hidden" onclick="pgMulai()">Ulangi</button></div></div>`;
+  <div class="flex flex-wrap gap-2"><button id="pgB1" class="btn" onclick="pgMulai('masuk')">⏰ Clock In</button><button id="pgB5" class="btn" onclick="pgMulai('pulang')">🏠 Clock Out</button><button id="pgB2" class="btn hidden" onclick="pgAmbil()">📷 Ambil foto</button><button id="pgB3" class="btn hidden" onclick="pgKirim()">✅ Kirim presensi</button><button id="pgB4" class="btn2 hidden" onclick="pgMulai(pgJ)">Ulangi</button></div></div>`;
   const set=!full?"":`<div class="card space-y-2 mb-4"><h2 class="font-extrabold">📍 Lokasi presensi</h2>
   <p class="text-xs text-slate-500">Saat ini: ${lokInfo}</p>
   <p class="text-xs text-slate-500">Isi dengan koordinat (mis. -7.98, 112.63) Plus Code (mis. 6P5M3G5Q+2P), atau tempel link Google Maps versi panjang. Link pendek (maps.app.goo.gl) tidak bisa dibaca - buka dulu di Maps, lalu salin koordinatnya atau link panjangnya. Anda juga bisa berdiri di lokasi madrasah lalu tekan "Pakai lokasi saya sekarang".</p>
@@ -566,7 +576,7 @@ A.Presensi=async()=>{
   <textarea id="izKet" class="inp" rows="3" placeholder="Keterangan izin (mis. sakit, keperluan keluarga, dinas luar)"></textarea>
   <button class="btn" onclick="izKirim()">Kirim izin</button></div>`;
   const bulan=hari.slice(0,7);
-  const rek=`<div class="card space-y-2 mb-4"><h2 class="font-extrabold">Rekap presensi guru (otomatis)</h2>
+  const rek=`<div class="card space-y-2 mb-4"><h2 class="font-extrabold">Rekapitulasi kehadiran guru</h2>
   <div class="grid grid-cols-2 gap-2"><input id="pgBulan" type="month" class="inp" value="${bulan}" onchange="loadPG()">${full?`<select id="pgGuru" class="inp" onchange="renderPG()"><option value="">Semua guru</option>${PGG.map(x=>`<option value="${esc(x.id)}">${esc(x.nama||x.idGuru)}</option>`).join("")}</select>`:"<div></div>"}</div>
   <button class="btn2" onclick="exportPresensi()">⬇ Ekspor ke Excel</button></div><div id="pgRekap"></div>`;
   return form+izin+set+rek;
@@ -575,7 +585,7 @@ window.lkSimpan=async()=>{
   const k=parseKoord($("lkKoor").value),r=+$("lkRad").value;
   if(!k)return alert("Koordinat tidak terbaca. Isi format: -7.98, 112.63 atau link Google Maps panjang.");
   if(!(r>=50&&r<=20000))return alert("Radius harus antara 50 dan 20000 meter.");
-  await setDoc(doc(db,"pengaturan","lokasi"),{lat:k.lat,lng:k.lng,radius:r,nama:$("lkNama").value.trim()||"Lokasi madrasah"});
+  await setDoc(doc(db,"pengaturan","lokasi"),{lat:k.lat,lng:k.lng,radius:r,rv:2,nama:$("lkNama").value.trim()||"Lokasi madrasah"});
   alert("Lokasi presensi tersimpan.");go("Presensi");
 };
 window.lkPakai=async()=>{
@@ -583,13 +593,15 @@ window.lkPakai=async()=>{
   try{const p=await getPos();$("lkKoor").value=p.lat.toFixed(6)+", "+p.lng.toFixed(6);alert("Lokasi terisi (akurasi ±"+Math.round(p.acc)+" m). Tekan Simpan lokasi.")}
   catch(e){alert("Gagal mengambil lokasi. Izinkan akses lokasi dan aktifkan GPS.")}
 };
-window.pgMulai=async()=>{
-  const k=$("pgKls").value.trim(),m=$("pgMp").value.trim();
-  if(!k||!m)return alert("Isi kelas dan mata pelajaran dulu.");
+window.pgMulai=async j=>{
+  if(j)pgJ=j;const mn=pgNow(new Date()),tIn=PGT.find(pgIsIn),tOut=PGT.find(pgIsOut);
+  if(PGT.find(pgIsIzin))return alert("Hari ini Anda tercatat izin.");
+  if(pgJ==="masuk"&&tIn)return alert("Anda sudah Clock In hari ini pukul "+tIn.jam+".");
+  if(pgJ==="pulang"){if(!tIn)return alert("Anda belum Clock In hari ini.");if(tOut)return alert("Anda sudah Clock Out hari ini pukul "+tOut.jam+".");if(mn<PG_OUT_M&&!$("pgAls").value.trim())return alert("Clock Out baru bisa mulai jam 12.10. Untuk pulang lebih awal, isi dulu alasan pulang.")}
   if(PGL.lat==null)return alert("Lokasi madrasah belum diatur oleh admin.");
   pgStop();pgFoto="";pgPos=null;
-  ["pgCam","pgPrev","pgB2","pgB3","pgB4"].forEach(i=>$(i).classList.add("hidden"));$("pgB1").classList.add("hidden");
-  const gagal=t=>{pgStop();if($("pgB1")){$("pgB1").classList.remove("hidden");pgMsg(t,"text-rose-600")}};
+  ["pgCam","pgPrev","pgB2","pgB3","pgB4","pgB5"].forEach(i=>$(i).classList.add("hidden"));$("pgB1").classList.add("hidden");
+  const gagal=t=>{pgStop();if($("pgB1")){$("pgB1").classList.remove("hidden");$("pgB5").classList.remove("hidden");pgMsg(t,"text-rose-600")}};
   if(!navigator.geolocation||!navigator.mediaDevices||!navigator.mediaDevices.getUserMedia)return gagal("Browser tidak mendukung kamera/lokasi. Gunakan Chrome atau Safari terbaru dan buka lewat https.");
   pgMsg("Mengambil lokasi... mohon izinkan akses lokasi.");
   try{pgPos=await getPos()}catch(e){return gagal("Lokasi gagal diambil. Izinkan akses lokasi dan aktifkan GPS, lalu coba lagi.")}
@@ -617,12 +629,15 @@ window.pgAmbil=()=>{
 window.pgKirim=async()=>{
   if(!pgFoto||!pgPos)return alert("Ambil foto dulu.");
   const d=hav(pgPos.lat,pgPos.lng,PGL.lat,PGL.lng);if(d>PGL.radius)return alert("Di luar radius presensi.");
-  const n=new Date();$("pgB3").disabled=true;
+  const n=new Date(),mn=pgNow(n),als=$("pgAls").value.trim(),ex={jenis:pgJ};
+  if(pgJ==="masuk"){ex.terlambat=mn>PG_IN_M;ex.telatMenit=Math.max(0,mn-PG_IN_M)}
+  else{ex.pulangAwal=mn<PG_OUT_M;if(ex.pulangAwal){if(!als)return alert("Clock Out sebelum jam 12.10 wajib mengisi alasan pulang.");ex.alasan=als}}
+  $("pgB3").disabled=true;
   try{
-    const ref=await addDoc(collection(db,"presensiGuru"),{tgl:pgYmd(n),jam:pgp(n.getHours())+":"+pgp(n.getMinutes()),waktu:n.toISOString(),guruId:key(me.idGuru),idGuru:me.idGuru,nama:me.nama,kelas:$("pgKls").value.trim(),mapel:$("pgMp").value.trim(),lat:pgPos.lat,lng:pgPos.lng,akurasi:Math.round(pgPos.acc),jarak:Math.round(d)});
+    const ref=await addDoc(collection(db,"presensiGuru"),{tgl:pgYmd(n),jam:pgp(n.getHours())+":"+pgp(n.getMinutes()),waktu:n.toISOString(),guruId:key(me.idGuru),idGuru:me.idGuru,nama:me.nama,kelas:$("pgKls").value.trim(),mapel:$("pgMp").value.trim(),lat:pgPos.lat,lng:pgPos.lng,akurasi:Math.round(pgPos.acc),jarak:Math.round(d),...ex});
     await setDoc(doc(db,"presensiFoto",ref.id),{foto:pgFoto});
   }catch(e){$("pgB3").disabled=false;return alert("Presensi gagal tersimpan. Periksa koneksi lalu coba lagi.")}
-  pgFoto="";alert("Presensi berhasil tersimpan.");go("Presensi");
+  pgFoto="";alert(pgJ==="masuk"?(ex.terlambat?"Clock In tersimpan. Status: TERLAMBAT "+ex.telatMenit+" menit.":"Clock In tersimpan, tepat waktu."):(ex.pulangAwal?"Clock Out tersimpan (pulang lebih awal).":"Clock Out tersimpan."));go("Presensi");
 };
 window.izKirim=async()=>{
   const full=!me.idGuru,t1=$("izTgl").value,t2=$("izTgl2").value||t1,ket=$("izKet").value.trim();
@@ -652,16 +667,257 @@ window.loadPG=async()=>{
 const pgDet=()=>{const g=$("pgGuru")?.value||"";return PGV.filter(x=>!g||x.guruId===g).sort((a,b)=>a.waktu>b.waktu?1:-1)};
 const pgRows=()=>{
   const g=$("pgGuru")?.value||"",m=new Map();
-  const add=(id,nama,idg)=>{if(!m.has(id))m.set(id,{id,nama:nama||idg||id,idGuru:idg||"",hari:new Set(),izin:new Set(),sesi:0,kelas:{}})};
+  const add=(id,nama,idg)=>{if(!m.has(id))m.set(id,{id,nama:nama||idg||id,idGuru:idg||"",hari:new Set(),izin:new Set(),telat:new Set(),awal:new Set(),out:new Set(),menit:0})};
   if(me.idGuru)add(key(me.idGuru),me.nama,me.idGuru);else PGG.forEach(x=>add(x.id,x.nama,x.idGuru));
-  PGV.forEach(x=>{add(x.guruId,x.nama,x.idGuru);const r=m.get(x.guruId);if(x.status==="Izin"){r.izin.add(x.tgl);return}r.hari.add(x.tgl);r.sesi++;r.kelas[x.kelas]=(r.kelas[x.kelas]||0)+1});
+  PGV.forEach(x=>{add(x.guruId,x.nama,x.idGuru);const r=m.get(x.guruId);if(pgIsIzin(x)){r.izin.add(x.tgl);return}if(pgIsOut(x)){r.out.add(x.tgl);if(x.pulangAwal)r.awal.add(x.tgl);return}r.hari.add(x.tgl);if(pgLate(x)&&!r.telat.has(x.tgl)){r.telat.add(x.tgl);r.menit+=x.telatMenit??Math.max(0,pgMnt(x.jam)-PG_IN_M)}});
   return [...m.values()].filter(r=>!g||r.id===g).sort((a,b)=>a.nama>b.nama?1:-1);
 };
 window.renderPG=()=>{
   const rows=pgRows(),det=pgDet().reverse(),full=!me.idGuru;
-  $("pgRekap").innerHTML=`<p class="text-sm mb-2">${det.filter(x=>x.status!=="Izin").length} sesi mengajar tercatat - ${rows.filter(r=>r.sesi).length} guru hadir - ${det.filter(x=>x.status==="Izin").length} izin</p>`
-  +(rows.length?`<div class="card overflow-x-auto p-0 mb-4"><table class="w-full text-sm"><thead style="background:var(--g);color:#fff"><tr><th class="text-left p-3">Guru</th><th class="p-3">Hari hadir</th><th class="p-3">Izin</th><th class="p-3">Sesi</th><th class="text-left p-3">Kelas</th></tr></thead><tbody>${rows.map(r=>`<tr class="border-t"><td class="p-3 font-semibold">${esc(r.nama)}</td><td class="p-3 text-center ${r.hari.size?"":"text-rose-600 font-bold"}">${r.hari.size}</td><td class="p-3 text-center ${r.izin.size?"text-amber-600 font-bold":""}">${r.izin.size}</td><td class="p-3 text-center">${r.sesi}</td><td class="p-3 text-xs">${esc(kelasTxt(r))||"-"}</td></tr>`).join("")}</tbody></table></div>`:empty("Belum ada data guru."))
-  +`<h3 class="msec">Riwayat presensi</h3>`+list(det,x=>x.status==="Izin"?`<div class="card mb-2 flex justify-between gap-2"><div><b>${esc(x.nama)}</b> <span class="pill bg-amber-100 text-amber-700">Izin</span><div class="text-sm whitespace-pre-line"><b>Keterangan:</b> ${esc(x.ket||"-")}</div><div class="text-xs text-slate-500">${esc(x.tgl)}</div></div>${full?`<div class="flex flex-col gap-1"><button class="btn2" onclick="pgHapus('${x.id}')">Hapus</button></div>`:""}</div>`:`<div class="card mb-2 flex justify-between gap-2"><div><b>${esc(x.nama)}</b> <span class="pill bg-emerald-100 text-emerald-700">${esc(x.kelas)}</span><div class="text-sm">${esc(x.mapel)}</div><div class="text-xs text-slate-500">${esc(x.tgl)} ${esc(x.jam)} - ${fmJ(x.jarak||0)} dari lokasi</div></div><div class="flex flex-col gap-1"><button class="btn2" onclick="pgLihat('${x.id}')">Foto</button>${full?`<button class="btn2" onclick="pgHapus('${x.id}')">Hapus</button>`:""}</div></div>`,"Belum ada presensi pada bulan ini.");
+  $("pgRekap").innerHTML=`<p class="text-sm mb-2">${rows.filter(r=>r.hari.size).length} guru hadir - ${rows.reduce((a,r)=>a+r.telat.size,0)} kali terlambat - ${rows.reduce((a,r)=>a+r.izin.size,0)} hari izin</p>`
+  +(rows.length?`<div class="card overflow-x-auto p-0 mb-4"><table class="w-full text-sm"><thead style="background:var(--g);color:#fff"><tr><th class="text-left p-3">Guru</th><th class="p-3">Hadir</th><th class="p-3">Tepat waktu</th><th class="p-3">Terlambat</th><th class="p-3">Izin</th><th class="p-3">Pulang awal</th><th class="p-3">Belum Clock Out</th></tr></thead><tbody>${rows.map(r=>`<tr class="border-t"><td class="p-3 font-semibold">${esc(r.nama)}</td><td class="p-3 text-center ${r.hari.size?"":"text-rose-600 font-bold"}">${r.hari.size}</td><td class="p-3 text-center">${r.hari.size-r.telat.size}</td><td class="p-3 text-center ${r.telat.size?"text-rose-600 font-bold":""}">${r.telat.size}${r.menit?` <span class="text-[10px] font-normal">(${r.menit} mnt)</span>`:""}</td><td class="p-3 text-center ${r.izin.size?"text-amber-600 font-bold":""}">${r.izin.size}</td><td class="p-3 text-center">${r.awal.size}</td><td class="p-3 text-center">${pgLupa(r)}</td></tr>`).join("")}</tbody></table></div>`:empty("Belum ada data guru."))
+  +`<h3 class="msec">Riwayat presensi</h3>`+list(det,x=>x.status==="Izin"?`<div class="card mb-2 flex justify-between gap-2"><div><b>${esc(x.nama)}</b> <span class="pill bg-amber-100 text-amber-700">Izin</span><div class="text-sm whitespace-pre-line"><b>Keterangan:</b> ${esc(x.ket||"-")}</div><div class="text-xs text-slate-500">${esc(x.tgl)}</div></div>${full?`<div class="flex flex-col gap-1"><button class="btn2" onclick="pgHapus('${x.id}')">Hapus</button></div>`:""}</div>`:`<div class="card mb-2 flex justify-between gap-2"><div><b>${esc(x.nama)}</b> ${pgIsOut(x)?`<span class="pill bg-sky-100 text-sky-700">Clock Out</span>${x.pulangAwal?` <span class="pill bg-amber-100 text-amber-700">Pulang awal</span>`:""}`:`<span class="pill bg-emerald-100 text-emerald-700">Clock In</span>${pgLate(x)?` <span class="pill bg-rose-100 text-rose-700">Terlambat${x.telatMenit?" "+x.telatMenit+" mnt":""}</span>`:""}`}${x.kelas?` <span class="pill bg-slate-100 text-slate-700">${esc(x.kelas)}</span>`:""}<div class="text-sm">${esc(x.mapel||"")}</div>${x.alasan?`<div class="text-sm whitespace-pre-line"><b>Alasan pulang:</b> ${esc(x.alasan)}</div>`:""}<div class="text-xs text-slate-500">${esc(x.tgl)} ${esc(x.jam)} - ${fmJ(x.jarak||0)} dari lokasi</div></div><div class="flex flex-col gap-1"><button class="btn2" onclick="pgLihat('${x.id}')">Foto</button>${full?`<button class="btn2" onclick="pgHapus('${x.id}')">Hapus</button>`:""}</div></div>`,"Belum ada presensi pada bulan ini.");
+};
+window.pgLihat=async id=>{
+  let d;try{d=await getDoc(doc(db,"presensiFoto",id))}catch(e){return alert("Foto gagal dimuat.")}
+  if(!d.exists())return alert("Foto tidak ditemukan.");
+  const m=document.createElement("div");m.className="modal";m.onclick=()=>m.remove();
+  m.innerHTML=`<div class="modal-box" style="max-width:26rem"><img src="${d.data().foto}" class="w-full rounded-xl" alt="Foto presensi"></div>`;document.body.appendChild(m);
+};
+window.pgHapus=async id=>{if(!confirm("Hapus presensi ini?"))return;await deleteDoc(doc(db,"presensiGuru",id));try{await deleteDoc(doc(db,"presensiFoto",id))}catch(e){}loadPG()};
+window.exportPresensi=()=>{
+  const b=$("pgBulan").value,rows=pgRows(),det=pgDet();
+  if(!b||!det.length)return alert("Tidak ada data presensi untuk diekspor.");
+  const [y,mo]=b.split("-").map(Number),nd=new Date(y,mo,0).getDate();
+  const g=$("pgGuru")?.value,gn=g?(rows[0]?.nama||""):"Semua guru";
+  const s1=[["REKAP KEHADIRAN GURU"],["Bulan: "+b+" | "+gn+" | Clock In maks 06.45 | Clock Out mulai 12.10 | Radius "+PGL.radius+" m"],[],["No","Nama","ID Guru","Hari Hadir","Tepat Waktu","Terlambat (hari)","Total Menit Terlambat","Hari Izin","Pulang Awal","Belum Clock Out"],...rows.map((r,i)=>[i+1,r.nama,r.idGuru,r.hari.size,r.hari.size-r.telat.size,r.telat.size,r.menit,r.izin.size,r.awal.size,pgLupa(r)])];
+  const w1=XLSX.utils.aoa_to_sheet(s1);
+  rows.forEach((r,i)=>{const c=w1["I"+(5+i)];if(c&&typeof c.v==="number")c.z="0%"});
+  w1["!cols"]=[{wch:5},{wch:28},{wch:12},{wch:14},{wch:8},{wch:8},{wch:8},{wch:17},{wch:10}];
+  const det=[...ab].sort((a,b)=>a.tgl===b.tgl?(a.kelas===b.kelas?(a.nama>b.nama?1:-1):(a.kelas>b.kelas?1:-1)):(a.tgl>b.tgl?1:-1));
+  const w2=XLSX.utils.aoa_to_sheet([["Tanggal","Nama","Kelas","NISN","Status"],...det.map(x=>[x.tgl,x.nama,x.kelas,x.nisn,stLabel[x.status]||x.status])]);
+  w2["!cols"]=[{wch:12},{wch:28},{wch:12},{wch:14},{wch:10}];
+  const wb=XLSX.utils.book_new();XLSX.utils.book_append_sheet(wb,w1,"Rekap");XLSX.utils.book_append_sheet(wb,w2,"Detail Harian");
+  XLSX.writeFile(wb,"Rekap_Kehadiran_"+d1+"_sd_"+d2+".xlsx");
+};
+
+// ============ MENU KARTU ADMIN ============
+IC.chat=svg('<path d="M21 15a2 2 0 0 1-2 2H7l-4 4V5a2 2 0 0 1 2-2h14a2 2 0 0 1 2 2z"/>');
+const MENU=[
+ ["Akademik",[["Jadwal","📅","Jadwal pelajaran semua kelas","#e0f2fe"],["Tugas","📝","Periksa & nilai tugas siswa","#fef3c7"],["Absensi","✅","Catat kehadiran harian","#dcfce7"],["Rekap","🗓️","Rekap kehadiran & ekspor Excel","#ede9fe","Rekap Kehadiran"],["Jurnal","📓","Isi jurnal mengajar guru","#fce7f3","Jurnal Guru"],["Presensi","📸","Absen guru dengan kamera & lokasi","#fee2e2","Presensi Guru"]]],
+ ["Data Madrasah",[["Siswa","🎓","Upload & kelola data siswa","#e0e7ff"],["Guru","👩‍🏫","Akun & sandi guru","#ccfbf1"]]],
+ ["Kesiswaan",[["Pelanggaran","⚠️","Catatan kedisiplinan","#ffe4e6"],["Prestasi","🏆","Capaian & penghargaan siswa","#fef9c3"]]],
+ ["PPDB",[["PPDB","📋","Data pendaftar & unduh berkas PDF","#fef3c7","Data PPDB"],["VerifPPDB","🔍","Scan QR cek keaslian berkas","#dcfce7","Verifikasi QR"]]],
+ ["Layanan",[["Pengumuman","📢","Kirim info ke semua siswa","#ffedd5"],["Pembayaran","💳","QRIS & laporan pembayaran","#d1fae5"],["Bantuan","🎧","Balas pesan dari siswa","#cffafe"],["Chat","💬","Grup chat guru & siswa","#dbeafe","Grup Chat"]]],
+ ["Kegiatan Madrasah",[["Kegiatan","🎯","Buat kegiatan & scan QR siswa untuk absen","#fae8ff","Absen Kegiatan"],["RekapKegiatan","📊","Rekap absen kegiatan & ekspor Excel","#e0f2fe","Rekap Kegiatan"]]]
+];
+A.Menu=async()=>{
+  const [gu,pb,bt,pp]=await Promise.all([all("guru"),all("pembayaran"),all("bantuan"),all("ppdb")]);
+  const nb={Pembayaran:pb.filter(x=>x.status==="Menunggu").length,Bantuan:bt.filter(x=>!x.balasan).length,PPDB:pp.filter(x=>x.status==="Menunggu").length};
+  const kls=new Set(siswa.map(x=>x.kelas)).size;
+  const tgl=new Date().toLocaleDateString("id-ID",{weekday:"long",day:"numeric",month:"long",year:"numeric"});
+  return `<section class="hero p-6"><p class="text-sm opacity-80">Assalamu'alaikum,</p><h1 class="text-2xl sm:text-3xl font-extrabold">${esc(me.nama)}</h1><p class="text-xs opacity-75 mt-1">${tgl}</p>
+  <div class="grid grid-cols-3 gap-3 mt-5 relative z-10"><div class="hstat"><div class="text-2xl font-extrabold">${siswa.length}</div><div class="text-[11px] opacity-80">Siswa</div></div><div class="hstat"><div class="text-2xl font-extrabold">${gu.length}</div><div class="text-[11px] opacity-80">Guru</div></div><div class="hstat"><div class="text-2xl font-extrabold">${kls}</div><div class="text-[11px] opacity-80">Kelas</div></div></div></section>`
+  +MENU.map(([sec,items])=>`<h2 class="msec">${sec}</h2><div class="grid grid-cols-2 sm:grid-cols-3 gap-3">`+items.map(([k,ic,d,bg,lb])=>`<button class="mcard" onclick="go('${k}')"><span class="mic" style="background:${bg}">${ic}</span><span class="mt">${lb||k}</span><span class="md">${d}</span>${nb[k]?`<span class="mbd">${nb[k]}</span>`:""}</button>`).join("")+`</div>`).join("");
+};
+
+// ============ JURNAL GURU ============
+let JN=[],JNV=[];
+const isOwner=x=>!me.idGuru||x.guruId===key(me.idGuru);
+const jnCards=r=>list(r,x=>`<div class="card mb-2"><div class="flex justify-between gap-2"><div><b>${esc(x.mapel)}</b> <span class="pill bg-emerald-100 text-emerald-700">${esc(x.kelas)}</span><div class="text-xs text-slate-500 mt-0.5">${esc(x.tgl)}${x.jam?" - "+esc(x.jam):""} - ${esc(x.guru)}</div></div>${isOwner(x)?`<button class="btn2 h-fit" onclick="hapus('jurnal','${x.id}','Jurnal')">Hapus</button>`:""}</div>
+ <div class="text-sm mt-2 whitespace-pre-line"><b>Materi:</b> ${esc(x.materi)}</div>${x.kegiatan?`<div class="text-sm mt-1 whitespace-pre-line"><b>Kegiatan:</b> ${esc(x.kegiatan)}</div>`:""}${x.absen?`<div class="text-sm mt-1"><b>Siswa tidak hadir:</b> ${esc(x.absen)}</div>`:""}${x.catatan?`<div class="text-sm mt-1 whitespace-pre-line"><b>Catatan/kendala:</b> ${esc(x.catatan)}</div>`:""}</div>`,"Belum ada jurnal.");
+A.Jurnal=async()=>{
+  JN=(await all("jurnal")).sort((a,b)=>((b.tgl||"")+(b.dibuat||""))>((a.tgl||"")+(a.dibuat||""))?1:-1);JNV=JN;
+  const kl=[...new Set(siswa.map(x=>x.kelas))].sort(),mp=[...new Set((await getJadwal()).map(x=>x.mapel).filter(m=>!/istirahat/i.test(m)))].sort();
+  const gu=[...new Set(JN.map(x=>x.guru).filter(Boolean))].sort();
+  return `<div class="card space-y-2 mb-4"><h2 class="font-extrabold">📓 Isi jurnal mengajar</h2>
+  <div class="grid grid-cols-2 gap-2"><div><label class="text-xs text-slate-500">Tanggal</label><input id="jnTgl" type="date" class="inp" value="${today()}"></div><div><label class="text-xs text-slate-500">Jam ke / waktu</label><input id="jnJam" class="inp" placeholder="mis. 1-2 atau 07:00-08:30"></div></div>
+  <div class="grid grid-cols-2 gap-2"><div><label class="text-xs text-slate-500">Kelas</label><input id="jnKls" class="inp" list="jnKlsL" placeholder="Kelas"><datalist id="jnKlsL">${kl.map(k=>`<option value="${esc(k)}">`).join("")}</datalist></div><div><label class="text-xs text-slate-500">Mata pelajaran</label><input id="jnMp" class="inp" list="jnMpL" placeholder="Mata pelajaran"><datalist id="jnMpL">${mp.map(k=>`<option value="${esc(k)}">`).join("")}</datalist></div></div>
+  <div><label class="text-xs text-slate-500">Nama guru</label><input id="jnGuru" class="inp" value="${esc(me.nama)}"></div>
+  <textarea id="jnMateri" class="inp" rows="2" placeholder="Materi / topik yang diajarkan"></textarea>
+  <textarea id="jnKeg" class="inp" rows="3" placeholder="Kegiatan pembelajaran (opsional)"></textarea>
+  <input id="jnAbsen" class="inp" placeholder="Siswa tidak hadir (opsional, tulis nama)">
+  <textarea id="jnCat" class="inp" rows="2" placeholder="Catatan / kendala (opsional)"></textarea>
+  <button class="btn" onclick="saveJurnal()">Simpan jurnal</button></div>
+  <div class="card mb-4 space-y-2"><div class="grid grid-cols-2 gap-2"><select id="jnFilter" class="inp" onchange="renderJurnal()"><option value="">Semua guru</option>${gu.map(x=>`<option>${esc(x)}</option>`).join("")}</select><input id="jnBulan" type="month" class="inp" onchange="renderJurnal()"></div><button class="btn2" onclick="exportJurnal()">⬇ Ekspor ke Excel</button></div>
+  <div id="jnList"><p class="text-sm mb-2">${JN.length} jurnal</p>${jnCards(JN)}</div>`;
+};
+window.renderJurnal=()=>{
+  const g=$("jnFilter").value,b=$("jnBulan").value;
+  JNV=JN.filter(x=>(!g||x.guru===g)&&(!b||(x.tgl||"").startsWith(b)));
+  $("jnList").innerHTML=`<p class="text-sm mb-2">${JNV.length} jurnal</p>`+jnCards(JNV);
+};
+window.saveJurnal=async()=>{
+  const v=id=>$(id).value.trim(),d={tgl:v("jnTgl"),jam:v("jnJam"),kelas:v("jnKls"),mapel:v("jnMp"),guru:v("jnGuru")||me.nama,materi:v("jnMateri"),kegiatan:v("jnKeg"),absen:v("jnAbsen"),catatan:v("jnCat")};
+  if(!d.tgl||!d.kelas||!d.mapel||!d.materi)return alert("Isi tanggal, kelas, mata pelajaran, dan materi.");
+  await addDoc(collection(db,"jurnal"),{...d,guruId:key(me.idGuru||"admin"),dibuat:new Date().toISOString()});
+  go("Jurnal");
+};
+window.exportJurnal=()=>{
+  if(!JNV.length)return alert("Tidak ada jurnal untuk diekspor.");
+  const ws=XLSX.utils.aoa_to_sheet([["JURNAL GURU"],[],["No","Tanggal","Jam","Kelas","Mata Pelajaran","Guru","Materi","Kegiatan","Siswa Tidak Hadir","Catatan/Kendala"],...[...JNV].sort((a,b)=>a.tgl>b.tgl?1:-1).map((x,i)=>[i+1,x.tgl,x.jam,x.kelas,x.mapel,x.guru,x.materi,x.kegiatan,x.absen,x.catatan])]);
+  ws["!cols"]=[{wch:5},{wch:12},{wch:14},{wch:10},{wch:22},{wch:24},{wch:32},{wch:36},{wch:22},{wch:28}];
+  const wb=XLSX.utils.book_new();XLSX.utils.book_append_sheet(wb,ws,"Jurnal");XLSX.writeFile(wb,"Jurnal_Guru_"+today()+".xlsx");
+};
+
+// ============ PRESENSI GURU (kamera + lokasi) ============
+const PG_IN_M=6*60+45,PG_OUT_M=12*60+10; // Clock In maks 06.45, Clock Out mulai 12.10
+const pgMnt=s=>{const[a,b]=String(s||"0:0").split(":");return(+a)*60+(+b)},pgNow=n=>n.getHours()*60+n.getMinutes();
+const pgIsIzin=x=>x.status==="Izin",pgIsOut=x=>x.jenis==="pulang",pgIsIn=x=>!pgIsIzin(x)&&!pgIsOut(x);
+const pgLate=x=>pgIsIn(x)&&(x.terlambat!==undefined?x.terlambat:pgMnt(x.jam)>PG_IN_M);
+const pgLupa=r=>[...r.hari].filter(t=>!r.out.has(t)&&t<pgYmd(new Date())).length;
+const PG_ACC=300; // akurasi GPS maksimal (meter) agar lokasi dianggap valid
+const pgp=n=>String(n).padStart(2,"0");
+const pgYmd=d=>d.getFullYear()+"-"+pgp(d.getMonth()+1)+"-"+pgp(d.getDate());
+const hav=(la1,ln1,la2,ln2)=>{const R=6371000,r=x=>x*Math.PI/180,a=Math.sin(r(la2-la1)/2)**2+Math.cos(r(la1))*Math.cos(r(la2))*Math.sin(r(ln2-ln1)/2)**2;return 2*R*Math.asin(Math.sqrt(a))};
+const fmJ=m=>m<1000?Math.round(m)+" m":(m/1000).toFixed(2)+" km";
+const parseKoord=s=>{s=String(s||"").trim();const pp=parsePlus(s);if(pp)return pp;const m=s.match(/@(-?\d+\.\d+),(-?\d+\.\d+)/)||s.match(/!3d(-?\d+\.\d+)!4d(-?\d+\.\d+)/)||s.match(/[?&](?:q|ll|query)=(-?\d+\.\d+)(?:,|%2C)(-?\d+\.\d+)/)||s.match(/^(-?\d+(?:\.\d+)?)\s*[, ]\s*(-?\d+(?:\.\d+)?)$/);
+  if(!m)return null;const lat=+m[1],lng=+m[2];return Math.abs(lat)<=90&&Math.abs(lng)<=180?{lat,lng}:null};
+const OLC="23456789CFGHJMPQRVWX";
+const parsePlus=s=>{const m=String(s||"").toUpperCase().match(/([23456789CFGHJMPQRVWX]{8}\+[23456789CFGHJMPQRVWX]{2})/);if(!m)return null;const c=m[1].replace("+","");let la=-90,ln=-180,r=20;for(let i=0;i<10;i+=2){la+=OLC.indexOf(c[i])*r;ln+=OLC.indexOf(c[i+1])*r;if(i<8)r/=20}return{lat:+(la+r/2).toFixed(7),lng:+(ln+r/2).toFixed(7)}};
+// Lokasi bawaan (Plus Code 6P5M3G5Q+2P); admin bisa mengubahnya di menu Presensi Guru
+let PGL={lat:-6.9424375,lng:113.5393125,radius:300,nama:"Lokasi madrasah"},pgJ="masuk",PGT=[],PGV=[],PGG=[],pgStream=null,pgPos=null,pgFoto="";
+const getLokasi=async()=>{try{const d=await getDoc(doc(db,"pengaturan","lokasi"));if(d.exists()){PGL={...PGL,...d.data()};if(d.data().rv!==2)PGL.radius=300}}catch(e){}return PGL};
+window.pgStop=()=>{if(pgStream){pgStream.getTracks().forEach(t=>t.stop());pgStream=null}};
+const pgMsg=(t,c)=>{const e=$("pgMsg");if(e){e.textContent=t;e.className="text-sm "+(c||"text-slate-600")}};
+const getPos=()=>new Promise((ok,no)=>navigator.geolocation.getCurrentPosition(p=>ok({lat:p.coords.latitude,lng:p.coords.longitude,acc:p.coords.accuracy}),no,{enableHighAccuracy:true,timeout:20000,maximumAge:0}));
+const kelasTxt=r=>Object.entries(r.kelas).map(([k,n])=>k+" ("+n+")").join(", ");
+
+A.Presensi=async()=>{
+  const full=!me.idGuru;await getLokasi();
+  const kl=[...new Set(siswa.map(x=>x.kelas))].sort(),mp=[...new Set((await getJadwal()).map(x=>x.mapel).filter(m=>!/istirahat/i.test(m)))].sort();
+  PGG=full?(await all("guru")).sort((a,b)=>(a.nama||"")>(b.nama||"")?1:-1):[];
+  const ok=PGL.lat!=null&&PGL.lng!=null;
+  const lokInfo=ok?`${esc(PGL.nama)} - radius ${fmJ(PGL.radius)} - <a class="underline text-emerald-700" target="_blank" rel="noopener" href="https://www.google.com/maps?q=${PGL.lat},${PGL.lng}">lihat di Maps</a>`:"Lokasi madrasah belum diatur oleh admin.";
+  const hari0=pgYmd(new Date());PGT=[];
+  if(!full){try{const q=await getDocs(query(collection(db,"presensiGuru"),where("tgl","==",hari0)));PGT=q.docs.map(d=>({id:d.id,...d.data()})).filter(x=>x.guruId===key(me.idGuru))}catch(e){}}
+  const tIn=PGT.find(pgIsIn),tOut=PGT.find(pgIsOut),tIzin=PGT.find(pgIsIzin);
+  const form=full?"":`<div class="card space-y-2 mb-4"><h2 class="font-extrabold">📸 Presensi guru (Clock In / Clock Out)</h2>
+  <p class="text-xs text-slate-500">📍 ${lokInfo}</p>
+  <p class="text-xs text-slate-500">Clock In / Clock Out hanya bisa dilakukan di dalam radius lokasi madrasah, dengan foto selfie langsung dari kamera.<br>⏰ Clock In maksimal jam 06.45; lewat dari itu tercatat <b>terlambat</b>. Clock Out mulai jam 12.10; pulang lebih awal wajib mengisi alasan.</p>
+  <div class="text-sm rounded-xl p-3 border bg-slate-50">Hari ini: ${tIzin?`<b class="text-amber-700">Izin</b>`:`Clock In <b>${tIn?esc(tIn.jam):"-"}</b>${tIn&&pgLate(tIn)?` <span class="pill bg-rose-100 text-rose-700">Terlambat</span>`:""} · Clock Out <b>${tOut?esc(tOut.jam):"-"}</b>${tOut&&tOut.pulangAwal?` <span class="pill bg-amber-100 text-amber-700">Pulang awal</span>`:""}`}</div>
+  <div class="grid grid-cols-2 gap-2"><input id="pgKls" class="inp" list="pgKlsL" placeholder="Kelas (opsional)"><datalist id="pgKlsL">${kl.map(k=>`<option value="${esc(k)}">`).join("")}</datalist><input id="pgMp" class="inp" list="pgMpL" placeholder="Mata pelajaran (opsional)"><datalist id="pgMpL">${mp.map(k=>`<option value="${esc(k)}">`).join("")}</datalist></div>
+  <textarea id="pgAls" class="inp" rows="2" placeholder="Alasan pulang lebih awal (wajib diisi jika Clock Out sebelum jam 12.10)"></textarea>
+  <div id="pgCam" class="hidden"><video id="pgVid" autoplay playsinline muted style="width:100%;border-radius:.75rem;background:#000;transform:scaleX(-1)"></video></div>
+  <img id="pgPrev" class="hidden w-full rounded-xl border" alt="Foto presensi">
+  <p id="pgMsg" class="text-sm text-slate-600"></p>
+  <div class="flex flex-wrap gap-2"><button id="pgB1" class="btn" onclick="pgMulai('masuk')">⏰ Clock In</button><button id="pgB5" class="btn" onclick="pgMulai('pulang')">🏠 Clock Out</button><button id="pgB2" class="btn hidden" onclick="pgAmbil()">📷 Ambil foto</button><button id="pgB3" class="btn hidden" onclick="pgKirim()">✅ Kirim presensi</button><button id="pgB4" class="btn2 hidden" onclick="pgMulai(pgJ)">Ulangi</button></div></div>`;
+  const set=!full?"":`<div class="card space-y-2 mb-4"><h2 class="font-extrabold">📍 Lokasi presensi</h2>
+  <p class="text-xs text-slate-500">Saat ini: ${lokInfo}</p>
+  <p class="text-xs text-slate-500">Isi dengan koordinat (mis. -7.98, 112.63) Plus Code (mis. 6P5M3G5Q+2P), atau tempel link Google Maps versi panjang. Link pendek (maps.app.goo.gl) tidak bisa dibaca - buka dulu di Maps, lalu salin koordinatnya atau link panjangnya. Anda juga bisa berdiri di lokasi madrasah lalu tekan "Pakai lokasi saya sekarang".</p>
+  <input id="lkNama" class="inp" placeholder="Nama lokasi" value="${esc(PGL.nama)}">
+  <input id="lkKoor" class="inp" placeholder="Koordinat atau link Google Maps" value="${ok?PGL.lat+", "+PGL.lng:""}">
+  <input id="lkRad" type="number" class="inp" placeholder="Radius (meter)" value="${PGL.radius}">
+  <div class="flex flex-wrap gap-2"><button class="btn" onclick="lkSimpan()">Simpan lokasi</button><button class="btn2" onclick="lkPakai()">Pakai lokasi saya sekarang</button></div></div>`;
+  const hari=pgYmd(new Date());
+  const izin=`<div class="card space-y-2 mb-4"><h2 class="font-extrabold">📝 Izin tidak hadir</h2>
+  <p class="text-xs text-slate-500">Ajukan izin jika tidak dapat mengajar. Tidak perlu foto dan lokasi, tetapi keterangan izin wajib diisi.</p>
+  ${full?`<select id="izGuru" class="inp"><option value="">Pilih guru</option>${PGG.map(x=>`<option value="${esc(x.id)}">${esc(x.nama||x.idGuru)}</option>`).join("")}</select>`:""}
+  <div class="grid grid-cols-2 gap-2"><label class="text-xs text-slate-500">Dari tanggal<input id="izTgl" type="date" class="inp" value="${hari}"></label><label class="text-xs text-slate-500">Sampai tanggal (opsional)<input id="izTgl2" type="date" class="inp"></label></div>
+  <textarea id="izKet" class="inp" rows="3" placeholder="Keterangan izin (mis. sakit, keperluan keluarga, dinas luar)"></textarea>
+  <button class="btn" onclick="izKirim()">Kirim izin</button></div>`;
+  const bulan=hari.slice(0,7);
+  const rek=`<div class="card space-y-2 mb-4"><h2 class="font-extrabold">Rekapitulasi kehadiran guru</h2>
+  <div class="grid grid-cols-2 gap-2"><input id="pgBulan" type="month" class="inp" value="${bulan}" onchange="loadPG()">${full?`<select id="pgGuru" class="inp" onchange="renderPG()"><option value="">Semua guru</option>${PGG.map(x=>`<option value="${esc(x.id)}">${esc(x.nama||x.idGuru)}</option>`).join("")}</select>`:"<div></div>"}</div>
+  <button class="btn2" onclick="exportPresensi()">⬇ Ekspor ke Excel</button></div><div id="pgRekap"></div>`;
+  return form+izin+set+rek;
+};
+window.lkSimpan=async()=>{
+  const k=parseKoord($("lkKoor").value),r=+$("lkRad").value;
+  if(!k)return alert("Koordinat tidak terbaca. Isi format: -7.98, 112.63 atau link Google Maps panjang.");
+  if(!(r>=50&&r<=20000))return alert("Radius harus antara 50 dan 20000 meter.");
+  await setDoc(doc(db,"pengaturan","lokasi"),{lat:k.lat,lng:k.lng,radius:r,rv:2,nama:$("lkNama").value.trim()||"Lokasi madrasah"});
+  alert("Lokasi presensi tersimpan.");go("Presensi");
+};
+window.lkPakai=async()=>{
+  if(!navigator.geolocation)return alert("Browser tidak mendukung lokasi.");
+  try{const p=await getPos();$("lkKoor").value=p.lat.toFixed(6)+", "+p.lng.toFixed(6);alert("Lokasi terisi (akurasi ±"+Math.round(p.acc)+" m). Tekan Simpan lokasi.")}
+  catch(e){alert("Gagal mengambil lokasi. Izinkan akses lokasi dan aktifkan GPS.")}
+};
+window.pgMulai=async j=>{
+  if(j)pgJ=j;const mn=pgNow(new Date()),tIn=PGT.find(pgIsIn),tOut=PGT.find(pgIsOut);
+  if(PGT.find(pgIsIzin))return alert("Hari ini Anda tercatat izin.");
+  if(pgJ==="masuk"&&tIn)return alert("Anda sudah Clock In hari ini pukul "+tIn.jam+".");
+  if(pgJ==="pulang"){if(!tIn)return alert("Anda belum Clock In hari ini.");if(tOut)return alert("Anda sudah Clock Out hari ini pukul "+tOut.jam+".");if(mn<PG_OUT_M&&!$("pgAls").value.trim())return alert("Clock Out baru bisa mulai jam 12.10. Untuk pulang lebih awal, isi dulu alasan pulang.")}
+  if(PGL.lat==null)return alert("Lokasi madrasah belum diatur oleh admin.");
+  pgStop();pgFoto="";pgPos=null;
+  ["pgCam","pgPrev","pgB2","pgB3","pgB4","pgB5"].forEach(i=>$(i).classList.add("hidden"));$("pgB1").classList.add("hidden");
+  const gagal=t=>{pgStop();if($("pgB1")){$("pgB1").classList.remove("hidden");$("pgB5").classList.remove("hidden");pgMsg(t,"text-rose-600")}};
+  if(!navigator.geolocation||!navigator.mediaDevices||!navigator.mediaDevices.getUserMedia)return gagal("Browser tidak mendukung kamera/lokasi. Gunakan Chrome atau Safari terbaru dan buka lewat https.");
+  pgMsg("Mengambil lokasi... mohon izinkan akses lokasi.");
+  try{pgPos=await getPos()}catch(e){return gagal("Lokasi gagal diambil. Izinkan akses lokasi dan aktifkan GPS, lalu coba lagi.")}
+  if(!$("pgMsg"))return;
+  if(pgPos.acc>PG_ACC)return gagal("Akurasi lokasi rendah (±"+Math.round(pgPos.acc)+" m). Aktifkan GPS/lokasi akurasi tinggi, lalu coba lagi.");
+  const d=hav(pgPos.lat,pgPos.lng,PGL.lat,PGL.lng);
+  if(d>PGL.radius)return gagal("Anda berada "+fmJ(d)+" dari lokasi madrasah. Batas presensi "+fmJ(PGL.radius)+".");
+  pgMsg("Lokasi sesuai ("+fmJ(d)+" dari madrasah). Menyalakan kamera...","text-emerald-700");
+  try{pgStream=await navigator.mediaDevices.getUserMedia({video:{facingMode:"user",width:{ideal:640},height:{ideal:480}},audio:false})}
+  catch(e){return gagal("Kamera tidak bisa dibuka. Izinkan akses kamera lalu coba lagi.")}
+  if(!$("pgVid"))return pgStop();
+  $("pgVid").srcObject=pgStream;$("pgCam").classList.remove("hidden");$("pgB2").classList.remove("hidden");
+  pgMsg("Lokasi sesuai ("+fmJ(d)+"). Hadapkan wajah ke kamera lalu ambil foto.","text-emerald-700");
+};
+window.pgAmbil=()=>{
+  const v=$("pgVid");if(!v||!v.videoWidth)return alert("Kamera belum siap.");
+  const w=360,h=Math.round(v.videoHeight/v.videoWidth*w),c=document.createElement("canvas");c.width=w;c.height=h;
+  const x=c.getContext("2d");x.drawImage(v,0,0,w,h);x.fillStyle="rgba(0,0,0,.55)";x.fillRect(0,h-22,w,22);x.fillStyle="#fff";x.font="11px sans-serif";
+  x.fillText(new Date().toLocaleString("id-ID")+" | "+pgPos.lat.toFixed(5)+", "+pgPos.lng.toFixed(5),6,h-7);
+  pgFoto=c.toDataURL("image/jpeg",.6);pgStop();
+  $("pgCam").classList.add("hidden");$("pgPrev").src=pgFoto;$("pgPrev").classList.remove("hidden");
+  $("pgB2").classList.add("hidden");$("pgB3").classList.remove("hidden");$("pgB4").classList.remove("hidden");
+  pgMsg("Periksa foto, lalu kirim presensi.");
+};
+window.pgKirim=async()=>{
+  if(!pgFoto||!pgPos)return alert("Ambil foto dulu.");
+  const d=hav(pgPos.lat,pgPos.lng,PGL.lat,PGL.lng);if(d>PGL.radius)return alert("Di luar radius presensi.");
+  const n=new Date(),mn=pgNow(n),als=$("pgAls").value.trim(),ex={jenis:pgJ};
+  if(pgJ==="masuk"){ex.terlambat=mn>PG_IN_M;ex.telatMenit=Math.max(0,mn-PG_IN_M)}
+  else{ex.pulangAwal=mn<PG_OUT_M;if(ex.pulangAwal){if(!als)return alert("Clock Out sebelum jam 12.10 wajib mengisi alasan pulang.");ex.alasan=als}}
+  $("pgB3").disabled=true;
+  try{
+    const ref=await addDoc(collection(db,"presensiGuru"),{tgl:pgYmd(n),jam:pgp(n.getHours())+":"+pgp(n.getMinutes()),waktu:n.toISOString(),guruId:key(me.idGuru),idGuru:me.idGuru,nama:me.nama,kelas:$("pgKls").value.trim(),mapel:$("pgMp").value.trim(),lat:pgPos.lat,lng:pgPos.lng,akurasi:Math.round(pgPos.acc),jarak:Math.round(d),...ex});
+    await setDoc(doc(db,"presensiFoto",ref.id),{foto:pgFoto});
+  }catch(e){$("pgB3").disabled=false;return alert("Presensi gagal tersimpan. Periksa koneksi lalu coba lagi.")}
+  pgFoto="";alert(pgJ==="masuk"?(ex.terlambat?"Clock In tersimpan. Status: TERLAMBAT "+ex.telatMenit+" menit.":"Clock In tersimpan, tepat waktu."):(ex.pulangAwal?"Clock Out tersimpan (pulang lebih awal).":"Clock Out tersimpan."));go("Presensi");
+};
+window.izKirim=async()=>{
+  const full=!me.idGuru,t1=$("izTgl").value,t2=$("izTgl2").value||t1,ket=$("izKet").value.trim();
+  let g;
+  if(full){g=PGG.find(x=>x.id===$("izGuru").value);if(!g)return alert("Pilih guru dulu.")}
+  else g={id:key(me.idGuru),nama:me.nama,idGuru:me.idGuru};
+  if(!t1)return alert("Isi tanggal izin.");
+  if(t2<t1)return alert("Tanggal akhir tidak boleh sebelum tanggal mulai.");
+  if(!ket)return alert("Keterangan izin wajib diisi.");
+  const dates=[];for(let d=new Date(t1+"T00:00:00");pgYmd(d)<=t2&&dates.length<=31;d.setDate(d.getDate()+1))dates.push(pgYmd(d));
+  if(dates.length>31)return alert("Maksimal 31 hari dalam satu pengajuan.");
+  if(!confirm("Kirim izin untuk "+dates.length+" hari ("+t1+(t2!==t1?" s/d "+t2:"")+")?"))return;
+  try{
+    for(const t of dates)await addDoc(collection(db,"presensiGuru"),{status:"Izin",ket,tgl:t,jam:"",waktu:new Date(t+"T07:00:00").toISOString(),dicatat:new Date().toISOString(),guruId:g.id,idGuru:g.idGuru,nama:g.nama,kelas:"",mapel:"",jarak:0});
+  }catch(e){return alert("Izin gagal tersimpan. Periksa koneksi lalu coba lagi.")}
+  alert("Izin berhasil tersimpan.");go("Presensi");
+};
+window.loadPG=async()=>{
+  const b=$("pgBulan").value;if(!b){$("pgRekap").innerHTML=empty("Pilih bulan.");return}
+  $("pgRekap").innerHTML=empty("Memuat...");
+  try{
+    const s=await getDocs(query(collection(db,"presensiGuru"),where("tgl",">=",b+"-01"),where("tgl","<=",b+"-31")));
+    PGV=s.docs.map(d=>({id:d.id,...d.data()})).filter(x=>!me.idGuru||x.guruId===key(me.idGuru));
+  }catch(e){$("pgRekap").innerHTML=empty("Gagal memuat data presensi. Periksa koneksi atau aturan Firestore.");return}
+  renderPG();
+};
+const pgDet=()=>{const g=$("pgGuru")?.value||"";return PGV.filter(x=>!g||x.guruId===g).sort((a,b)=>a.waktu>b.waktu?1:-1)};
+const pgRows=()=>{
+  const g=$("pgGuru")?.value||"",m=new Map();
+  const add=(id,nama,idg)=>{if(!m.has(id))m.set(id,{id,nama:nama||idg||id,idGuru:idg||"",hari:new Set(),izin:new Set(),telat:new Set(),awal:new Set(),out:new Set(),menit:0})};
+  if(me.idGuru)add(key(me.idGuru),me.nama,me.idGuru);else PGG.forEach(x=>add(x.id,x.nama,x.idGuru));
+  PGV.forEach(x=>{add(x.guruId,x.nama,x.idGuru);const r=m.get(x.guruId);if(pgIsIzin(x)){r.izin.add(x.tgl);return}if(pgIsOut(x)){r.out.add(x.tgl);if(x.pulangAwal)r.awal.add(x.tgl);return}r.hari.add(x.tgl);if(pgLate(x)&&!r.telat.has(x.tgl)){r.telat.add(x.tgl);r.menit+=x.telatMenit??Math.max(0,pgMnt(x.jam)-PG_IN_M)}});
+  return [...m.values()].filter(r=>!g||r.id===g).sort((a,b)=>a.nama>b.nama?1:-1);
+};
+window.renderPG=()=>{
+  const rows=pgRows(),det=pgDet().reverse(),full=!me.idGuru;
+  $("pgRekap").innerHTML=`<p class="text-sm mb-2">${rows.filter(r=>r.hari.size).length} guru hadir - ${rows.reduce((a,r)=>a+r.telat.size,0)} kali terlambat - ${rows.reduce((a,r)=>a+r.izin.size,0)} hari izin</p>`
+  +(rows.length?`<div class="card overflow-x-auto p-0 mb-4"><table class="w-full text-sm"><thead style="background:var(--g);color:#fff"><tr><th class="text-left p-3">Guru</th><th class="p-3">Hadir</th><th class="p-3">Tepat waktu</th><th class="p-3">Terlambat</th><th class="p-3">Izin</th><th class="p-3">Pulang awal</th><th class="p-3">Belum Clock Out</th></tr></thead><tbody>${rows.map(r=>`<tr class="border-t"><td class="p-3 font-semibold">${esc(r.nama)}</td><td class="p-3 text-center ${r.hari.size?"":"text-rose-600 font-bold"}">${r.hari.size}</td><td class="p-3 text-center">${r.hari.size-r.telat.size}</td><td class="p-3 text-center ${r.telat.size?"text-rose-600 font-bold":""}">${r.telat.size}${r.menit?` <span class="text-[10px] font-normal">(${r.menit} mnt)</span>`:""}</td><td class="p-3 text-center ${r.izin.size?"text-amber-600 font-bold":""}">${r.izin.size}</td><td class="p-3 text-center">${r.awal.size}</td><td class="p-3 text-center">${pgLupa(r)}</td></tr>`).join("")}</tbody></table></div>`:empty("Belum ada data guru."))
+  +`<h3 class="msec">Riwayat presensi</h3>`+list(det,x=>x.status==="Izin"?`<div class="card mb-2 flex justify-between gap-2"><div><b>${esc(x.nama)}</b> <span class="pill bg-amber-100 text-amber-700">Izin</span><div class="text-sm whitespace-pre-line"><b>Keterangan:</b> ${esc(x.ket||"-")}</div><div class="text-xs text-slate-500">${esc(x.tgl)}</div></div>${full?`<div class="flex flex-col gap-1"><button class="btn2" onclick="pgHapus('${x.id}')">Hapus</button></div>`:""}</div>`:`<div class="card mb-2 flex justify-between gap-2"><div><b>${esc(x.nama)}</b> ${pgIsOut(x)?`<span class="pill bg-sky-100 text-sky-700">Clock Out</span>${x.pulangAwal?` <span class="pill bg-amber-100 text-amber-700">Pulang awal</span>`:""}`:`<span class="pill bg-emerald-100 text-emerald-700">Clock In</span>${pgLate(x)?` <span class="pill bg-rose-100 text-rose-700">Terlambat${x.telatMenit?" "+x.telatMenit+" mnt":""}</span>`:""}`}${x.kelas?` <span class="pill bg-slate-100 text-slate-700">${esc(x.kelas)}</span>`:""}<div class="text-sm">${esc(x.mapel||"")}</div>${x.alasan?`<div class="text-sm whitespace-pre-line"><b>Alasan pulang:</b> ${esc(x.alasan)}</div>`:""}<div class="text-xs text-slate-500">${esc(x.tgl)} ${esc(x.jam)} - ${fmJ(x.jarak||0)} dari lokasi</div></div><div class="flex flex-col gap-1"><button class="btn2" onclick="pgLihat('${x.id}')">Foto</button>${full?`<button class="btn2" onclick="pgHapus('${x.id}')">Hapus</button>`:""}</div></div>`,"Belum ada presensi pada bulan ini.");
 };
 window.pgLihat=async id=>{
   let d;try{d=await getDoc(doc(db,"presensiFoto",id))}catch(e){return alert("Foto gagal dimuat.")}
@@ -676,12 +932,493 @@ window.exportPresensi=()=>{
   const [y,mo]=b.split("-").map(Number),nd=new Date(y,mo,0).getDate();
   const g=$("pgGuru")?.value,gn=g?(rows[0]?.nama||""):"Semua guru";
   const s1=[["REKAP PRESENSI GURU"],["Bulan: "+b+" | "+gn+" | Radius presensi: "+PGL.radius+" m"],[],["No","Nama","ID Guru","Hari Hadir","Hari Izin","Total Sesi Mengajar","Kelas (jumlah sesi)"],...rows.map((r,i)=>[i+1,r.nama,r.idGuru,r.hari.size,r.izin.size,r.sesi,kelasTxt(r)])];
-  const w1=XLSX.utils.aoa_to_sheet(s1);w1["!cols"]=[{wch:5},{wch:28},{wch:14},{wch:11},{wch:10},{wch:20},{wch:40}];
+  const w1=XLSX.utils.aoa_to_sheet(s1);w1["!cols"]=[{wch:5},{wch:28},{wch:14},{wch:11},{wch:12},{wch:16},{wch:20},{wch:10},{wch:12},{wch:16}];
+  const days=Array.from({length:nd},(_,i)=>i+1);
+  const s2=[["REKAP HARIAN (H = hadir tepat waktu, T = terlambat, I = izin)"],[],["No","Nama",...days,"Hadir","Terlambat","Izin"],...rows.map((r,i)=>[i+1,r.nama,...days.map(d=>{const t=b+"-"+pgp(d);return r.izin.has(t)?"I":r.telat.has(t)?"T":r.hari.has(t)?"H":""}),r.hari.size,r.telat.size,r.izin.size])];
+  const w2=XLSX.utils.aoa_to_sheet([["Tanggal","Nama","Kelas","NISN","Status"],...det.map(x=>[x.tgl,x.nama,x.kelas,x.nisn,stLabel[x.status]||x.status])]);
+  w2["!cols"]=[{wch:12},{wch:28},{wch:12},{wch:14},{wch:10}];
+  const wb=XLSX.utils.book_new();XLSX.utils.book_append_sheet(wb,w1,"Rekap");XLSX.utils.book_append_sheet(wb,w2,"Detail Harian");
+  XLSX.writeFile(wb,"Rekap_Kehadiran_"+d1+"_sd_"+d2+".xlsx");
+};
+
+// ============ MENU KARTU ADMIN ============
+IC.chat=svg('<path d="M21 15a2 2 0 0 1-2 2H7l-4 4V5a2 2 0 0 1 2-2h14a2 2 0 0 1 2 2z"/>');
+const MENU=[
+ ["Akademik",[["Jadwal","📅","Jadwal pelajaran semua kelas","#e0f2fe"],["Tugas","📝","Periksa & nilai tugas siswa","#fef3c7"],["Absensi","✅","Catat kehadiran harian","#dcfce7"],["Rekap","🗓️","Rekap kehadiran & ekspor Excel","#ede9fe","Rekap Kehadiran"],["Jurnal","📓","Isi jurnal mengajar guru","#fce7f3","Jurnal Guru"],["Presensi","📸","Absen guru dengan kamera & lokasi","#fee2e2","Presensi Guru"]]],
+ ["Data Madrasah",[["Siswa","🎓","Upload & kelola data siswa","#e0e7ff"],["Guru","👩‍🏫","Akun & sandi guru","#ccfbf1"]]],
+ ["Kesiswaan",[["Pelanggaran","⚠️","Catatan kedisiplinan","#ffe4e6"],["Prestasi","🏆","Capaian & penghargaan siswa","#fef9c3"]]],
+ ["PPDB",[["PPDB","📋","Data pendaftar & unduh berkas PDF","#fef3c7","Data PPDB"],["VerifPPDB","🔍","Scan QR cek keaslian berkas","#dcfce7","Verifikasi QR"]]],
+ ["Layanan",[["Pengumuman","📢","Kirim info ke semua siswa","#ffedd5"],["Pembayaran","💳","QRIS & laporan pembayaran","#d1fae5"],["Bantuan","🎧","Balas pesan dari siswa","#cffafe"],["Chat","💬","Grup chat guru & siswa","#dbeafe","Grup Chat"]]],
+ ["Kegiatan Madrasah",[["Kegiatan","🎯","Buat kegiatan & scan QR siswa untuk absen","#fae8ff","Absen Kegiatan"],["RekapKegiatan","📊","Rekap absen kegiatan & ekspor Excel","#e0f2fe","Rekap Kegiatan"]]]
+];
+A.Menu=async()=>{
+  const [gu,pb,bt,pp]=await Promise.all([all("guru"),all("pembayaran"),all("bantuan"),all("ppdb")]);
+  const nb={Pembayaran:pb.filter(x=>x.status==="Menunggu").length,Bantuan:bt.filter(x=>!x.balasan).length,PPDB:pp.filter(x=>x.status==="Menunggu").length};
+  const kls=new Set(siswa.map(x=>x.kelas)).size;
+  const tgl=new Date().toLocaleDateString("id-ID",{weekday:"long",day:"numeric",month:"long",year:"numeric"});
+  return `<section class="hero p-6"><p class="text-sm opacity-80">Assalamu'alaikum,</p><h1 class="text-2xl sm:text-3xl font-extrabold">${esc(me.nama)}</h1><p class="text-xs opacity-75 mt-1">${tgl}</p>
+  <div class="grid grid-cols-3 gap-3 mt-5 relative z-10"><div class="hstat"><div class="text-2xl font-extrabold">${siswa.length}</div><div class="text-[11px] opacity-80">Siswa</div></div><div class="hstat"><div class="text-2xl font-extrabold">${gu.length}</div><div class="text-[11px] opacity-80">Guru</div></div><div class="hstat"><div class="text-2xl font-extrabold">${kls}</div><div class="text-[11px] opacity-80">Kelas</div></div></div></section>`
+  +MENU.map(([sec,items])=>`<h2 class="msec">${sec}</h2><div class="grid grid-cols-2 sm:grid-cols-3 gap-3">`+items.map(([k,ic,d,bg,lb])=>`<button class="mcard" onclick="go('${k}')"><span class="mic" style="background:${bg}">${ic}</span><span class="mt">${lb||k}</span><span class="md">${d}</span>${nb[k]?`<span class="mbd">${nb[k]}</span>`:""}</button>`).join("")+`</div>`).join("");
+};
+
+// ============ JURNAL GURU ============
+let JN=[],JNV=[];
+const isOwner=x=>!me.idGuru||x.guruId===key(me.idGuru);
+const jnCards=r=>list(r,x=>`<div class="card mb-2"><div class="flex justify-between gap-2"><div><b>${esc(x.mapel)}</b> <span class="pill bg-emerald-100 text-emerald-700">${esc(x.kelas)}</span><div class="text-xs text-slate-500 mt-0.5">${esc(x.tgl)}${x.jam?" - "+esc(x.jam):""} - ${esc(x.guru)}</div></div>${isOwner(x)?`<button class="btn2 h-fit" onclick="hapus('jurnal','${x.id}','Jurnal')">Hapus</button>`:""}</div>
+ <div class="text-sm mt-2 whitespace-pre-line"><b>Materi:</b> ${esc(x.materi)}</div>${x.kegiatan?`<div class="text-sm mt-1 whitespace-pre-line"><b>Kegiatan:</b> ${esc(x.kegiatan)}</div>`:""}${x.absen?`<div class="text-sm mt-1"><b>Siswa tidak hadir:</b> ${esc(x.absen)}</div>`:""}${x.catatan?`<div class="text-sm mt-1 whitespace-pre-line"><b>Catatan/kendala:</b> ${esc(x.catatan)}</div>`:""}</div>`,"Belum ada jurnal.");
+A.Jurnal=async()=>{
+  JN=(await all("jurnal")).sort((a,b)=>((b.tgl||"")+(b.dibuat||""))>((a.tgl||"")+(a.dibuat||""))?1:-1);JNV=JN;
+  const kl=[...new Set(siswa.map(x=>x.kelas))].sort(),mp=[...new Set((await getJadwal()).map(x=>x.mapel).filter(m=>!/istirahat/i.test(m)))].sort();
+  const gu=[...new Set(JN.map(x=>x.guru).filter(Boolean))].sort();
+  return `<div class="card space-y-2 mb-4"><h2 class="font-extrabold">📓 Isi jurnal mengajar</h2>
+  <div class="grid grid-cols-2 gap-2"><div><label class="text-xs text-slate-500">Tanggal</label><input id="jnTgl" type="date" class="inp" value="${today()}"></div><div><label class="text-xs text-slate-500">Jam ke / waktu</label><input id="jnJam" class="inp" placeholder="mis. 1-2 atau 07:00-08:30"></div></div>
+  <div class="grid grid-cols-2 gap-2"><div><label class="text-xs text-slate-500">Kelas</label><input id="jnKls" class="inp" list="jnKlsL" placeholder="Kelas"><datalist id="jnKlsL">${kl.map(k=>`<option value="${esc(k)}">`).join("")}</datalist></div><div><label class="text-xs text-slate-500">Mata pelajaran</label><input id="jnMp" class="inp" list="jnMpL" placeholder="Mata pelajaran"><datalist id="jnMpL">${mp.map(k=>`<option value="${esc(k)}">`).join("")}</datalist></div></div>
+  <div><label class="text-xs text-slate-500">Nama guru</label><input id="jnGuru" class="inp" value="${esc(me.nama)}"></div>
+  <textarea id="jnMateri" class="inp" rows="2" placeholder="Materi / topik yang diajarkan"></textarea>
+  <textarea id="jnKeg" class="inp" rows="3" placeholder="Kegiatan pembelajaran (opsional)"></textarea>
+  <input id="jnAbsen" class="inp" placeholder="Siswa tidak hadir (opsional, tulis nama)">
+  <textarea id="jnCat" class="inp" rows="2" placeholder="Catatan / kendala (opsional)"></textarea>
+  <button class="btn" onclick="saveJurnal()">Simpan jurnal</button></div>
+  <div class="card mb-4 space-y-2"><div class="grid grid-cols-2 gap-2"><select id="jnFilter" class="inp" onchange="renderJurnal()"><option value="">Semua guru</option>${gu.map(x=>`<option>${esc(x)}</option>`).join("")}</select><input id="jnBulan" type="month" class="inp" onchange="renderJurnal()"></div><button class="btn2" onclick="exportJurnal()">⬇ Ekspor ke Excel</button></div>
+  <div id="jnList"><p class="text-sm mb-2">${JN.length} jurnal</p>${jnCards(JN)}</div>`;
+};
+window.renderJurnal=()=>{
+  const g=$("jnFilter").value,b=$("jnBulan").value;
+  JNV=JN.filter(x=>(!g||x.guru===g)&&(!b||(x.tgl||"").startsWith(b)));
+  $("jnList").innerHTML=`<p class="text-sm mb-2">${JNV.length} jurnal</p>`+jnCards(JNV);
+};
+window.saveJurnal=async()=>{
+  const v=id=>$(id).value.trim(),d={tgl:v("jnTgl"),jam:v("jnJam"),kelas:v("jnKls"),mapel:v("jnMp"),guru:v("jnGuru")||me.nama,materi:v("jnMateri"),kegiatan:v("jnKeg"),absen:v("jnAbsen"),catatan:v("jnCat")};
+  if(!d.tgl||!d.kelas||!d.mapel||!d.materi)return alert("Isi tanggal, kelas, mata pelajaran, dan materi.");
+  await addDoc(collection(db,"jurnal"),{...d,guruId:key(me.idGuru||"admin"),dibuat:new Date().toISOString()});
+  go("Jurnal");
+};
+window.exportJurnal=()=>{
+  if(!JNV.length)return alert("Tidak ada jurnal untuk diekspor.");
+  const ws=XLSX.utils.aoa_to_sheet([["JURNAL GURU"],[],["No","Tanggal","Jam","Kelas","Mata Pelajaran","Guru","Materi","Kegiatan","Siswa Tidak Hadir","Catatan/Kendala"],...[...JNV].sort((a,b)=>a.tgl>b.tgl?1:-1).map((x,i)=>[i+1,x.tgl,x.jam,x.kelas,x.mapel,x.guru,x.materi,x.kegiatan,x.absen,x.catatan])]);
+  ws["!cols"]=[{wch:5},{wch:12},{wch:14},{wch:10},{wch:22},{wch:24},{wch:32},{wch:36},{wch:22},{wch:28}];
+  const wb=XLSX.utils.book_new();XLSX.utils.book_append_sheet(wb,ws,"Jurnal");XLSX.writeFile(wb,"Jurnal_Guru_"+today()+".xlsx");
+};
+
+// ============ PRESENSI GURU (kamera + lokasi) ============
+const PG_IN_M=6*60+45,PG_OUT_M=12*60+10; // Clock In maks 06.45, Clock Out mulai 12.10
+const pgMnt=s=>{const[a,b]=String(s||"0:0").split(":");return(+a)*60+(+b)},pgNow=n=>n.getHours()*60+n.getMinutes();
+const pgIsIzin=x=>x.status==="Izin",pgIsOut=x=>x.jenis==="pulang",pgIsIn=x=>!pgIsIzin(x)&&!pgIsOut(x);
+const pgLate=x=>pgIsIn(x)&&(x.terlambat!==undefined?x.terlambat:pgMnt(x.jam)>PG_IN_M);
+const pgLupa=r=>[...r.hari].filter(t=>!r.out.has(t)&&t<pgYmd(new Date())).length;
+const PG_ACC=300; // akurasi GPS maksimal (meter) agar lokasi dianggap valid
+const pgp=n=>String(n).padStart(2,"0");
+const pgYmd=d=>d.getFullYear()+"-"+pgp(d.getMonth()+1)+"-"+pgp(d.getDate());
+const hav=(la1,ln1,la2,ln2)=>{const R=6371000,r=x=>x*Math.PI/180,a=Math.sin(r(la2-la1)/2)**2+Math.cos(r(la1))*Math.cos(r(la2))*Math.sin(r(ln2-ln1)/2)**2;return 2*R*Math.asin(Math.sqrt(a))};
+const fmJ=m=>m<1000?Math.round(m)+" m":(m/1000).toFixed(2)+" km";
+const parseKoord=s=>{s=String(s||"").trim();const pp=parsePlus(s);if(pp)return pp;const m=s.match(/@(-?\d+\.\d+),(-?\d+\.\d+)/)||s.match(/!3d(-?\d+\.\d+)!4d(-?\d+\.\d+)/)||s.match(/[?&](?:q|ll|query)=(-?\d+\.\d+)(?:,|%2C)(-?\d+\.\d+)/)||s.match(/^(-?\d+(?:\.\d+)?)\s*[, ]\s*(-?\d+(?:\.\d+)?)$/);
+  if(!m)return null;const lat=+m[1],lng=+m[2];return Math.abs(lat)<=90&&Math.abs(lng)<=180?{lat,lng}:null};
+const OLC="23456789CFGHJMPQRVWX";
+const parsePlus=s=>{const m=String(s||"").toUpperCase().match(/([23456789CFGHJMPQRVWX]{8}\+[23456789CFGHJMPQRVWX]{2})/);if(!m)return null;const c=m[1].replace("+","");let la=-90,ln=-180,r=20;for(let i=0;i<10;i+=2){la+=OLC.indexOf(c[i])*r;ln+=OLC.indexOf(c[i+1])*r;if(i<8)r/=20}return{lat:+(la+r/2).toFixed(7),lng:+(ln+r/2).toFixed(7)}};
+// Lokasi bawaan (Plus Code 6P5M3G5Q+2P); admin bisa mengubahnya di menu Presensi Guru
+let PGL={lat:-6.9424375,lng:113.5393125,radius:300,nama:"Lokasi madrasah"},pgJ="masuk",PGT=[],PGV=[],PGG=[],pgStream=null,pgPos=null,pgFoto="";
+const getLokasi=async()=>{try{const d=await getDoc(doc(db,"pengaturan","lokasi"));if(d.exists()){PGL={...PGL,...d.data()};if(d.data().rv!==2)PGL.radius=300}}catch(e){}return PGL};
+window.pgStop=()=>{if(pgStream){pgStream.getTracks().forEach(t=>t.stop());pgStream=null}};
+const pgMsg=(t,c)=>{const e=$("pgMsg");if(e){e.textContent=t;e.className="text-sm "+(c||"text-slate-600")}};
+const getPos=()=>new Promise((ok,no)=>navigator.geolocation.getCurrentPosition(p=>ok({lat:p.coords.latitude,lng:p.coords.longitude,acc:p.coords.accuracy}),no,{enableHighAccuracy:true,timeout:20000,maximumAge:0}));
+const kelasTxt=r=>Object.entries(r.kelas).map(([k,n])=>k+" ("+n+")").join(", ");
+
+A.Presensi=async()=>{
+  const full=!me.idGuru;await getLokasi();
+  const kl=[...new Set(siswa.map(x=>x.kelas))].sort(),mp=[...new Set((await getJadwal()).map(x=>x.mapel).filter(m=>!/istirahat/i.test(m)))].sort();
+  PGG=full?(await all("guru")).sort((a,b)=>(a.nama||"")>(b.nama||"")?1:-1):[];
+  const ok=PGL.lat!=null&&PGL.lng!=null;
+  const lokInfo=ok?`${esc(PGL.nama)} - radius ${fmJ(PGL.radius)} - <a class="underline text-emerald-700" target="_blank" rel="noopener" href="https://www.google.com/maps?q=${PGL.lat},${PGL.lng}">lihat di Maps</a>`:"Lokasi madrasah belum diatur oleh admin.";
+  const hari0=pgYmd(new Date());PGT=[];
+  if(!full){try{const q=await getDocs(query(collection(db,"presensiGuru"),where("tgl","==",hari0)));PGT=q.docs.map(d=>({id:d.id,...d.data()})).filter(x=>x.guruId===key(me.idGuru))}catch(e){}}
+  const tIn=PGT.find(pgIsIn),tOut=PGT.find(pgIsOut),tIzin=PGT.find(pgIsIzin);
+  const form=full?"":`<div class="card space-y-2 mb-4"><h2 class="font-extrabold">📸 Presensi guru (Clock In / Clock Out)</h2>
+  <p class="text-xs text-slate-500">📍 ${lokInfo}</p>
+  <p class="text-xs text-slate-500">Clock In / Clock Out hanya bisa dilakukan di dalam radius lokasi madrasah, dengan foto selfie langsung dari kamera.<br>⏰ Clock In maksimal jam 06.45; lewat dari itu tercatat <b>terlambat</b>. Clock Out mulai jam 12.10; pulang lebih awal wajib mengisi alasan.</p>
+  <div class="text-sm rounded-xl p-3 border bg-slate-50">Hari ini: ${tIzin?`<b class="text-amber-700">Izin</b>`:`Clock In <b>${tIn?esc(tIn.jam):"-"}</b>${tIn&&pgLate(tIn)?` <span class="pill bg-rose-100 text-rose-700">Terlambat</span>`:""} · Clock Out <b>${tOut?esc(tOut.jam):"-"}</b>${tOut&&tOut.pulangAwal?` <span class="pill bg-amber-100 text-amber-700">Pulang awal</span>`:""}`}</div>
+  <div class="grid grid-cols-2 gap-2"><input id="pgKls" class="inp" list="pgKlsL" placeholder="Kelas (opsional)"><datalist id="pgKlsL">${kl.map(k=>`<option value="${esc(k)}">`).join("")}</datalist><input id="pgMp" class="inp" list="pgMpL" placeholder="Mata pelajaran (opsional)"><datalist id="pgMpL">${mp.map(k=>`<option value="${esc(k)}">`).join("")}</datalist></div>
+  <textarea id="pgAls" class="inp" rows="2" placeholder="Alasan pulang lebih awal (wajib diisi jika Clock Out sebelum jam 12.10)"></textarea>
+  <div id="pgCam" class="hidden"><video id="pgVid" autoplay playsinline muted style="width:100%;border-radius:.75rem;background:#000;transform:scaleX(-1)"></video></div>
+  <img id="pgPrev" class="hidden w-full rounded-xl border" alt="Foto presensi">
+  <p id="pgMsg" class="text-sm text-slate-600"></p>
+  <div class="flex flex-wrap gap-2"><button id="pgB1" class="btn" onclick="pgMulai('masuk')">⏰ Clock In</button><button id="pgB5" class="btn" onclick="pgMulai('pulang')">🏠 Clock Out</button><button id="pgB2" class="btn hidden" onclick="pgAmbil()">📷 Ambil foto</button><button id="pgB3" class="btn hidden" onclick="pgKirim()">✅ Kirim presensi</button><button id="pgB4" class="btn2 hidden" onclick="pgMulai(pgJ)">Ulangi</button></div></div>`;
+  const set=!full?"":`<div class="card space-y-2 mb-4"><h2 class="font-extrabold">📍 Lokasi presensi</h2>
+  <p class="text-xs text-slate-500">Saat ini: ${lokInfo}</p>
+  <p class="text-xs text-slate-500">Isi dengan koordinat (mis. -7.98, 112.63) Plus Code (mis. 6P5M3G5Q+2P), atau tempel link Google Maps versi panjang. Link pendek (maps.app.goo.gl) tidak bisa dibaca - buka dulu di Maps, lalu salin koordinatnya atau link panjangnya. Anda juga bisa berdiri di lokasi madrasah lalu tekan "Pakai lokasi saya sekarang".</p>
+  <input id="lkNama" class="inp" placeholder="Nama lokasi" value="${esc(PGL.nama)}">
+  <input id="lkKoor" class="inp" placeholder="Koordinat atau link Google Maps" value="${ok?PGL.lat+", "+PGL.lng:""}">
+  <input id="lkRad" type="number" class="inp" placeholder="Radius (meter)" value="${PGL.radius}">
+  <div class="flex flex-wrap gap-2"><button class="btn" onclick="lkSimpan()">Simpan lokasi</button><button class="btn2" onclick="lkPakai()">Pakai lokasi saya sekarang</button></div></div>`;
+  const hari=pgYmd(new Date());
+  const izin=`<div class="card space-y-2 mb-4"><h2 class="font-extrabold">📝 Izin tidak hadir</h2>
+  <p class="text-xs text-slate-500">Ajukan izin jika tidak dapat mengajar. Tidak perlu foto dan lokasi, tetapi keterangan izin wajib diisi.</p>
+  ${full?`<select id="izGuru" class="inp"><option value="">Pilih guru</option>${PGG.map(x=>`<option value="${esc(x.id)}">${esc(x.nama||x.idGuru)}</option>`).join("")}</select>`:""}
+  <div class="grid grid-cols-2 gap-2"><label class="text-xs text-slate-500">Dari tanggal<input id="izTgl" type="date" class="inp" value="${hari}"></label><label class="text-xs text-slate-500">Sampai tanggal (opsional)<input id="izTgl2" type="date" class="inp"></label></div>
+  <textarea id="izKet" class="inp" rows="3" placeholder="Keterangan izin (mis. sakit, keperluan keluarga, dinas luar)"></textarea>
+  <button class="btn" onclick="izKirim()">Kirim izin</button></div>`;
+  const bulan=hari.slice(0,7);
+  const rek=`<div class="card space-y-2 mb-4"><h2 class="font-extrabold">Rekapitulasi kehadiran guru</h2>
+  <div class="grid grid-cols-2 gap-2"><input id="pgBulan" type="month" class="inp" value="${bulan}" onchange="loadPG()">${full?`<select id="pgGuru" class="inp" onchange="renderPG()"><option value="">Semua guru</option>${PGG.map(x=>`<option value="${esc(x.id)}">${esc(x.nama||x.idGuru)}</option>`).join("")}</select>`:"<div></div>"}</div>
+  <button class="btn2" onclick="exportPresensi()">⬇ Ekspor ke Excel</button></div><div id="pgRekap"></div>`;
+  return form+izin+set+rek;
+};
+window.lkSimpan=async()=>{
+  const k=parseKoord($("lkKoor").value),r=+$("lkRad").value;
+  if(!k)return alert("Koordinat tidak terbaca. Isi format: -7.98, 112.63 atau link Google Maps panjang.");
+  if(!(r>=50&&r<=20000))return alert("Radius harus antara 50 dan 20000 meter.");
+  await setDoc(doc(db,"pengaturan","lokasi"),{lat:k.lat,lng:k.lng,radius:r,rv:2,nama:$("lkNama").value.trim()||"Lokasi madrasah"});
+  alert("Lokasi presensi tersimpan.");go("Presensi");
+};
+window.lkPakai=async()=>{
+  if(!navigator.geolocation)return alert("Browser tidak mendukung lokasi.");
+  try{const p=await getPos();$("lkKoor").value=p.lat.toFixed(6)+", "+p.lng.toFixed(6);alert("Lokasi terisi (akurasi ±"+Math.round(p.acc)+" m). Tekan Simpan lokasi.")}
+  catch(e){alert("Gagal mengambil lokasi. Izinkan akses lokasi dan aktifkan GPS.")}
+};
+window.pgMulai=async j=>{
+  if(j)pgJ=j;const mn=pgNow(new Date()),tIn=PGT.find(pgIsIn),tOut=PGT.find(pgIsOut);
+  if(PGT.find(pgIsIzin))return alert("Hari ini Anda tercatat izin.");
+  if(pgJ==="masuk"&&tIn)return alert("Anda sudah Clock In hari ini pukul "+tIn.jam+".");
+  if(pgJ==="pulang"){if(!tIn)return alert("Anda belum Clock In hari ini.");if(tOut)return alert("Anda sudah Clock Out hari ini pukul "+tOut.jam+".");if(mn<PG_OUT_M&&!$("pgAls").value.trim())return alert("Clock Out baru bisa mulai jam 12.10. Untuk pulang lebih awal, isi dulu alasan pulang.")}
+  if(PGL.lat==null)return alert("Lokasi madrasah belum diatur oleh admin.");
+  pgStop();pgFoto="";pgPos=null;
+  ["pgCam","pgPrev","pgB2","pgB3","pgB4","pgB5"].forEach(i=>$(i).classList.add("hidden"));$("pgB1").classList.add("hidden");
+  const gagal=t=>{pgStop();if($("pgB1")){$("pgB1").classList.remove("hidden");$("pgB5").classList.remove("hidden");pgMsg(t,"text-rose-600")}};
+  if(!navigator.geolocation||!navigator.mediaDevices||!navigator.mediaDevices.getUserMedia)return gagal("Browser tidak mendukung kamera/lokasi. Gunakan Chrome atau Safari terbaru dan buka lewat https.");
+  pgMsg("Mengambil lokasi... mohon izinkan akses lokasi.");
+  try{pgPos=await getPos()}catch(e){return gagal("Lokasi gagal diambil. Izinkan akses lokasi dan aktifkan GPS, lalu coba lagi.")}
+  if(!$("pgMsg"))return;
+  if(pgPos.acc>PG_ACC)return gagal("Akurasi lokasi rendah (±"+Math.round(pgPos.acc)+" m). Aktifkan GPS/lokasi akurasi tinggi, lalu coba lagi.");
+  const d=hav(pgPos.lat,pgPos.lng,PGL.lat,PGL.lng);
+  if(d>PGL.radius)return gagal("Anda berada "+fmJ(d)+" dari lokasi madrasah. Batas presensi "+fmJ(PGL.radius)+".");
+  pgMsg("Lokasi sesuai ("+fmJ(d)+" dari madrasah). Menyalakan kamera...","text-emerald-700");
+  try{pgStream=await navigator.mediaDevices.getUserMedia({video:{facingMode:"user",width:{ideal:640},height:{ideal:480}},audio:false})}
+  catch(e){return gagal("Kamera tidak bisa dibuka. Izinkan akses kamera lalu coba lagi.")}
+  if(!$("pgVid"))return pgStop();
+  $("pgVid").srcObject=pgStream;$("pgCam").classList.remove("hidden");$("pgB2").classList.remove("hidden");
+  pgMsg("Lokasi sesuai ("+fmJ(d)+"). Hadapkan wajah ke kamera lalu ambil foto.","text-emerald-700");
+};
+window.pgAmbil=()=>{
+  const v=$("pgVid");if(!v||!v.videoWidth)return alert("Kamera belum siap.");
+  const w=360,h=Math.round(v.videoHeight/v.videoWidth*w),c=document.createElement("canvas");c.width=w;c.height=h;
+  const x=c.getContext("2d");x.drawImage(v,0,0,w,h);x.fillStyle="rgba(0,0,0,.55)";x.fillRect(0,h-22,w,22);x.fillStyle="#fff";x.font="11px sans-serif";
+  x.fillText(new Date().toLocaleString("id-ID")+" | "+pgPos.lat.toFixed(5)+", "+pgPos.lng.toFixed(5),6,h-7);
+  pgFoto=c.toDataURL("image/jpeg",.6);pgStop();
+  $("pgCam").classList.add("hidden");$("pgPrev").src=pgFoto;$("pgPrev").classList.remove("hidden");
+  $("pgB2").classList.add("hidden");$("pgB3").classList.remove("hidden");$("pgB4").classList.remove("hidden");
+  pgMsg("Periksa foto, lalu kirim presensi.");
+};
+window.pgKirim=async()=>{
+  if(!pgFoto||!pgPos)return alert("Ambil foto dulu.");
+  const d=hav(pgPos.lat,pgPos.lng,PGL.lat,PGL.lng);if(d>PGL.radius)return alert("Di luar radius presensi.");
+  const n=new Date(),mn=pgNow(n),als=$("pgAls").value.trim(),ex={jenis:pgJ};
+  if(pgJ==="masuk"){ex.terlambat=mn>PG_IN_M;ex.telatMenit=Math.max(0,mn-PG_IN_M)}
+  else{ex.pulangAwal=mn<PG_OUT_M;if(ex.pulangAwal){if(!als)return alert("Clock Out sebelum jam 12.10 wajib mengisi alasan pulang.");ex.alasan=als}}
+  $("pgB3").disabled=true;
+  try{
+    const ref=await addDoc(collection(db,"presensiGuru"),{tgl:pgYmd(n),jam:pgp(n.getHours())+":"+pgp(n.getMinutes()),waktu:n.toISOString(),guruId:key(me.idGuru),idGuru:me.idGuru,nama:me.nama,kelas:$("pgKls").value.trim(),mapel:$("pgMp").value.trim(),lat:pgPos.lat,lng:pgPos.lng,akurasi:Math.round(pgPos.acc),jarak:Math.round(d),...ex});
+    await setDoc(doc(db,"presensiFoto",ref.id),{foto:pgFoto});
+  }catch(e){$("pgB3").disabled=false;return alert("Presensi gagal tersimpan. Periksa koneksi lalu coba lagi.")}
+  pgFoto="";alert(pgJ==="masuk"?(ex.terlambat?"Clock In tersimpan. Status: TERLAMBAT "+ex.telatMenit+" menit.":"Clock In tersimpan, tepat waktu."):(ex.pulangAwal?"Clock Out tersimpan (pulang lebih awal).":"Clock Out tersimpan."));go("Presensi");
+};
+window.izKirim=async()=>{
+  const full=!me.idGuru,t1=$("izTgl").value,t2=$("izTgl2").value||t1,ket=$("izKet").value.trim();
+  let g;
+  if(full){g=PGG.find(x=>x.id===$("izGuru").value);if(!g)return alert("Pilih guru dulu.")}
+  else g={id:key(me.idGuru),nama:me.nama,idGuru:me.idGuru};
+  if(!t1)return alert("Isi tanggal izin.");
+  if(t2<t1)return alert("Tanggal akhir tidak boleh sebelum tanggal mulai.");
+  if(!ket)return alert("Keterangan izin wajib diisi.");
+  const dates=[];for(let d=new Date(t1+"T00:00:00");pgYmd(d)<=t2&&dates.length<=31;d.setDate(d.getDate()+1))dates.push(pgYmd(d));
+  if(dates.length>31)return alert("Maksimal 31 hari dalam satu pengajuan.");
+  if(!confirm("Kirim izin untuk "+dates.length+" hari ("+t1+(t2!==t1?" s/d "+t2:"")+")?"))return;
+  try{
+    for(const t of dates)await addDoc(collection(db,"presensiGuru"),{status:"Izin",ket,tgl:t,jam:"",waktu:new Date(t+"T07:00:00").toISOString(),dicatat:new Date().toISOString(),guruId:g.id,idGuru:g.idGuru,nama:g.nama,kelas:"",mapel:"",jarak:0});
+  }catch(e){return alert("Izin gagal tersimpan. Periksa koneksi lalu coba lagi.")}
+  alert("Izin berhasil tersimpan.");go("Presensi");
+};
+window.loadPG=async()=>{
+  const b=$("pgBulan").value;if(!b){$("pgRekap").innerHTML=empty("Pilih bulan.");return}
+  $("pgRekap").innerHTML=empty("Memuat...");
+  try{
+    const s=await getDocs(query(collection(db,"presensiGuru"),where("tgl",">=",b+"-01"),where("tgl","<=",b+"-31")));
+    PGV=s.docs.map(d=>({id:d.id,...d.data()})).filter(x=>!me.idGuru||x.guruId===key(me.idGuru));
+  }catch(e){$("pgRekap").innerHTML=empty("Gagal memuat data presensi. Periksa koneksi atau aturan Firestore.");return}
+  renderPG();
+};
+const pgDet=()=>{const g=$("pgGuru")?.value||"";return PGV.filter(x=>!g||x.guruId===g).sort((a,b)=>a.waktu>b.waktu?1:-1)};
+const pgRows=()=>{
+  const g=$("pgGuru")?.value||"",m=new Map();
+  const add=(id,nama,idg)=>{if(!m.has(id))m.set(id,{id,nama:nama||idg||id,idGuru:idg||"",hari:new Set(),izin:new Set(),telat:new Set(),awal:new Set(),out:new Set(),menit:0})};
+  if(me.idGuru)add(key(me.idGuru),me.nama,me.idGuru);else PGG.forEach(x=>add(x.id,x.nama,x.idGuru));
+  PGV.forEach(x=>{add(x.guruId,x.nama,x.idGuru);const r=m.get(x.guruId);if(pgIsIzin(x)){r.izin.add(x.tgl);return}if(pgIsOut(x)){r.out.add(x.tgl);if(x.pulangAwal)r.awal.add(x.tgl);return}r.hari.add(x.tgl);if(pgLate(x)&&!r.telat.has(x.tgl)){r.telat.add(x.tgl);r.menit+=x.telatMenit??Math.max(0,pgMnt(x.jam)-PG_IN_M)}});
+  return [...m.values()].filter(r=>!g||r.id===g).sort((a,b)=>a.nama>b.nama?1:-1);
+};
+window.renderPG=()=>{
+  const rows=pgRows(),det=pgDet().reverse(),full=!me.idGuru;
+  $("pgRekap").innerHTML=`<p class="text-sm mb-2">${rows.filter(r=>r.hari.size).length} guru hadir - ${rows.reduce((a,r)=>a+r.telat.size,0)} kali terlambat - ${rows.reduce((a,r)=>a+r.izin.size,0)} hari izin</p>`
+  +(rows.length?`<div class="card overflow-x-auto p-0 mb-4"><table class="w-full text-sm"><thead style="background:var(--g);color:#fff"><tr><th class="text-left p-3">Guru</th><th class="p-3">Hadir</th><th class="p-3">Tepat waktu</th><th class="p-3">Terlambat</th><th class="p-3">Izin</th><th class="p-3">Pulang awal</th><th class="p-3">Belum Clock Out</th></tr></thead><tbody>${rows.map(r=>`<tr class="border-t"><td class="p-3 font-semibold">${esc(r.nama)}</td><td class="p-3 text-center ${r.hari.size?"":"text-rose-600 font-bold"}">${r.hari.size}</td><td class="p-3 text-center">${r.hari.size-r.telat.size}</td><td class="p-3 text-center ${r.telat.size?"text-rose-600 font-bold":""}">${r.telat.size}${r.menit?` <span class="text-[10px] font-normal">(${r.menit} mnt)</span>`:""}</td><td class="p-3 text-center ${r.izin.size?"text-amber-600 font-bold":""}">${r.izin.size}</td><td class="p-3 text-center">${r.awal.size}</td><td class="p-3 text-center">${pgLupa(r)}</td></tr>`).join("")}</tbody></table></div>`:empty("Belum ada data guru."))
+  +`<h3 class="msec">Riwayat presensi</h3>`+list(det,x=>x.status==="Izin"?`<div class="card mb-2 flex justify-between gap-2"><div><b>${esc(x.nama)}</b> <span class="pill bg-amber-100 text-amber-700">Izin</span><div class="text-sm whitespace-pre-line"><b>Keterangan:</b> ${esc(x.ket||"-")}</div><div class="text-xs text-slate-500">${esc(x.tgl)}</div></div>${full?`<div class="flex flex-col gap-1"><button class="btn2" onclick="pgHapus('${x.id}')">Hapus</button></div>`:""}</div>`:`<div class="card mb-2 flex justify-between gap-2"><div><b>${esc(x.nama)}</b> ${pgIsOut(x)?`<span class="pill bg-sky-100 text-sky-700">Clock Out</span>${x.pulangAwal?` <span class="pill bg-amber-100 text-amber-700">Pulang awal</span>`:""}`:`<span class="pill bg-emerald-100 text-emerald-700">Clock In</span>${pgLate(x)?` <span class="pill bg-rose-100 text-rose-700">Terlambat${x.telatMenit?" "+x.telatMenit+" mnt":""}</span>`:""}`}${x.kelas?` <span class="pill bg-slate-100 text-slate-700">${esc(x.kelas)}</span>`:""}<div class="text-sm">${esc(x.mapel||"")}</div>${x.alasan?`<div class="text-sm whitespace-pre-line"><b>Alasan pulang:</b> ${esc(x.alasan)}</div>`:""}<div class="text-xs text-slate-500">${esc(x.tgl)} ${esc(x.jam)} - ${fmJ(x.jarak||0)} dari lokasi</div></div><div class="flex flex-col gap-1"><button class="btn2" onclick="pgLihat('${x.id}')">Foto</button>${full?`<button class="btn2" onclick="pgHapus('${x.id}')">Hapus</button>`:""}</div></div>`,"Belum ada presensi pada bulan ini.");
+};
+window.pgLihat=async id=>{
+  let d;try{d=await getDoc(doc(db,"presensiFoto",id))}catch(e){return alert("Foto gagal dimuat.")}
+  if(!d.exists())return alert("Foto tidak ditemukan.");
+  const m=document.createElement("div");m.className="modal";m.onclick=()=>m.remove();
+  m.innerHTML=`<div class="modal-box" style="max-width:26rem"><img src="${d.data().foto}" class="w-full rounded-xl" alt="Foto presensi"></div>`;document.body.appendChild(m);
+};
+window.pgHapus=async id=>{if(!confirm("Hapus presensi ini?"))return;await deleteDoc(doc(db,"presensiGuru",id));try{await deleteDoc(doc(db,"presensiFoto",id))}catch(e){}loadPG()};
+window.exportPresensi=()=>{
+  const b=$("pgBulan").value,rows=pgRows(),det=pgDet();
+  if(!b||!det.length)return alert("Tidak ada data presensi untuk diekspor.");
+  const [y,mo]=b.split("-").map(Number),nd=new Date(y,mo,0).getDate();
+  const g=$("pgGuru")?.value,gn=g?(rows[0]?.nama||""):"Semua guru";
+  const s1=[["REKAP KEHADIRAN GURU"],["Bulan: "+b+" | "+gn+" | Clock In maks 06.45 | Clock Out mulai 12.10 | Radius "+PGL.radius+" m"],[],["No","Nama","ID Guru","Hari Hadir","Tepat Waktu","Terlambat (hari)","Total Menit Terlambat","Hari Izin","Pulang Awal","Belum Clock Out"],...rows.map((r,i)=>[i+1,r.nama,r.idGuru,r.hari.size,r.hari.size-r.telat.size,r.telat.size,r.menit,r.izin.size,r.awal.size,pgLupa(r)])];
+  const w1=XLSX.utils.aoa_to_sheet(s1);
+  rows.forEach((r,i)=>{const c=w1["I"+(5+i)];if(c&&typeof c.v==="number")c.z="0%"});
+  w1["!cols"]=[{wch:5},{wch:28},{wch:12},{wch:14},{wch:8},{wch:8},{wch:8},{wch:17},{wch:10}];
+  const det=[...ab].sort((a,b)=>a.tgl===b.tgl?(a.kelas===b.kelas?(a.nama>b.nama?1:-1):(a.kelas>b.kelas?1:-1)):(a.tgl>b.tgl?1:-1));
+  const w2=XLSX.utils.aoa_to_sheet([["Tanggal","Nama","Kelas","NISN","Status"],...det.map(x=>[x.tgl,x.nama,x.kelas,x.nisn,stLabel[x.status]||x.status])]);
+  w2["!cols"]=[{wch:12},{wch:28},{wch:12},{wch:14},{wch:10}];
+  const wb=XLSX.utils.book_new();XLSX.utils.book_append_sheet(wb,w1,"Rekap");XLSX.utils.book_append_sheet(wb,w2,"Detail Harian");
+  XLSX.writeFile(wb,"Rekap_Kehadiran_"+d1+"_sd_"+d2+".xlsx");
+};
+
+// ============ MENU KARTU ADMIN ============
+IC.chat=svg('<path d="M21 15a2 2 0 0 1-2 2H7l-4 4V5a2 2 0 0 1 2-2h14a2 2 0 0 1 2 2z"/>');
+const MENU=[
+ ["Akademik",[["Jadwal","📅","Jadwal pelajaran semua kelas","#e0f2fe"],["Tugas","📝","Periksa & nilai tugas siswa","#fef3c7"],["Absensi","✅","Catat kehadiran harian","#dcfce7"],["Rekap","🗓️","Rekap kehadiran & ekspor Excel","#ede9fe","Rekap Kehadiran"],["Jurnal","📓","Isi jurnal mengajar guru","#fce7f3","Jurnal Guru"],["Presensi","📸","Absen guru dengan kamera & lokasi","#fee2e2","Presensi Guru"]]],
+ ["Data Madrasah",[["Siswa","🎓","Upload & kelola data siswa","#e0e7ff"],["Guru","👩‍🏫","Akun & sandi guru","#ccfbf1"]]],
+ ["Kesiswaan",[["Pelanggaran","⚠️","Catatan kedisiplinan","#ffe4e6"],["Prestasi","🏆","Capaian & penghargaan siswa","#fef9c3"]]],
+ ["PPDB",[["PPDB","📋","Data pendaftar & unduh berkas PDF","#fef3c7","Data PPDB"],["VerifPPDB","🔍","Scan QR cek keaslian berkas","#dcfce7","Verifikasi QR"]]],
+ ["Layanan",[["Pengumuman","📢","Kirim info ke semua siswa","#ffedd5"],["Pembayaran","💳","QRIS & laporan pembayaran","#d1fae5"],["Bantuan","🎧","Balas pesan dari siswa","#cffafe"],["Chat","💬","Grup chat guru & siswa","#dbeafe","Grup Chat"]]],
+ ["Kegiatan Madrasah",[["Kegiatan","🎯","Buat kegiatan & scan QR siswa untuk absen","#fae8ff","Absen Kegiatan"],["RekapKegiatan","📊","Rekap absen kegiatan & ekspor Excel","#e0f2fe","Rekap Kegiatan"]]]
+];
+A.Menu=async()=>{
+  const [gu,pb,bt,pp]=await Promise.all([all("guru"),all("pembayaran"),all("bantuan"),all("ppdb")]);
+  const nb={Pembayaran:pb.filter(x=>x.status==="Menunggu").length,Bantuan:bt.filter(x=>!x.balasan).length,PPDB:pp.filter(x=>x.status==="Menunggu").length};
+  const kls=new Set(siswa.map(x=>x.kelas)).size;
+  const tgl=new Date().toLocaleDateString("id-ID",{weekday:"long",day:"numeric",month:"long",year:"numeric"});
+  return `<section class="hero p-6"><p class="text-sm opacity-80">Assalamu'alaikum,</p><h1 class="text-2xl sm:text-3xl font-extrabold">${esc(me.nama)}</h1><p class="text-xs opacity-75 mt-1">${tgl}</p>
+  <div class="grid grid-cols-3 gap-3 mt-5 relative z-10"><div class="hstat"><div class="text-2xl font-extrabold">${siswa.length}</div><div class="text-[11px] opacity-80">Siswa</div></div><div class="hstat"><div class="text-2xl font-extrabold">${gu.length}</div><div class="text-[11px] opacity-80">Guru</div></div><div class="hstat"><div class="text-2xl font-extrabold">${kls}</div><div class="text-[11px] opacity-80">Kelas</div></div></div></section>`
+  +MENU.map(([sec,items])=>`<h2 class="msec">${sec}</h2><div class="grid grid-cols-2 sm:grid-cols-3 gap-3">`+items.map(([k,ic,d,bg,lb])=>`<button class="mcard" onclick="go('${k}')"><span class="mic" style="background:${bg}">${ic}</span><span class="mt">${lb||k}</span><span class="md">${d}</span>${nb[k]?`<span class="mbd">${nb[k]}</span>`:""}</button>`).join("")+`</div>`).join("");
+};
+
+// ============ JURNAL GURU ============
+let JN=[],JNV=[];
+const isOwner=x=>!me.idGuru||x.guruId===key(me.idGuru);
+const jnCards=r=>list(r,x=>`<div class="card mb-2"><div class="flex justify-between gap-2"><div><b>${esc(x.mapel)}</b> <span class="pill bg-emerald-100 text-emerald-700">${esc(x.kelas)}</span><div class="text-xs text-slate-500 mt-0.5">${esc(x.tgl)}${x.jam?" - "+esc(x.jam):""} - ${esc(x.guru)}</div></div>${isOwner(x)?`<button class="btn2 h-fit" onclick="hapus('jurnal','${x.id}','Jurnal')">Hapus</button>`:""}</div>
+ <div class="text-sm mt-2 whitespace-pre-line"><b>Materi:</b> ${esc(x.materi)}</div>${x.kegiatan?`<div class="text-sm mt-1 whitespace-pre-line"><b>Kegiatan:</b> ${esc(x.kegiatan)}</div>`:""}${x.absen?`<div class="text-sm mt-1"><b>Siswa tidak hadir:</b> ${esc(x.absen)}</div>`:""}${x.catatan?`<div class="text-sm mt-1 whitespace-pre-line"><b>Catatan/kendala:</b> ${esc(x.catatan)}</div>`:""}</div>`,"Belum ada jurnal.");
+A.Jurnal=async()=>{
+  JN=(await all("jurnal")).sort((a,b)=>((b.tgl||"")+(b.dibuat||""))>((a.tgl||"")+(a.dibuat||""))?1:-1);JNV=JN;
+  const kl=[...new Set(siswa.map(x=>x.kelas))].sort(),mp=[...new Set((await getJadwal()).map(x=>x.mapel).filter(m=>!/istirahat/i.test(m)))].sort();
+  const gu=[...new Set(JN.map(x=>x.guru).filter(Boolean))].sort();
+  return `<div class="card space-y-2 mb-4"><h2 class="font-extrabold">📓 Isi jurnal mengajar</h2>
+  <div class="grid grid-cols-2 gap-2"><div><label class="text-xs text-slate-500">Tanggal</label><input id="jnTgl" type="date" class="inp" value="${today()}"></div><div><label class="text-xs text-slate-500">Jam ke / waktu</label><input id="jnJam" class="inp" placeholder="mis. 1-2 atau 07:00-08:30"></div></div>
+  <div class="grid grid-cols-2 gap-2"><div><label class="text-xs text-slate-500">Kelas</label><input id="jnKls" class="inp" list="jnKlsL" placeholder="Kelas"><datalist id="jnKlsL">${kl.map(k=>`<option value="${esc(k)}">`).join("")}</datalist></div><div><label class="text-xs text-slate-500">Mata pelajaran</label><input id="jnMp" class="inp" list="jnMpL" placeholder="Mata pelajaran"><datalist id="jnMpL">${mp.map(k=>`<option value="${esc(k)}">`).join("")}</datalist></div></div>
+  <div><label class="text-xs text-slate-500">Nama guru</label><input id="jnGuru" class="inp" value="${esc(me.nama)}"></div>
+  <textarea id="jnMateri" class="inp" rows="2" placeholder="Materi / topik yang diajarkan"></textarea>
+  <textarea id="jnKeg" class="inp" rows="3" placeholder="Kegiatan pembelajaran (opsional)"></textarea>
+  <input id="jnAbsen" class="inp" placeholder="Siswa tidak hadir (opsional, tulis nama)">
+  <textarea id="jnCat" class="inp" rows="2" placeholder="Catatan / kendala (opsional)"></textarea>
+  <button class="btn" onclick="saveJurnal()">Simpan jurnal</button></div>
+  <div class="card mb-4 space-y-2"><div class="grid grid-cols-2 gap-2"><select id="jnFilter" class="inp" onchange="renderJurnal()"><option value="">Semua guru</option>${gu.map(x=>`<option>${esc(x)}</option>`).join("")}</select><input id="jnBulan" type="month" class="inp" onchange="renderJurnal()"></div><button class="btn2" onclick="exportJurnal()">⬇ Ekspor ke Excel</button></div>
+  <div id="jnList"><p class="text-sm mb-2">${JN.length} jurnal</p>${jnCards(JN)}</div>`;
+};
+window.renderJurnal=()=>{
+  const g=$("jnFilter").value,b=$("jnBulan").value;
+  JNV=JN.filter(x=>(!g||x.guru===g)&&(!b||(x.tgl||"").startsWith(b)));
+  $("jnList").innerHTML=`<p class="text-sm mb-2">${JNV.length} jurnal</p>`+jnCards(JNV);
+};
+window.saveJurnal=async()=>{
+  const v=id=>$(id).value.trim(),d={tgl:v("jnTgl"),jam:v("jnJam"),kelas:v("jnKls"),mapel:v("jnMp"),guru:v("jnGuru")||me.nama,materi:v("jnMateri"),kegiatan:v("jnKeg"),absen:v("jnAbsen"),catatan:v("jnCat")};
+  if(!d.tgl||!d.kelas||!d.mapel||!d.materi)return alert("Isi tanggal, kelas, mata pelajaran, dan materi.");
+  await addDoc(collection(db,"jurnal"),{...d,guruId:key(me.idGuru||"admin"),dibuat:new Date().toISOString()});
+  go("Jurnal");
+};
+window.exportJurnal=()=>{
+  if(!JNV.length)return alert("Tidak ada jurnal untuk diekspor.");
+  const ws=XLSX.utils.aoa_to_sheet([["JURNAL GURU"],[],["No","Tanggal","Jam","Kelas","Mata Pelajaran","Guru","Materi","Kegiatan","Siswa Tidak Hadir","Catatan/Kendala"],...[...JNV].sort((a,b)=>a.tgl>b.tgl?1:-1).map((x,i)=>[i+1,x.tgl,x.jam,x.kelas,x.mapel,x.guru,x.materi,x.kegiatan,x.absen,x.catatan])]);
+  ws["!cols"]=[{wch:5},{wch:12},{wch:14},{wch:10},{wch:22},{wch:24},{wch:32},{wch:36},{wch:22},{wch:28}];
+  const wb=XLSX.utils.book_new();XLSX.utils.book_append_sheet(wb,ws,"Jurnal");XLSX.writeFile(wb,"Jurnal_Guru_"+today()+".xlsx");
+};
+
+// ============ PRESENSI GURU (kamera + lokasi) ============
+const PG_IN_M=6*60+45,PG_OUT_M=12*60+10; // Clock In maks 06.45, Clock Out mulai 12.10
+const pgMnt=s=>{const[a,b]=String(s||"0:0").split(":");return(+a)*60+(+b)},pgNow=n=>n.getHours()*60+n.getMinutes();
+const pgIsIzin=x=>x.status==="Izin",pgIsOut=x=>x.jenis==="pulang",pgIsIn=x=>!pgIsIzin(x)&&!pgIsOut(x);
+const pgLate=x=>pgIsIn(x)&&(x.terlambat!==undefined?x.terlambat:pgMnt(x.jam)>PG_IN_M);
+const pgLupa=r=>[...r.hari].filter(t=>!r.out.has(t)&&t<pgYmd(new Date())).length;
+const PG_ACC=300; // akurasi GPS maksimal (meter) agar lokasi dianggap valid
+const pgp=n=>String(n).padStart(2,"0");
+const pgYmd=d=>d.getFullYear()+"-"+pgp(d.getMonth()+1)+"-"+pgp(d.getDate());
+const hav=(la1,ln1,la2,ln2)=>{const R=6371000,r=x=>x*Math.PI/180,a=Math.sin(r(la2-la1)/2)**2+Math.cos(r(la1))*Math.cos(r(la2))*Math.sin(r(ln2-ln1)/2)**2;return 2*R*Math.asin(Math.sqrt(a))};
+const fmJ=m=>m<1000?Math.round(m)+" m":(m/1000).toFixed(2)+" km";
+const parseKoord=s=>{s=String(s||"").trim();const pp=parsePlus(s);if(pp)return pp;const m=s.match(/@(-?\d+\.\d+),(-?\d+\.\d+)/)||s.match(/!3d(-?\d+\.\d+)!4d(-?\d+\.\d+)/)||s.match(/[?&](?:q|ll|query)=(-?\d+\.\d+)(?:,|%2C)(-?\d+\.\d+)/)||s.match(/^(-?\d+(?:\.\d+)?)\s*[, ]\s*(-?\d+(?:\.\d+)?)$/);
+  if(!m)return null;const lat=+m[1],lng=+m[2];return Math.abs(lat)<=90&&Math.abs(lng)<=180?{lat,lng}:null};
+const OLC="23456789CFGHJMPQRVWX";
+const parsePlus=s=>{const m=String(s||"").toUpperCase().match(/([23456789CFGHJMPQRVWX]{8}\+[23456789CFGHJMPQRVWX]{2})/);if(!m)return null;const c=m[1].replace("+","");let la=-90,ln=-180,r=20;for(let i=0;i<10;i+=2){la+=OLC.indexOf(c[i])*r;ln+=OLC.indexOf(c[i+1])*r;if(i<8)r/=20}return{lat:+(la+r/2).toFixed(7),lng:+(ln+r/2).toFixed(7)}};
+// Lokasi bawaan (Plus Code 6P5M3G5Q+2P); admin bisa mengubahnya di menu Presensi Guru
+let PGL={lat:-6.9424375,lng:113.5393125,radius:300,nama:"Lokasi madrasah"},pgJ="masuk",PGT=[],PGV=[],PGG=[],pgStream=null,pgPos=null,pgFoto="";
+const getLokasi=async()=>{try{const d=await getDoc(doc(db,"pengaturan","lokasi"));if(d.exists()){PGL={...PGL,...d.data()};if(d.data().rv!==2)PGL.radius=300}}catch(e){}return PGL};
+window.pgStop=()=>{if(pgStream){pgStream.getTracks().forEach(t=>t.stop());pgStream=null}};
+const pgMsg=(t,c)=>{const e=$("pgMsg");if(e){e.textContent=t;e.className="text-sm "+(c||"text-slate-600")}};
+const getPos=()=>new Promise((ok,no)=>navigator.geolocation.getCurrentPosition(p=>ok({lat:p.coords.latitude,lng:p.coords.longitude,acc:p.coords.accuracy}),no,{enableHighAccuracy:true,timeout:20000,maximumAge:0}));
+const kelasTxt=r=>Object.entries(r.kelas).map(([k,n])=>k+" ("+n+")").join(", ");
+
+A.Presensi=async()=>{
+  const full=!me.idGuru;await getLokasi();
+  const kl=[...new Set(siswa.map(x=>x.kelas))].sort(),mp=[...new Set((await getJadwal()).map(x=>x.mapel).filter(m=>!/istirahat/i.test(m)))].sort();
+  PGG=full?(await all("guru")).sort((a,b)=>(a.nama||"")>(b.nama||"")?1:-1):[];
+  const ok=PGL.lat!=null&&PGL.lng!=null;
+  const lokInfo=ok?`${esc(PGL.nama)} - radius ${fmJ(PGL.radius)} - <a class="underline text-emerald-700" target="_blank" rel="noopener" href="https://www.google.com/maps?q=${PGL.lat},${PGL.lng}">lihat di Maps</a>`:"Lokasi madrasah belum diatur oleh admin.";
+  const hari0=pgYmd(new Date());PGT=[];
+  if(!full){try{const q=await getDocs(query(collection(db,"presensiGuru"),where("tgl","==",hari0)));PGT=q.docs.map(d=>({id:d.id,...d.data()})).filter(x=>x.guruId===key(me.idGuru))}catch(e){}}
+  const tIn=PGT.find(pgIsIn),tOut=PGT.find(pgIsOut),tIzin=PGT.find(pgIsIzin);
+  const form=full?"":`<div class="card space-y-2 mb-4"><h2 class="font-extrabold">📸 Presensi guru (Clock In / Clock Out)</h2>
+  <p class="text-xs text-slate-500">📍 ${lokInfo}</p>
+  <p class="text-xs text-slate-500">Clock In / Clock Out hanya bisa dilakukan di dalam radius lokasi madrasah, dengan foto selfie langsung dari kamera.<br>⏰ Clock In maksimal jam 06.45; lewat dari itu tercatat <b>terlambat</b>. Clock Out mulai jam 12.10; pulang lebih awal wajib mengisi alasan.</p>
+  <div class="text-sm rounded-xl p-3 border bg-slate-50">Hari ini: ${tIzin?`<b class="text-amber-700">Izin</b>`:`Clock In <b>${tIn?esc(tIn.jam):"-"}</b>${tIn&&pgLate(tIn)?` <span class="pill bg-rose-100 text-rose-700">Terlambat</span>`:""} · Clock Out <b>${tOut?esc(tOut.jam):"-"}</b>${tOut&&tOut.pulangAwal?` <span class="pill bg-amber-100 text-amber-700">Pulang awal</span>`:""}`}</div>
+  <div class="grid grid-cols-2 gap-2"><input id="pgKls" class="inp" list="pgKlsL" placeholder="Kelas (opsional)"><datalist id="pgKlsL">${kl.map(k=>`<option value="${esc(k)}">`).join("")}</datalist><input id="pgMp" class="inp" list="pgMpL" placeholder="Mata pelajaran (opsional)"><datalist id="pgMpL">${mp.map(k=>`<option value="${esc(k)}">`).join("")}</datalist></div>
+  <textarea id="pgAls" class="inp" rows="2" placeholder="Alasan pulang lebih awal (wajib diisi jika Clock Out sebelum jam 12.10)"></textarea>
+  <div id="pgCam" class="hidden"><video id="pgVid" autoplay playsinline muted style="width:100%;border-radius:.75rem;background:#000;transform:scaleX(-1)"></video></div>
+  <img id="pgPrev" class="hidden w-full rounded-xl border" alt="Foto presensi">
+  <p id="pgMsg" class="text-sm text-slate-600"></p>
+  <div class="flex flex-wrap gap-2"><button id="pgB1" class="btn" onclick="pgMulai('masuk')">⏰ Clock In</button><button id="pgB5" class="btn" onclick="pgMulai('pulang')">🏠 Clock Out</button><button id="pgB2" class="btn hidden" onclick="pgAmbil()">📷 Ambil foto</button><button id="pgB3" class="btn hidden" onclick="pgKirim()">✅ Kirim presensi</button><button id="pgB4" class="btn2 hidden" onclick="pgMulai(pgJ)">Ulangi</button></div></div>`;
+  const set=!full?"":`<div class="card space-y-2 mb-4"><h2 class="font-extrabold">📍 Lokasi presensi</h2>
+  <p class="text-xs text-slate-500">Saat ini: ${lokInfo}</p>
+  <p class="text-xs text-slate-500">Isi dengan koordinat (mis. -7.98, 112.63) Plus Code (mis. 6P5M3G5Q+2P), atau tempel link Google Maps versi panjang. Link pendek (maps.app.goo.gl) tidak bisa dibaca - buka dulu di Maps, lalu salin koordinatnya atau link panjangnya. Anda juga bisa berdiri di lokasi madrasah lalu tekan "Pakai lokasi saya sekarang".</p>
+  <input id="lkNama" class="inp" placeholder="Nama lokasi" value="${esc(PGL.nama)}">
+  <input id="lkKoor" class="inp" placeholder="Koordinat atau link Google Maps" value="${ok?PGL.lat+", "+PGL.lng:""}">
+  <input id="lkRad" type="number" class="inp" placeholder="Radius (meter)" value="${PGL.radius}">
+  <div class="flex flex-wrap gap-2"><button class="btn" onclick="lkSimpan()">Simpan lokasi</button><button class="btn2" onclick="lkPakai()">Pakai lokasi saya sekarang</button></div></div>`;
+  const hari=pgYmd(new Date());
+  const izin=`<div class="card space-y-2 mb-4"><h2 class="font-extrabold">📝 Izin tidak hadir</h2>
+  <p class="text-xs text-slate-500">Ajukan izin jika tidak dapat mengajar. Tidak perlu foto dan lokasi, tetapi keterangan izin wajib diisi.</p>
+  ${full?`<select id="izGuru" class="inp"><option value="">Pilih guru</option>${PGG.map(x=>`<option value="${esc(x.id)}">${esc(x.nama||x.idGuru)}</option>`).join("")}</select>`:""}
+  <div class="grid grid-cols-2 gap-2"><label class="text-xs text-slate-500">Dari tanggal<input id="izTgl" type="date" class="inp" value="${hari}"></label><label class="text-xs text-slate-500">Sampai tanggal (opsional)<input id="izTgl2" type="date" class="inp"></label></div>
+  <textarea id="izKet" class="inp" rows="3" placeholder="Keterangan izin (mis. sakit, keperluan keluarga, dinas luar)"></textarea>
+  <button class="btn" onclick="izKirim()">Kirim izin</button></div>`;
+  const bulan=hari.slice(0,7);
+  const rek=`<div class="card space-y-2 mb-4"><h2 class="font-extrabold">Rekapitulasi kehadiran guru</h2>
+  <div class="grid grid-cols-2 gap-2"><input id="pgBulan" type="month" class="inp" value="${bulan}" onchange="loadPG()">${full?`<select id="pgGuru" class="inp" onchange="renderPG()"><option value="">Semua guru</option>${PGG.map(x=>`<option value="${esc(x.id)}">${esc(x.nama||x.idGuru)}</option>`).join("")}</select>`:"<div></div>"}</div>
+  <button class="btn2" onclick="exportPresensi()">⬇ Ekspor ke Excel</button></div><div id="pgRekap"></div>`;
+  return form+izin+set+rek;
+};
+window.lkSimpan=async()=>{
+  const k=parseKoord($("lkKoor").value),r=+$("lkRad").value;
+  if(!k)return alert("Koordinat tidak terbaca. Isi format: -7.98, 112.63 atau link Google Maps panjang.");
+  if(!(r>=50&&r<=20000))return alert("Radius harus antara 50 dan 20000 meter.");
+  await setDoc(doc(db,"pengaturan","lokasi"),{lat:k.lat,lng:k.lng,radius:r,rv:2,nama:$("lkNama").value.trim()||"Lokasi madrasah"});
+  alert("Lokasi presensi tersimpan.");go("Presensi");
+};
+window.lkPakai=async()=>{
+  if(!navigator.geolocation)return alert("Browser tidak mendukung lokasi.");
+  try{const p=await getPos();$("lkKoor").value=p.lat.toFixed(6)+", "+p.lng.toFixed(6);alert("Lokasi terisi (akurasi ±"+Math.round(p.acc)+" m). Tekan Simpan lokasi.")}
+  catch(e){alert("Gagal mengambil lokasi. Izinkan akses lokasi dan aktifkan GPS.")}
+};
+window.pgMulai=async j=>{
+  if(j)pgJ=j;const mn=pgNow(new Date()),tIn=PGT.find(pgIsIn),tOut=PGT.find(pgIsOut);
+  if(PGT.find(pgIsIzin))return alert("Hari ini Anda tercatat izin.");
+  if(pgJ==="masuk"&&tIn)return alert("Anda sudah Clock In hari ini pukul "+tIn.jam+".");
+  if(pgJ==="pulang"){if(!tIn)return alert("Anda belum Clock In hari ini.");if(tOut)return alert("Anda sudah Clock Out hari ini pukul "+tOut.jam+".");if(mn<PG_OUT_M&&!$("pgAls").value.trim())return alert("Clock Out baru bisa mulai jam 12.10. Untuk pulang lebih awal, isi dulu alasan pulang.")}
+  if(PGL.lat==null)return alert("Lokasi madrasah belum diatur oleh admin.");
+  pgStop();pgFoto="";pgPos=null;
+  ["pgCam","pgPrev","pgB2","pgB3","pgB4","pgB5"].forEach(i=>$(i).classList.add("hidden"));$("pgB1").classList.add("hidden");
+  const gagal=t=>{pgStop();if($("pgB1")){$("pgB1").classList.remove("hidden");$("pgB5").classList.remove("hidden");pgMsg(t,"text-rose-600")}};
+  if(!navigator.geolocation||!navigator.mediaDevices||!navigator.mediaDevices.getUserMedia)return gagal("Browser tidak mendukung kamera/lokasi. Gunakan Chrome atau Safari terbaru dan buka lewat https.");
+  pgMsg("Mengambil lokasi... mohon izinkan akses lokasi.");
+  try{pgPos=await getPos()}catch(e){return gagal("Lokasi gagal diambil. Izinkan akses lokasi dan aktifkan GPS, lalu coba lagi.")}
+  if(!$("pgMsg"))return;
+  if(pgPos.acc>PG_ACC)return gagal("Akurasi lokasi rendah (±"+Math.round(pgPos.acc)+" m). Aktifkan GPS/lokasi akurasi tinggi, lalu coba lagi.");
+  const d=hav(pgPos.lat,pgPos.lng,PGL.lat,PGL.lng);
+  if(d>PGL.radius)return gagal("Anda berada "+fmJ(d)+" dari lokasi madrasah. Batas presensi "+fmJ(PGL.radius)+".");
+  pgMsg("Lokasi sesuai ("+fmJ(d)+" dari madrasah). Menyalakan kamera...","text-emerald-700");
+  try{pgStream=await navigator.mediaDevices.getUserMedia({video:{facingMode:"user",width:{ideal:640},height:{ideal:480}},audio:false})}
+  catch(e){return gagal("Kamera tidak bisa dibuka. Izinkan akses kamera lalu coba lagi.")}
+  if(!$("pgVid"))return pgStop();
+  $("pgVid").srcObject=pgStream;$("pgCam").classList.remove("hidden");$("pgB2").classList.remove("hidden");
+  pgMsg("Lokasi sesuai ("+fmJ(d)+"). Hadapkan wajah ke kamera lalu ambil foto.","text-emerald-700");
+};
+window.pgAmbil=()=>{
+  const v=$("pgVid");if(!v||!v.videoWidth)return alert("Kamera belum siap.");
+  const w=360,h=Math.round(v.videoHeight/v.videoWidth*w),c=document.createElement("canvas");c.width=w;c.height=h;
+  const x=c.getContext("2d");x.drawImage(v,0,0,w,h);x.fillStyle="rgba(0,0,0,.55)";x.fillRect(0,h-22,w,22);x.fillStyle="#fff";x.font="11px sans-serif";
+  x.fillText(new Date().toLocaleString("id-ID")+" | "+pgPos.lat.toFixed(5)+", "+pgPos.lng.toFixed(5),6,h-7);
+  pgFoto=c.toDataURL("image/jpeg",.6);pgStop();
+  $("pgCam").classList.add("hidden");$("pgPrev").src=pgFoto;$("pgPrev").classList.remove("hidden");
+  $("pgB2").classList.add("hidden");$("pgB3").classList.remove("hidden");$("pgB4").classList.remove("hidden");
+  pgMsg("Periksa foto, lalu kirim presensi.");
+};
+window.pgKirim=async()=>{
+  if(!pgFoto||!pgPos)return alert("Ambil foto dulu.");
+  const d=hav(pgPos.lat,pgPos.lng,PGL.lat,PGL.lng);if(d>PGL.radius)return alert("Di luar radius presensi.");
+  const n=new Date(),mn=pgNow(n),als=$("pgAls").value.trim(),ex={jenis:pgJ};
+  if(pgJ==="masuk"){ex.terlambat=mn>PG_IN_M;ex.telatMenit=Math.max(0,mn-PG_IN_M)}
+  else{ex.pulangAwal=mn<PG_OUT_M;if(ex.pulangAwal){if(!als)return alert("Clock Out sebelum jam 12.10 wajib mengisi alasan pulang.");ex.alasan=als}}
+  $("pgB3").disabled=true;
+  try{
+    const ref=await addDoc(collection(db,"presensiGuru"),{tgl:pgYmd(n),jam:pgp(n.getHours())+":"+pgp(n.getMinutes()),waktu:n.toISOString(),guruId:key(me.idGuru),idGuru:me.idGuru,nama:me.nama,kelas:$("pgKls").value.trim(),mapel:$("pgMp").value.trim(),lat:pgPos.lat,lng:pgPos.lng,akurasi:Math.round(pgPos.acc),jarak:Math.round(d),...ex});
+    await setDoc(doc(db,"presensiFoto",ref.id),{foto:pgFoto});
+  }catch(e){$("pgB3").disabled=false;return alert("Presensi gagal tersimpan. Periksa koneksi lalu coba lagi.")}
+  pgFoto="";alert(pgJ==="masuk"?(ex.terlambat?"Clock In tersimpan. Status: TERLAMBAT "+ex.telatMenit+" menit.":"Clock In tersimpan, tepat waktu."):(ex.pulangAwal?"Clock Out tersimpan (pulang lebih awal).":"Clock Out tersimpan."));go("Presensi");
+};
+window.izKirim=async()=>{
+  const full=!me.idGuru,t1=$("izTgl").value,t2=$("izTgl2").value||t1,ket=$("izKet").value.trim();
+  let g;
+  if(full){g=PGG.find(x=>x.id===$("izGuru").value);if(!g)return alert("Pilih guru dulu.")}
+  else g={id:key(me.idGuru),nama:me.nama,idGuru:me.idGuru};
+  if(!t1)return alert("Isi tanggal izin.");
+  if(t2<t1)return alert("Tanggal akhir tidak boleh sebelum tanggal mulai.");
+  if(!ket)return alert("Keterangan izin wajib diisi.");
+  const dates=[];for(let d=new Date(t1+"T00:00:00");pgYmd(d)<=t2&&dates.length<=31;d.setDate(d.getDate()+1))dates.push(pgYmd(d));
+  if(dates.length>31)return alert("Maksimal 31 hari dalam satu pengajuan.");
+  if(!confirm("Kirim izin untuk "+dates.length+" hari ("+t1+(t2!==t1?" s/d "+t2:"")+")?"))return;
+  try{
+    for(const t of dates)await addDoc(collection(db,"presensiGuru"),{status:"Izin",ket,tgl:t,jam:"",waktu:new Date(t+"T07:00:00").toISOString(),dicatat:new Date().toISOString(),guruId:g.id,idGuru:g.idGuru,nama:g.nama,kelas:"",mapel:"",jarak:0});
+  }catch(e){return alert("Izin gagal tersimpan. Periksa koneksi lalu coba lagi.")}
+  alert("Izin berhasil tersimpan.");go("Presensi");
+};
+window.loadPG=async()=>{
+  const b=$("pgBulan").value;if(!b){$("pgRekap").innerHTML=empty("Pilih bulan.");return}
+  $("pgRekap").innerHTML=empty("Memuat...");
+  try{
+    const s=await getDocs(query(collection(db,"presensiGuru"),where("tgl",">=",b+"-01"),where("tgl","<=",b+"-31")));
+    PGV=s.docs.map(d=>({id:d.id,...d.data()})).filter(x=>!me.idGuru||x.guruId===key(me.idGuru));
+  }catch(e){$("pgRekap").innerHTML=empty("Gagal memuat data presensi. Periksa koneksi atau aturan Firestore.");return}
+  renderPG();
+};
+const pgDet=()=>{const g=$("pgGuru")?.value||"";return PGV.filter(x=>!g||x.guruId===g).sort((a,b)=>a.waktu>b.waktu?1:-1)};
+const pgRows=()=>{
+  const g=$("pgGuru")?.value||"",m=new Map();
+  const add=(id,nama,idg)=>{if(!m.has(id))m.set(id,{id,nama:nama||idg||id,idGuru:idg||"",hari:new Set(),izin:new Set(),telat:new Set(),awal:new Set(),out:new Set(),menit:0})};
+  if(me.idGuru)add(key(me.idGuru),me.nama,me.idGuru);else PGG.forEach(x=>add(x.id,x.nama,x.idGuru));
+  PGV.forEach(x=>{add(x.guruId,x.nama,x.idGuru);const r=m.get(x.guruId);if(pgIsIzin(x)){r.izin.add(x.tgl);return}if(pgIsOut(x)){r.out.add(x.tgl);if(x.pulangAwal)r.awal.add(x.tgl);return}r.hari.add(x.tgl);if(pgLate(x)&&!r.telat.has(x.tgl)){r.telat.add(x.tgl);r.menit+=x.telatMenit??Math.max(0,pgMnt(x.jam)-PG_IN_M)}});
+  return [...m.values()].filter(r=>!g||r.id===g).sort((a,b)=>a.nama>b.nama?1:-1);
+};
+window.renderPG=()=>{
+  const rows=pgRows(),det=pgDet().reverse(),full=!me.idGuru;
+  $("pgRekap").innerHTML=`<p class="text-sm mb-2">${rows.filter(r=>r.hari.size).length} guru hadir - ${rows.reduce((a,r)=>a+r.telat.size,0)} kali terlambat - ${rows.reduce((a,r)=>a+r.izin.size,0)} hari izin</p>`
+  +(rows.length?`<div class="card overflow-x-auto p-0 mb-4"><table class="w-full text-sm"><thead style="background:var(--g);color:#fff"><tr><th class="text-left p-3">Guru</th><th class="p-3">Hadir</th><th class="p-3">Tepat waktu</th><th class="p-3">Terlambat</th><th class="p-3">Izin</th><th class="p-3">Pulang awal</th><th class="p-3">Belum Clock Out</th></tr></thead><tbody>${rows.map(r=>`<tr class="border-t"><td class="p-3 font-semibold">${esc(r.nama)}</td><td class="p-3 text-center ${r.hari.size?"":"text-rose-600 font-bold"}">${r.hari.size}</td><td class="p-3 text-center">${r.hari.size-r.telat.size}</td><td class="p-3 text-center ${r.telat.size?"text-rose-600 font-bold":""}">${r.telat.size}${r.menit?` <span class="text-[10px] font-normal">(${r.menit} mnt)</span>`:""}</td><td class="p-3 text-center ${r.izin.size?"text-amber-600 font-bold":""}">${r.izin.size}</td><td class="p-3 text-center">${r.awal.size}</td><td class="p-3 text-center">${pgLupa(r)}</td></tr>`).join("")}</tbody></table></div>`:empty("Belum ada data guru."))
+  +`<h3 class="msec">Riwayat presensi</h3>`+list(det,x=>x.status==="Izin"?`<div class="card mb-2 flex justify-between gap-2"><div><b>${esc(x.nama)}</b> <span class="pill bg-amber-100 text-amber-700">Izin</span><div class="text-sm whitespace-pre-line"><b>Keterangan:</b> ${esc(x.ket||"-")}</div><div class="text-xs text-slate-500">${esc(x.tgl)}</div></div>${full?`<div class="flex flex-col gap-1"><button class="btn2" onclick="pgHapus('${x.id}')">Hapus</button></div>`:""}</div>`:`<div class="card mb-2 flex justify-between gap-2"><div><b>${esc(x.nama)}</b> ${pgIsOut(x)?`<span class="pill bg-sky-100 text-sky-700">Clock Out</span>${x.pulangAwal?` <span class="pill bg-amber-100 text-amber-700">Pulang awal</span>`:""}`:`<span class="pill bg-emerald-100 text-emerald-700">Clock In</span>${pgLate(x)?` <span class="pill bg-rose-100 text-rose-700">Terlambat${x.telatMenit?" "+x.telatMenit+" mnt":""}</span>`:""}`}${x.kelas?` <span class="pill bg-slate-100 text-slate-700">${esc(x.kelas)}</span>`:""}<div class="text-sm">${esc(x.mapel||"")}</div>${x.alasan?`<div class="text-sm whitespace-pre-line"><b>Alasan pulang:</b> ${esc(x.alasan)}</div>`:""}<div class="text-xs text-slate-500">${esc(x.tgl)} ${esc(x.jam)} - ${fmJ(x.jarak||0)} dari lokasi</div></div><div class="flex flex-col gap-1"><button class="btn2" onclick="pgLihat('${x.id}')">Foto</button>${full?`<button class="btn2" onclick="pgHapus('${x.id}')">Hapus</button>`:""}</div></div>`,"Belum ada presensi pada bulan ini.");
+};
+window.pgLihat=async id=>{
+  let d;try{d=await getDoc(doc(db,"presensiFoto",id))}catch(e){return alert("Foto gagal dimuat.")}
+  if(!d.exists())return alert("Foto tidak ditemukan.");
+  const m=document.createElement("div");m.className="modal";m.onclick=()=>m.remove();
+  m.innerHTML=`<div class="modal-box" style="max-width:26rem"><img src="${d.data().foto}" class="w-full rounded-xl" alt="Foto presensi"></div>`;document.body.appendChild(m);
+};
+window.pgHapus=async id=>{if(!confirm("Hapus presensi ini?"))return;await deleteDoc(doc(db,"presensiGuru",id));try{await deleteDoc(doc(db,"presensiFoto",id))}catch(e){}loadPG()};
+window.exportPresensi=()=>{
+  const b=$("pgBulan").value,rows=pgRows(),det=pgDet();
+  if(!b||!det.length)return alert("Tidak ada data presensi untuk diekspor.");
+  const [y,mo]=b.split("-").map(Number),nd=new Date(y,mo,0).getDate();
+  const g=$("pgGuru")?.value,gn=g?(rows[0]?.nama||""):"Semua guru";
+  const s1=[["REKAP PRESENSI GURU"],["Bulan: "+b+" | "+gn+" | Radius presensi: "+PGL.radius+" m"],[],["No","Nama","ID Guru","Hari Hadir","Hari Izin","Total Sesi Mengajar","Kelas (jumlah sesi)"],...rows.map((r,i)=>[i+1,r.nama,r.idGuru,r.hari.size,r.izin.size,r.sesi,kelasTxt(r)])];
+  const w1=XLSX.utils.aoa_to_sheet(s1);w1["!cols"]=[{wch:5},{wch:28},{wch:14},{wch:11},{wch:12},{wch:16},{wch:20},{wch:10},{wch:12},{wch:16}];
   const days=Array.from({length:nd},(_,i)=>i+1);
   const s2=[["REKAP HARIAN (jumlah sesi per tanggal, I = izin)"],[],["No","Nama",...days,"Total"],...rows.map((r,i)=>{const c=days.map(d=>{const t=b+"-"+pgp(d),n=det.filter(x=>x.guruId===r.id&&x.tgl===t&&x.status!=="Izin").length;return n||(r.izin.has(t)?"I":0)});return [i+1,r.nama,...c.map(v=>v||""),r.sesi]})];
-  const w2=XLSX.utils.aoa_to_sheet(s2);w2["!cols"]=[{wch:5},{wch:28},...days.map(()=>({wch:4})),{wch:7}];
-  const s3=[["Tanggal","Jam","Status","Keterangan Izin","Nama","ID Guru","Kelas","Mata Pelajaran","Jarak dari Lokasi (m)","Akurasi GPS (m)","Latitude","Longitude"],...det.map(x=>x.status==="Izin"?[x.tgl,"","Izin",x.ket||"",x.nama,x.idGuru,"","","","","",""]:[x.tgl,x.jam,"Hadir","",x.nama,x.idGuru,x.kelas,x.mapel,x.jarak,x.akurasi,x.lat,x.lng])];
-  const w3=XLSX.utils.aoa_to_sheet(s3);w3["!cols"]=[{wch:12},{wch:8},{wch:9},{wch:40},{wch:28},{wch:14},{wch:10},{wch:24},{wch:20},{wch:15},{wch:12},{wch:12}];
+  const w2=XLSX.utils.aoa_to_sheet(s2);w2["!cols"]=[{wch:5},{wch:28},...days.map(()=>({wch:4})),{wch:8},{wch:10},{wch:8}];
+  const s3=[["Tanggal","Jam","Jenis","Status","Keterangan / Alasan","Nama","ID Guru","Kelas","Mata Pelajaran","Jarak dari Lokasi (m)","Akurasi GPS (m)","Latitude","Longitude"],...det.map(x=>pgIsIzin(x)?[x.tgl,"","Izin","Izin",x.ket||"",x.nama,x.idGuru,"","","","","",""]:[x.tgl,x.jam,pgIsOut(x)?"Clock Out":"Clock In",pgIsOut(x)?(x.pulangAwal?"Pulang awal":"Pulang"):(pgLate(x)?"Terlambat"+(x.telatMenit?" ("+x.telatMenit+" mnt)":""):"Tepat waktu"),x.alasan||"",x.nama,x.idGuru,x.kelas||"",x.mapel||"",x.jarak,x.akurasi,x.lat,x.lng])];
+  const w3=XLSX.utils.aoa_to_sheet(s3);w3["!cols"]=[{wch:12},{wch:8},{wch:11},{wch:22},{wch:40},{wch:28},{wch:14},{wch:10},{wch:24},{wch:20},{wch:15},{wch:12},{wch:12}];
   const wb=XLSX.utils.book_new();XLSX.utils.book_append_sheet(wb,w1,"Rekap");XLSX.utils.book_append_sheet(wb,w2,"Rekap Harian");XLSX.utils.book_append_sheet(wb,w3,"Detail Presensi");
   XLSX.writeFile(wb,"Presensi_Guru_"+b+".xlsx");
 };
