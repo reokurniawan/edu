@@ -352,7 +352,7 @@ Rekap:async()=>{const k=[...new Set(siswa.map(x=>x.kelas))].sort(),t=today();
  return `<div class="card space-y-2 mb-4"><h2 class="font-extrabold">Rekap kehadiran siswa</h2>
  <select id="rkk" class="inp" onchange="loadRekap()"><option value="">Semua kelas</option>${k.map(x=>`<option>${esc(x)}</option>`).join("")}</select>
  <div class="grid grid-cols-2 gap-2"><div><label class="text-xs text-slate-500">Dari tanggal</label><input id="rka" type="date" class="inp" value="${t.slice(0,8)}01" onchange="loadRekap()"></div><div><label class="text-xs text-slate-500">Sampai tanggal</label><input id="rkb" type="date" class="inp" value="${t}" onchange="loadRekap()"></div></div>
- <button class="btn" onclick="exportRekap()">⬇ Ekspor ke Excel</button></div><div id="rks"></div>`},
+ ${isGuruRole()?"":`<button class="btn" onclick="exportRekap()">⬇ Ekspor ke Excel</button>`}</div><div id="rks"></div>`},
 Guru:async()=>{const g=(await all("guru")).sort((a,b)=>a.nama>b.nama?1:-1);
  return `<div class="card space-y-2 mb-4"><h2 class="font-extrabold">Upload data guru</h2><p class="text-xs text-slate-500">File .xlsx atau .csv dengan kolom: ID GURU, SANDI, NAMA GURU, dan ROLE (opsional: guru / admin, kosong = guru). Role guru hanya melihat Akademik, Kegiatan Madrasah, dan Grup Chat; role admin melihat semua fitur. Login memakai ID GURU dan SANDI (huruf besar/kecil, spasi, dan tanda baca pada ID diabaikan). Setelah login, yang tampil adalah NAMA GURU. Akun dengan ID yang sama akan diperbarui, jadi upload ulang untuk menambahkan nama.</p><input id="gf" type="file" accept=".xlsx,.xls,.csv" class="inp"><button class="btn" onclick="importGuru()">Upload</button></div>
  <p class="text-sm mb-2">${g.length} akun guru</p>`+list(g,x=>`<div class="card mb-2 flex justify-between"><div><b>${esc(x.nama||x.idGuru)}</b> <span class="pill ${x.role==="admin"?"bg-amber-100 text-amber-700":"bg-emerald-100 text-emerald-700"}">${x.role==="admin"?"Admin":"Guru"}</span><div class="text-xs text-slate-500">ID: ${esc(x.idGuru)}</div><div class="text-xs text-slate-500">Sandi: <span class="font-mono">${esc(x.sandi)}</span></div></div><div class="flex flex-col gap-1 items-end"><button class="btn2" onclick="setRole('${x.id}','${x.role==="admin"?"guru":"admin"}')">${x.role==="admin"?"Jadikan Guru":"Jadikan Admin"}</button><button class="btn2" onclick="hapus('guru','${x.id}','Guru')">Hapus</button></div></div>`,"Belum ada data guru. Upload file berisi kolom ID GURU dan SANDI.")},
@@ -466,7 +466,7 @@ window.loadRekap=async()=>{
   RK={rows,ab,d1,d2,kls};
   $("rks").innerHTML=`<p class="text-sm mb-2">${rows.length} siswa - ${days} hari absensi tercatat</p>`+(days?`<div class="card overflow-x-auto p-0"><table class="w-full text-sm"><thead style="background:var(--g);color:#fff"><tr><th class="text-left p-3">Nama</th><th class="p-3">Kelas</th><th class="p-3">H</th><th class="p-3">I</th><th class="p-3">A</th><th class="p-3">% Hadir</th></tr></thead><tbody>${rows.map(r=>`<tr class="border-t text-center"><td class="p-3 text-left font-semibold">${esc(r.nama)}</td><td class="p-3 whitespace-nowrap">${esc(r.kelas)}</td><td class="p-3">${r.h}</td><td class="p-3">${r.i}</td><td class="p-3 ${r.a?"text-rose-600 font-bold":""}">${r.a}</td><td class="p-3">${r.pct==null?"-":r.pct+"%"}</td></tr>`).join("")}</tbody></table></div>`:empty("Belum ada absensi pada periode ini."));
 };
-window.exportRekap=()=>{
+window.exportRekap=()=>{if(isGuruRole())return alert("Fitur download rekapitulasi hanya untuk admin.");
   if(!RK||!RK.ab.length)return alert("Tidak ada data absensi untuk diekspor.");
   const {rows,ab,d1,d2,kls}=RK;
   const s1=[["REKAP KEHADIRAN SISWA"],["Periode: "+d1+" s/d "+d2+(kls?" | Kelas: "+kls:" | Semua kelas")],[],["No","Nama","Kelas","NISN","Hadir","Izin","Alpha","Total Pencatatan","% Hadir"],
@@ -520,7 +520,7 @@ A.Jurnal=async()=>{
   <input id="jnAbsen" class="inp" placeholder="Siswa tidak hadir (opsional, tulis nama)">
   <textarea id="jnCat" class="inp" rows="2" placeholder="Catatan / kendala (opsional)"></textarea>
   <button class="btn" onclick="saveJurnal()">Simpan jurnal</button></div>
-  <div class="card mb-4 space-y-2"><div class="grid grid-cols-2 gap-2"><select id="jnFilter" class="inp" onchange="renderJurnal()"><option value="">Semua guru</option>${gu.map(x=>`<option>${esc(x)}</option>`).join("")}</select><input id="jnBulan" type="month" class="inp" onchange="renderJurnal()"></div><button class="btn2" onclick="exportJurnal()">⬇ Ekspor ke Excel</button></div>
+  <div class="card mb-4 space-y-2"><div class="grid grid-cols-2 gap-2"><select id="jnFilter" class="inp" onchange="renderJurnal()"><option value="">Semua guru</option>${gu.map(x=>`<option>${esc(x)}</option>`).join("")}</select><input id="jnBulan" type="month" class="inp" onchange="renderJurnal()"></div>${isGuruRole()?"":`<button class="btn2" onclick="exportJurnal()">⬇ Ekspor ke Excel</button>`}</div>
   <div id="jnList"><p class="text-sm mb-2">${JN.length} jurnal</p>${jnCards(JN)}</div>`;
 };
 window.renderJurnal=()=>{
@@ -534,7 +534,7 @@ window.saveJurnal=async()=>{
   await addDoc(collection(db,"jurnal"),{...d,guruId:key(me.idGuru||"admin"),dibuat:new Date().toISOString()});
   go("Jurnal");
 };
-window.exportJurnal=()=>{
+window.exportJurnal=()=>{if(isGuruRole())return alert("Fitur download rekapitulasi hanya untuk admin.");
   if(!JNV.length)return alert("Tidak ada jurnal untuk diekspor.");
   const ws=XLSX.utils.aoa_to_sheet([["JURNAL GURU"],[],["No","Tanggal","Jam","Kelas","Mata Pelajaran","Guru","Materi","Kegiatan","Siswa Tidak Hadir","Catatan/Kendala"],...[...JNV].sort((a,b)=>a.tgl>b.tgl?1:-1).map((x,i)=>[i+1,x.tgl,x.jam,x.kelas,x.mapel,x.guru,x.materi,x.kegiatan,x.absen,x.catatan])]);
   ws["!cols"]=[{wch:5},{wch:12},{wch:14},{wch:10},{wch:22},{wch:24},{wch:32},{wch:36},{wch:22},{wch:28}];
@@ -547,7 +547,7 @@ const pgMnt=s=>{const[a,b]=String(s||"0:0").split(":");return(+a)*60+(+b)},pgNow
 const pgIsIzin=x=>x.status==="Izin",pgIsOut=x=>x.jenis==="pulang",pgIsIn=x=>!pgIsIzin(x)&&!pgIsOut(x);
 const pgLate=x=>pgIsIn(x)&&(x.terlambat!==undefined?x.terlambat:pgMnt(x.jam)>PG_IN_M);
 const pgLupa=r=>[...r.hari].filter(t=>!r.out.has(t)&&t<pgYmd(new Date())).length;
-const PG_ACC=300; // akurasi GPS maksimal (meter) agar lokasi dianggap valid
+const pgSelf=()=>key(me.idGuru||("admin"+me.nama)),PG_ACC=300; // akurasi GPS maksimal (meter) agar lokasi dianggap valid
 const pgp=n=>String(n).padStart(2,"0");
 const pgYmd=d=>d.getFullYear()+"-"+pgp(d.getMonth()+1)+"-"+pgp(d.getDate());
 const hav=(la1,ln1,la2,ln2)=>{const R=6371000,r=x=>x*Math.PI/180,a=Math.sin(r(la2-la1)/2)**2+Math.cos(r(la1))*Math.cos(r(la2))*Math.sin(r(ln2-ln1)/2)**2;return 2*R*Math.asin(Math.sqrt(a))};
@@ -557,8 +557,10 @@ const parseKoord=s=>{s=String(s||"").trim();const pp=parsePlus(s);if(pp)return p
 const OLC="23456789CFGHJMPQRVWX";
 const parsePlus=s=>{const m=String(s||"").toUpperCase().match(/([23456789CFGHJMPQRVWX]{8}\+[23456789CFGHJMPQRVWX]{2})/);if(!m)return null;const c=m[1].replace("+","");let la=-90,ln=-180,r=20;for(let i=0;i<10;i+=2){la+=OLC.indexOf(c[i])*r;ln+=OLC.indexOf(c[i+1])*r;if(i<8)r/=20}return{lat:+(la+r/2).toFixed(7),lng:+(ln+r/2).toFixed(7)}};
 // Lokasi bawaan (Plus Code 6P5M3G5Q+2P); admin bisa mengubahnya di menu Presensi Guru
-let PGL={lat:-6.9424375,lng:113.5393125,radius:300,nama:"Lokasi madrasah"},pgJ="masuk",PGT=[],PGV=[],PGG=[],pgStream=null,pgPos=null,pgFoto="";
-const getLokasi=async()=>{try{const d=await getDoc(doc(db,"pengaturan","lokasi"));if(d.exists()){PGL={...PGL,...d.data()};if(d.data().rv!==2)PGL.radius=300}}catch(e){}return PGL};
+// Lokasi absen TETAP (tidak bisa diubah dari aplikasi). Lintang 6°55'58.591"S
+const PG_LAT=-(6+55/60+58.591/3600),PG_LNG=113.5393125; // PG_LNG: bujur lokasi, ganti jika berbeda
+let PGL=Object.freeze({lat:PG_LAT,lng:PG_LNG,radius:300,nama:"Lokasi madrasah"}),pgJ="masuk",PGT=[],PGV=[],PGG=[],pgStream=null,pgPos=null,pgFoto="";
+const getLokasi=async()=>PGL;
 window.pgStop=()=>{if(pgStream){pgStream.getTracks().forEach(t=>t.stop());pgStream=null}};
 const pgMsg=(t,c)=>{const e=$("pgMsg");if(e){e.textContent=t;e.className="text-sm "+(c||"text-slate-600")}};
 const getPos=()=>new Promise((ok,no)=>navigator.geolocation.getCurrentPosition(p=>ok({lat:p.coords.latitude,lng:p.coords.longitude,acc:p.coords.accuracy}),no,{enableHighAccuracy:true,timeout:20000,maximumAge:0}));
@@ -567,12 +569,13 @@ const kelasTxt=r=>Object.entries(r.kelas).map(([k,n])=>k+" ("+n+")").join(", ");
 A.Presensi=async()=>{
   const full=!isGuruRole();await getLokasi();
   PGG=full?(await all("guru")).sort((a,b)=>(a.nama||"")>(b.nama||"")?1:-1):[];
+  if(full&&!PGG.some(x=>x.id===pgSelf()||key(x.idGuru)===pgSelf()))PGG.push({id:pgSelf(),nama:me.nama,idGuru:me.idGuru||"admin"});
   const ok=PGL.lat!=null&&PGL.lng!=null;
   const lokInfo=ok?`${esc(PGL.nama)} - radius ${fmJ(PGL.radius)} - <a class="underline text-emerald-700" target="_blank" rel="noopener" href="https://www.google.com/maps?q=${PGL.lat},${PGL.lng}">lihat di Maps</a>`:"Lokasi madrasah belum diatur oleh admin.";
   const hari0=pgYmd(new Date());PGT=[];
-  if(!full){try{const q=await getDocs(query(collection(db,"presensiGuru"),where("tgl","==",hari0)));PGT=q.docs.map(d=>({id:d.id,...d.data()})).filter(x=>x.guruId===key(me.idGuru))}catch(e){}}
+  try{const q=await getDocs(query(collection(db,"presensiGuru"),where("tgl","==",hari0)));PGT=q.docs.map(d=>({id:d.id,...d.data()})).filter(x=>x.guruId===pgSelf())}catch(e){}
   const tIn=PGT.find(pgIsIn),tOut=PGT.find(pgIsOut),tIzin=PGT.find(pgIsIzin);
-  const form=full?"":`<div class="card space-y-2 mb-4"><h2 class="font-extrabold">📸 Presensi guru (Clock In / Clock Out)</h2>
+  const form=`<div class="card space-y-2 mb-4"><h2 class="font-extrabold">📸 Presensi ${full?"admin":"guru"} (Clock In / Clock Out)</h2>
   <p class="text-xs text-slate-500">📍 ${lokInfo}</p>
   <p class="text-xs text-slate-500">Clock In / Clock Out hanya bisa dilakukan di dalam radius lokasi madrasah, dengan foto selfie langsung dari kamera.<br>⏰ Clock In maksimal jam 06.45; lewat dari itu tercatat <b>terlambat</b> beserta lama keterlambatannya. Clock Out mulai jam 12.10; pulang lebih awal wajib mengisi alasan.</p>
   <div class="text-sm rounded-xl p-3 border bg-slate-50">Hari ini: ${tIzin?`<b class="text-amber-700">Izin</b>`:`Clock In <b>${tIn?esc(tIn.jam):"-"}</b>${tIn&&pgLate(tIn)?` <span class="pill bg-rose-100 text-rose-700">Terlambat</span>`:""} · Clock Out <b>${tOut?esc(tOut.jam):"-"}</b>${tOut&&tOut.pulangAwal?` <span class="pill bg-amber-100 text-amber-700">Pulang awal</span>`:""}`}</div>
@@ -581,13 +584,6 @@ A.Presensi=async()=>{
   <img id="pgPrev" class="hidden w-full rounded-xl border" alt="Foto presensi">
   <p id="pgMsg" class="text-sm text-slate-600"></p>
   <div class="flex flex-wrap gap-2"><button id="pgB1" class="btn" onclick="pgMulai('masuk')">⏰ Clock In</button><button id="pgB5" class="btn" onclick="pgMulai('pulang')">🏠 Clock Out</button><button id="pgB2" class="btn hidden" onclick="pgAmbil()">📷 Ambil foto</button><button id="pgB3" class="btn hidden" onclick="pgKirim()">✅ Kirim presensi</button><button id="pgB4" class="btn2 hidden" onclick="pgMulai(pgJ)">Ulangi</button></div></div>`;
-  const set=!full?"":`<div class="card space-y-2 mb-4"><h2 class="font-extrabold">📍 Lokasi presensi</h2>
-  <p class="text-xs text-slate-500">Saat ini: ${lokInfo}</p>
-  <p class="text-xs text-slate-500">Isi dengan koordinat (mis. -7.98, 112.63) Plus Code (mis. 6P5M3G5Q+2P), atau tempel link Google Maps versi panjang. Link pendek (maps.app.goo.gl) tidak bisa dibaca - buka dulu di Maps, lalu salin koordinatnya atau link panjangnya. Anda juga bisa berdiri di lokasi madrasah lalu tekan "Pakai lokasi saya sekarang".</p>
-  <input id="lkNama" class="inp" placeholder="Nama lokasi" value="${esc(PGL.nama)}">
-  <input id="lkKoor" class="inp" placeholder="Koordinat atau link Google Maps" value="${ok?PGL.lat+", "+PGL.lng:""}">
-  <input id="lkRad" type="number" class="inp" placeholder="Radius (meter)" value="${PGL.radius}">
-  <div class="flex flex-wrap gap-2"><button class="btn" onclick="lkSimpan()">Simpan lokasi</button><button class="btn2" onclick="lkPakai()">Pakai lokasi saya sekarang</button></div></div>`;
   const hari=pgYmd(new Date());
   const izin=`<div class="card space-y-2 mb-4"><h2 class="font-extrabold">📝 Izin tidak hadir</h2>
   <p class="text-xs text-slate-500">Ajukan izin jika tidak dapat mengajar. Tidak perlu foto dan lokasi, tetapi keterangan izin wajib diisi.</p>
@@ -598,20 +594,8 @@ A.Presensi=async()=>{
   const bulan=hari.slice(0,7);
   const rek=`<div class="card space-y-2 mb-4"><h2 class="font-extrabold">Rekapitulasi kehadiran guru</h2>
   <div class="grid grid-cols-2 gap-2"><input id="pgBulan" type="month" class="inp" value="${bulan}" onchange="loadPG()">${full?`<select id="pgGuru" class="inp" onchange="renderPG()"><option value="">Semua guru</option>${PGG.map(x=>`<option value="${esc(x.id)}">${esc(x.nama||x.idGuru)}</option>`).join("")}</select>`:"<div></div>"}</div>
-  <button class="btn2" onclick="exportPresensi()">⬇ Ekspor ke Excel</button></div><div id="pgRekap"></div>`;
-  return form+izin+set+rek;
-};
-window.lkSimpan=async()=>{
-  const k=parseKoord($("lkKoor").value),r=+$("lkRad").value;
-  if(!k)return alert("Koordinat tidak terbaca. Isi format: -7.98, 112.63 atau link Google Maps panjang.");
-  if(!(r>=50&&r<=20000))return alert("Radius harus antara 50 dan 20000 meter.");
-  await setDoc(doc(db,"pengaturan","lokasi"),{lat:k.lat,lng:k.lng,radius:r,rv:2,nama:$("lkNama").value.trim()||"Lokasi madrasah"});
-  alert("Lokasi presensi tersimpan.");go("Presensi");
-};
-window.lkPakai=async()=>{
-  if(!navigator.geolocation)return alert("Browser tidak mendukung lokasi.");
-  try{const p=await getPos();$("lkKoor").value=p.lat.toFixed(6)+", "+p.lng.toFixed(6);alert("Lokasi terisi (akurasi ±"+Math.round(p.acc)+" m). Tekan Simpan lokasi.")}
-  catch(e){alert("Gagal mengambil lokasi. Izinkan akses lokasi dan aktifkan GPS.")}
+  ${isGuruRole()?"":`<button class="btn2" onclick="exportPresensi()">⬇ Ekspor ke Excel</button>`}</div><div id="pgRekap"></div>`;
+  return form+izin+rek;
 };
 window.pgMulai=async j=>{
   if(j)pgJ=j;const mn=pgNow(new Date()),tIn=PGT.find(pgIsIn),tOut=PGT.find(pgIsOut);
@@ -654,7 +638,7 @@ window.pgKirim=async()=>{
   else{ex.pulangAwal=mn<PG_OUT_M;if(ex.pulangAwal){if(!als)return alert("Clock Out sebelum jam 12.10 wajib mengisi alasan pulang.");ex.alasan=als}}
   $("pgB3").disabled=true;
   try{
-    const ref=await addDoc(collection(db,"presensiGuru"),{tgl:pgYmd(n),jam:pgp(n.getHours())+":"+pgp(n.getMinutes()),waktu:n.toISOString(),guruId:key(me.idGuru),idGuru:me.idGuru,nama:me.nama,kelas:"",mapel:"",lat:pgPos.lat,lng:pgPos.lng,akurasi:Math.round(pgPos.acc),jarak:Math.round(d),...ex});
+    const ref=await addDoc(collection(db,"presensiGuru"),{tgl:pgYmd(n),jam:pgp(n.getHours())+":"+pgp(n.getMinutes()),waktu:n.toISOString(),guruId:pgSelf(),idGuru:me.idGuru||"admin",nama:me.nama,kelas:"",mapel:"",lat:pgPos.lat,lng:pgPos.lng,akurasi:Math.round(pgPos.acc),jarak:Math.round(d),...ex});
     await setDoc(doc(db,"presensiFoto",ref.id),{foto:pgFoto});
   }catch(e){$("pgB3").disabled=false;return alert("Presensi gagal tersimpan. Periksa koneksi lalu coba lagi.")}
   pgFoto="";alert(pgJ==="masuk"?(ex.terlambat?"Clock In tersimpan. Status: TERLAMBAT "+ex.telatMenit+" menit.":"Clock In tersimpan, tepat waktu."):(ex.pulangAwal?"Clock Out tersimpan (pulang lebih awal).":"Clock Out tersimpan."));go("Presensi");
@@ -663,7 +647,7 @@ window.izKirim=async()=>{
   const full=!isGuruRole(),t1=$("izTgl").value,t2=$("izTgl2").value||t1,ket=$("izKet").value.trim();
   let g;
   if(full){g=PGG.find(x=>x.id===$("izGuru").value);if(!g)return alert("Pilih guru dulu.")}
-  else g={id:key(me.idGuru),nama:me.nama,idGuru:me.idGuru};
+  else g={id:pgSelf(),nama:me.nama,idGuru:me.idGuru};
   if(!t1)return alert("Isi tanggal izin.");
   if(t2<t1)return alert("Tanggal akhir tidak boleh sebelum tanggal mulai.");
   if(!ket)return alert("Keterangan izin wajib diisi.");
@@ -680,7 +664,7 @@ window.loadPG=async()=>{
   $("pgRekap").innerHTML=empty("Memuat...");
   try{
     const s=await getDocs(query(collection(db,"presensiGuru"),where("tgl",">=",b+"-01"),where("tgl","<=",b+"-31")));
-    PGV=s.docs.map(d=>({id:d.id,...d.data()})).filter(x=>!isGuruRole()||x.guruId===key(me.idGuru));
+    PGV=s.docs.map(d=>({id:d.id,...d.data()})).filter(x=>!isGuruRole()||x.guruId===pgSelf());
   }catch(e){$("pgRekap").innerHTML=empty("Gagal memuat data presensi. Periksa koneksi atau aturan Firestore.");return}
   renderPG();
 };
@@ -688,7 +672,7 @@ const pgDet=()=>{const g=$("pgGuru")?.value||"";return PGV.filter(x=>!g||x.guruI
 const pgRows=()=>{
   const g=$("pgGuru")?.value||"",m=new Map();
   const add=(id,nama,idg)=>{if(!m.has(id))m.set(id,{id,nama:nama||idg||id,idGuru:idg||"",hari:new Set(),izin:new Set(),telat:new Set(),awal:new Set(),out:new Set(),menit:0})};
-  if(isGuruRole())add(key(me.idGuru),me.nama,me.idGuru);else PGG.forEach(x=>add(x.id,x.nama,x.idGuru));
+  if(isGuruRole())add(pgSelf(),me.nama,me.idGuru);else PGG.forEach(x=>add(x.id,x.nama,x.idGuru));
   PGV.forEach(x=>{add(x.guruId,x.nama,x.idGuru);const r=m.get(x.guruId);if(pgIsIzin(x)){r.izin.add(x.tgl);return}if(pgIsOut(x)){r.out.add(x.tgl);if(x.pulangAwal)r.awal.add(x.tgl);return}r.hari.add(x.tgl);if(pgLate(x)&&!r.telat.has(x.tgl)){r.telat.add(x.tgl);r.menit+=x.telatMenit??Math.max(0,pgMnt(x.jam)-PG_IN_M)}});
   return [...m.values()].filter(r=>!g||r.id===g).sort((a,b)=>a.nama>b.nama?1:-1);
 };
@@ -719,7 +703,7 @@ window.pgLihat=async id=>{
   m.innerHTML=`<div class="modal-box" style="max-width:26rem"><img src="${d.data().foto}" class="w-full rounded-xl" alt="Foto presensi"></div>`;document.body.appendChild(m);
 };
 window.pgHapus=async id=>{if(!confirm("Hapus presensi ini?"))return;await deleteDoc(doc(db,"presensiGuru",id));try{await deleteDoc(doc(db,"presensiFoto",id))}catch(e){}loadPG()};
-window.exportPresensi=()=>{
+window.exportPresensi=()=>{if(isGuruRole())return alert("Fitur download rekapitulasi hanya untuk admin.");
   const b=$("pgBulan").value,rows=pgRows(),det=pgDet();
   if(!b||!det.length)return alert("Tidak ada data presensi untuk diekspor.");
   const [y,mo]=b.split("-").map(Number),nd=new Date(y,mo,0).getDate();
@@ -940,7 +924,7 @@ A.RekapKegiatan=async()=>{
   return `<div class="card space-y-2 mb-4"><h2 class="font-extrabold">📊 Rekap absen kegiatan</h2>
   <select id="rgK" class="inp" onchange="loadRkg()"><option value="">Semua kegiatan (ringkasan)</option>${ks.map(k=>`<option value="${esc(k.id)}" ${k.id===pre?"selected":""}>${esc(k.nama)} - ${esc(k.tgl)}</option>`).join("")}</select>
   <select id="rgKls" class="inp" onchange="loadRkg()"><option value="">Semua kelas</option>${kl.map(x=>`<option>${esc(x)}</option>`).join("")}</select>
-  <button class="btn" onclick="exportRkg()">⬇ Ekspor ke Excel</button></div><div id="rgOut"></div>`;
+  ${isGuruRole()?"":`<button class="btn" onclick="exportRkg()">⬇ Ekspor ke Excel</button>`}</div><div id="rgOut"></div>`;
 };
 window.loadRkg=async()=>{
   const kid=$("rgK").value,kls=$("rgKls").value;$("rgOut").innerHTML=empty("Memuat…");
@@ -963,7 +947,7 @@ window.loadRkg=async()=>{
      +(kk.length&&rows.length?`<div class="card overflow-x-auto p-0"><table class="w-full text-sm"><thead style="background:var(--g);color:#fff"><tr><th class="text-left p-3">Nama</th>${th()}Kelas</th>${th()}Hadir</th>${th()}Tidak</th>${th()}%</th></tr></thead><tbody>${rows.map(r=>`<tr class="border-t text-center"><td class="p-3 text-left font-semibold">${esc(r.nama)}</td><td class="p-3 whitespace-nowrap">${esc(r.kelas)}</td><td class="p-3">${r.h}</td><td class="p-3 ${kk.length-r.h?"text-rose-600 font-bold":""}">${kk.length-r.h}</td><td class="p-3">${r.pct==null?"-":r.pct+"%"}</td></tr>`).join("")}</tbody></table></div>`:empty("Belum ada kegiatan atau siswa."));
   }
 };
-window.exportRkg=()=>{
+window.exportRkg=()=>{if(isGuruRole())return alert("Fitur download rekapitulasi hanya untuk admin.");
   if(!RG||!RG.rows.length)return alert("Tidak ada data untuk diekspor.");
   const wb=XLSX.utils.book_new();
   if(RG.mode==="one"){
