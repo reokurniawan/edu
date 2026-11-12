@@ -201,7 +201,7 @@ const firebaseConfig={apiKey:"AIzaSyClGgcUyZj16x1XpbGGFkIdbQC9OSqnvtw",authDomai
 const db=getFirestore(initializeApp(firebaseConfig));
 const ADMINS=[{u:"admin",p:"RUGEK.aja234817",nama:"Admin"},{u:"adm234817",p:"22112004",nama:"Admin"}]; // akun admin bawaan (akses semua fitur)
 const key=s=>String(s??"").toLowerCase().replace(/[^a-z0-9]/g,"");
-const DEF_JADWAL=[{"kelas": 10, "mapel": "Matematika", "jam": "07:00 - 08:30", "guru": "Budi Santoso, S.Pd."}, {"kelas": 10, "mapel": "Bahasa Indonesia", "jam": "08:30 - 10:00", "guru": "Siti Aminah, M.Pd."}, {"kelas": 10, "mapel": "Istirahat", "jam": "10:00 - 10:30", "guru": "-"}, {"kelas": 10, "mapel": "Ilmu Pengetahuan Alam (IPA)", "jam": "10:30 - 12:00", "guru": "Drs. Ahmad Hidayat"}, {"kelas": 10, "mapel": "Pendidikan Pancasila", "jam": "12:45 - 14:15", "guru": "Dewi Lestari, S.H."}, {"kelas": 11, "mapel": "Matematika", "jam": "07:00 - 08:30", "guru": "Budi Santoso, S.Pd."}, {"kelas": 11, "mapel": "Bahasa Indonesia", "jam": "08:30 - 10:00", "guru": "Siti Aminah, M.Pd."}, {"kelas": 11, "mapel": "Istirahat", "jam": "10:00 - 10:30", "guru": "-"}, {"kelas": 11, "mapel": "Ilmu Pengetahuan Alam (IPA)", "jam": "10:30 - 12:00", "guru": "Drs. Ahmad Hidayat"}, {"kelas": 11, "mapel": "Pendidikan Pancasila", "jam": "12:45 - 14:15", "guru": "Dewi Lestari, S.H."}, {"kelas": 12, "mapel": "Matematika", "jam": "07:00 - 08:30", "guru": "Budi Santoso, S.Pd."}, {"kelas": 12, "mapel": "Bahasa Indonesia", "jam": "08:30 - 10:00", "guru": "Siti Aminah, M.Pd."}, {"kelas": 12, "mapel": "Istirahat", "jam": "10:00 - 10:30", "guru": "-"}, {"kelas": 12, "mapel": "Ilmu Pengetahuan Alam (IPA)", "jam": "10:30 - 12:00", "guru": "Drs. Ahmad Hidayat"}, {"kelas": 12, "mapel": "Pendidikan Pancasila", "jam": "12:45 - 14:15", "guru": "Dewi Lestari, S.H."}];
+const DEF_JADWAL={"v":2,"kelas":[{"id":"10-A","label":"X-A (PUTRA)","tingkat":10},{"id":"10-B","label":"X-B (PUTRI)","tingkat":10},{"id":"11-A","label":"XI-A (PUTRA)","tingkat":11},{"id":"11-B","label":"XI-B (PUTRI)","tingkat":11},{"id":"12-A","label":"XII-A (PUTRA)","tingkat":12},{"id":"12-B","label":"XII-B (PUTRI)","tingkat":12}],"wali":{"10":"LUTFI TOHA S.Pd","11":"ALI SADIK S.T","12":"MAILATURRAHMAH S.Pd"},"kode":{"K":"","C":"","Q":"","N":"","U":"","A":"","J":"","G":"","R":"","B":"","D":"","E":"","O":"","M":"","V":"","L":"","P":"","S":"","I":"","W":"","F":""},"hari":[{"nama":"SENIN","slots":[{"jam":"07.00 - 08.15","ist":false,"c":{"10-A":{"m":"IPA FISIKA","k":"K"},"10-B":{"m":"ALQURAN HADIST","k":"C"},"11-A":{"m":"BAHASA ARAB","k":"Q"},"11-B":{"m":"IPA BIOLOGI","k":"N"},"12-A":{"m":"AKIDAH AKHLAK","k":"U"},"12-B":{"m":"TIK","k":"A"}}},{"jam":"08.15 - 09.20","ist":false,"c":{"10-A":{"m":"BAHASA ARAB","k":"Q"},"10-B":{"m":"TIK","k":"A"},"11-A":{"m":"MATEMATIKA","k":"J"},"11-B":{"m":"MULOK HP","k":"G"},"12-A":{"m":"BAHASA INDONESIA","k":"R"},"12-B":{"m":"BAHASA INDONESIA","k":"R"}}},{"jam":"09.20 - 09.55","ist":true,"c":{}},{"jam":"09.55 - 11.05","ist":false,"c":{"10-A":{"m":"AKIDAH AKHLAK","k":"U"},"10-B":{"m":"MULOK HP","k":"G"},"11-A":{"m":"IPA BIOLOGI","k":"N"},"11-B":{"m":"MATEMATIKA","k":"J"},"12-A":{"m":"BAHASA INDONESIA","k":"R"},"12-B":{"m":"BAHASA INDONESIA","k":"R"}}},{"jam":"11.05 - 12.15","ist":false,"c":{"10-A":{"m":"MATEMATIKA","k":"J"},"10-B":{"m":"BAHASA ARAB","k":"Q"},"11-A":{"m":"AKIDAH AKHLAK","k":"U"},"11-B":{"m":"BAHASA INDONESIA","k":"R"},"12-A":{"m":"ALQURAN HADIST","k":"C"},"12-B":{"m":"MULOK HP","k":"G"}}}]},{"nama":"SELASA","slots":[{"jam":"07.00 - 08.15","ist":false,"c":{"10-A":{"m":"IPA BIOLOGI","k":"B"},"10-B":{"m":"UBUDIYAH","k":"Q"},"11-A":{"m":"BAHASA INGGRIS","k":"D"},"11-B":{"m":"IPA FISIKA","k":"E"},"12-A":{"m":"MULOK HP","k":"G"},"12-B":{"m":"PENJASKES","k":"O"}}},{"jam":"08.15 - 09.20","ist":false,"c":{"10-A":{"m":"PENJASKES","k":"O"},"10-B":{"m":"SKI","k":"M"},"11-A":{"m":"MULOK HP","k":"G"},"11-B":{"m":"BAHASA INGGRIS","k":"D"},"12-A":{"m":"MATEMATIKA","k":"J"},"12-B":{"m":"MATEMATIKA","k":"J"}}},{"jam":"09.20 - 09.55","ist":true,"c":{}},{"jam":"09.55 - 11.05","ist":false,"c":{"10-A":{"m":"MULOK HP","k":"G"},"10-B":{"m":"TIK","k":"A"},"11-A":{"m":"IPA FISIKA","k":"E"},"11-B":{"m":"IPA BIOLOGI","k":"N"},"12-A":{"m":"MATEMATIKA","k":"J"},"12-B":{"m":"MATEMATIKA","k":"J"}}},{"jam":"11.05 - 12.15","ist":false,"c":{"10-A":{"m":"MULOK HP","k":"G"},"10-B":{"m":"BAHASA INGGRIS","k":"D"},"11-A":{"m":"IPA BIOLOGI","k":"N"},"11-B":{"m":"DESAIN GRAFIS","k":"B"},"12-A":{"m":"BAHASA ARAB","k":"Q"},"12-B":{"m":"TIK","k":"A"}}}]},{"nama":"RABU","slots":[{"jam":"07.00 - 08.15","ist":false,"c":{"10-A":{"m":"UBUDIYAH","k":"Q"},"10-B":{"m":"IPA BIOLOGI","k":"B"},"11-A":{"m":"IPA FISIKA","k":"E"},"11-B":{"m":"MATEMATIKA","k":"J"},"12-A":{"m":"UBUDIYAH","k":"M"},"12-B":{"m":"FIQIH","k":"V"}}},{"jam":"08.15 - 09.20","ist":false,"c":{"10-A":{"m":"SKI","k":"M"},"10-B":{"m":"SENI BUDAYA","k":"L"},"11-A":{"m":"BAHASA INGGRIS","k":"D"},"11-B":{"m":"BAHASA ARAB","k":"Q"},"12-A":{"m":"MATEMATIKA","k":"J"},"12-B":{"m":"MATEMATIKA","k":"J"}}},{"jam":"09.20 - 09.55","ist":true,"c":{}},{"jam":"09.55 - 11.05","ist":false,"c":{"10-A":{"m":"IPA BIOLOGI","k":"B"},"10-B":{"m":"FIQIH","k":"V"},"11-A":{"m":"MATEMATIKA","k":"J"},"11-B":{"m":"IPA FISIKA","k":"E"},"12-A":{"m":"BAHASA INGGRIS","k":"D"},"12-B":{"m":"BAHASA INGGRIS","k":"D"}}},{"jam":"11.05 - 12.15","ist":false,"c":{"10-A":{"m":"SENI BUDAYA","k":"L"},"10-B":{"m":"BAHASA ARAB","k":"Q"},"11-A":{"m":"ALQURAN HADIST","k":"C"},"11-B":{"m":"FIQIH","k":"V"},"12-A":{"m":"TIK","k":"A"},"12-B":{"m":"SKI","k":"M"}}}]},{"nama":"KAMIS","slots":[{"jam":"07.00 - 08.15","ist":false,"c":{"10-A":{"m":"FIQIH","k":"P"},"10-B":{"m":"PENJASKES","k":"O"},"11-A":{"m":"PENJASKES","k":"S"},"11-B":{"m":"BAHASA INGGRIS","k":"D"},"12-A":{"m":"PENJASKES","k":""},"12-B":{"m":"DESAIN GRAFIS","k":""}}},{"jam":"08.15 - 09.20","ist":false,"c":{"10-A":{"m":"BAHASA ARAB","k":"Q"},"10-B":{"m":"DESAIN GRAFIS","k":"B"},"11-A":{"m":"FIQIH","k":"P"},"11-B":{"m":"PENJASKES","k":"O"},"12-A":{"m":"TIK","k":"A"},"12-B":{"m":"ALQURAN HADIST","k":"C"}}},{"jam":"09.20 - 09.55","ist":true,"c":{}},{"jam":"09.55 - 11.05","ist":false,"c":{"10-A":{"m":"TIK","k":"A"},"10-B":{"m":"IPA FISIKA","k":"E"},"11-A":{"m":"BAHASA INDONESIA","k":"R"},"11-B":{"m":"SKI","k":"M"},"12-A":{"m":"BAHASA INGGRIS","k":"D"},"12-B":{"m":"BAHASA INGGRIS","k":"D"}}},{"jam":"11.05 - 12.15","ist":false,"c":{"10-A":{"m":"BAHASA INGGRIS","k":"D"},"10-B":{"m":"IPA BIOLOGI","k":"D"},"11-A":{"m":"TIK","k":"A"},"11-B":{"m":"UBUDIYAH","k":"Q"},"12-A":{"m":"FIQIH","k":"P"},"12-B":{"m":"BAHASA ARAB","k":"Q"}}}]},{"nama":"JUMAT","slots":[{"jam":"07.00 - 08.00","ist":false,"c":{"10-A":{"m":"BAHASA INDONESIA","k":"K"},"10-B":{"m":"PENDIDIKAN KEWARGANEGARAAN","k":"I"},"11-A":{"m":"DESAIN GRAFIS","k":"B"},"11-B":{"m":"ALQURAN HADIST","k":"C"},"12-A":{"m":"IPA","k":""},"12-B":{"m":"IPA","k":""}}},{"jam":"08.00 - 09.00","ist":false,"c":{"10-A":{"m":"DESAIN GRAFIS","k":"B"},"10-B":{"m":"MATEMATIKA","k":"J"},"11-A":{"m":"UBUDIYAH","k":"Q"},"11-B":{"m":"TIK","k":"A"},"12-A":{"m":"IPA","k":"N/E"},"12-B":{"m":"IPA","k":"N/E"}}},{"jam":"09.00 - 10.00","ist":false,"c":{"10-A":{"m":"TIK","k":"A"},"10-B":{"m":"BAHASA INDONESIA","k":"K"},"11-A":{"m":"SKI","k":"M"},"11-B":{"m":"SENI BUDAYA","k":"L"},"12-A":{"m":"IPA","k":""},"12-B":{"m":"IPA","k":""}}}]},{"nama":"SABTU","slots":[{"jam":"07.00 - 08.15","ist":false,"c":{"10-A":{"m":"MATEMATIKA","k":"J"},"10-B":{"m":"AKIDAH AKHLAK","k":"U"},"11-A":{"m":"BAHASA INDONESIA","k":"R"},"11-B":{"m":"BAHASA INGGRIS","k":"D"},"12-A":{"m":"DESAIN GRAFIS","k":"B"},"12-B":{"m":"PKN / SEJARAH","k":"W"}}},{"jam":"08.15 - 09.20","ist":false,"c":{"10-A":{"m":"IPS","k":"F"},"10-B":{"m":"SENI BUDAYA","k":"L"},"11-A":{"m":"SENI BUDAYA","k":"L"},"11-B":{"m":"PKN / SEJARAH","k":"W"},"12-A":{"m":"BAHASA INDONESIA","k":"R"},"12-B":{"m":"AKIDAH AKHLAK","k":"U"}}},{"jam":"09.20 - 09.55","ist":true,"c":{}},{"jam":"09.55 - 11.05","ist":false,"c":{"10-A":{"m":"BAHASA INDONESIA","k":"K"},"10-B":{"m":"IPS","k":"F"},"11-A":{"m":"PKN / SEJARAH","k":"W"},"11-B":{"m":"AKIDAH AKHLAK","k":"U"},"12-A":{"m":"SKI","k":"M"},"12-B":{"m":"BAHASA INDONESIA","k":"R"}}},{"jam":"11.05 - 12.15","ist":false,"c":{"10-A":{"m":"ALQURAN HADIST","k":"C"},"10-B":{"m":"MATEMATIKA","k":"J"},"11-A":{"m":"IPA BIOLOGI","k":"N"},"11-B":{"m":"BAHASA INDONESIA","k":"R"},"12-A":{"m":"PKN / SEJARAH","k":"M"},"12-B":{"m":"UBUDIYAH","k":"W"}}}]}]};
 const $=id=>document.getElementById(id);
 const esc=s=>String(s??"").replace(/[&<>"]/g,c=>({"&":"&amp;","<":"&lt;",">":"&gt;",'"':"&quot;"}[c]));
 const all=async n=>(await getDocs(collection(db,n))).docs.map(d=>({id:d.id,...d.data()}));
@@ -300,13 +300,14 @@ const fileB64=f=>new Promise((r,j)=>{const x=new FileReader();x.onload=()=>r(x.r
 // ============ SISWA ============
 const S={
 Beranda:async()=>{
-  const [pel,pr,ab]=await Promise.all([all("pelanggaran"),all("prestasi"),getDocs(query(collection(db,"absensi"),where("nisn","==",me.nisn))).then(r=>r.docs.map(d=>d.data()))]);
+  const [pel,pr,ab,jd]=await Promise.all([all("pelanggaran"),all("prestasi"),getDocs(query(collection(db,"absensi"),where("nisn","==",me.nisn))).then(r=>r.docs.map(d=>d.data())),getJD()]);
   const mine=a=>a.filter(x=>x.nisn===me.nisn);
   const cnt=v=>mine(ab).filter(x=>x.status===v).length;
   return `<section class="hero p-6 space-y-3"><p class="text-sm opacity-80">Assalamu'alaikum,</p>
   <h1 class="text-2xl sm:text-3xl font-extrabold">${esc(me.nama)}</h1>
   <div class="flex gap-8 text-sm pt-2"><div><div class="opacity-70 text-xs">NISN</div><b>${esc(me.nisn)}</b></div><div><div class="opacity-70 text-xs">Kelas</div><b>${esc(me.kelas)}</b></div></div></section>
   <section class="grid grid-cols-2 gap-3 mt-4">${[["Jadwal","📅"],["Pembayaran","💳"]].map(([t,i])=>`<button class="tile" onclick="go('${t}')"><span class="text-3xl">${i}</span><span class="text-sm font-bold">${t}</span></button>`).join("")}</section>
+  ${jadwalHariIni(jd,me.kelas)}
   <section class="mt-4"><h2 class="font-extrabold text-sm mb-2">Kehadiran saya</h2><div class="grid grid-cols-4 gap-2">${[["H","Hadir","#16a34a"],["S","Sakit","#2563eb"],["I","Izin","#d97706"],["A","Alpha","#e11d48"]].map(([v,l,c])=>`<div class="card text-center"><div class="text-2xl font-extrabold" style="color:${c}">${cnt(v)}</div><div class="text-xs text-slate-500">${l}</div></div>`).join("")}</div></section>
   <section class="grid grid-cols-2 gap-3 mt-4">
    <button class="card text-center" onclick="go('Pelanggaran')"><div class="text-3xl font-extrabold text-amber-600">${mine(pel).length}</div><div class="text-xs text-slate-500">Pelanggaran</div><div class="text-[10px] text-slate-400 mt-1">Lihat semua ›</div></button>
@@ -316,7 +317,7 @@ Beranda:async()=>{
 },
 Pelanggaran:async()=>`<h2 class="font-extrabold mb-2">Semua Pelanggaran</h2>`+list((await all("pelanggaran")).filter(x=>x.nisn===me.nisn).sort((a,b)=>b.waktu>a.waktu?1:-1),x=>`<div class="card mb-2" style="border-left:4px solid #e11d48">⚠️ <b>${esc(x.ket)}</b><div class="text-xs text-slate-500">${esc(x.waktu)}</div></div>`,"Tidak ada catatan pelanggaran."),
 Prestasi:async()=>`<h2 class="font-extrabold mb-2">Semua Prestasi</h2>`+list((await all("prestasi")).filter(x=>x.nisn===me.nisn),x=>`<div class="card mb-2" style="border-left:4px solid var(--gold)">🏆 <b>${esc(x.judul)}</b><div class="text-xs text-slate-500">${esc(x.tgl)} - ${esc(x.ket)}</div></div>`,"Belum ada prestasi."),
-Jadwal:()=>jadwalHTML(parseInt(me.kelas)),
+Jadwal:async()=>{JD=await getJD();const k=JD.kelas.find(x=>x.id===String(me.kelas||"").toUpperCase());SJ={kelas:k?k.id:JD.kelas[0].id,hari:todayHari(JD),found:!!k};return `<div id="sj">${studentJ()}</div>`},
 Notifikasi:async()=>{
   const p=(await all("pengumuman")).sort((a,b)=>b.waktu>a.waktu?1:-1),prev=getSeen();
   setSeen(p[0]?.waktu||"");clearBadge();
@@ -435,7 +436,9 @@ Guru:async()=>{GURUV=await all("guru");GQ={role:"",q:"",by:"nama",dir:1};
  <details class="card mb-4"><summary class="font-bold cursor-pointer text-sm">Upload data guru dari Excel</summary><div class="space-y-2 mt-3"><p class="text-xs text-slate-500">File .xlsx atau .csv dengan kolom: ID GURU, SANDI, NAMA GURU, dan ROLE (opsional: guru / admin, kosong = guru). Akun dengan ID yang sama akan diperbarui.</p><input id="gf" type="file" accept=".xlsx,.xls,.csv" class="inp"><button class="btn" onclick="importGuru()">Upload</button></div></details>
  <div class="grid grid-cols-2 gap-2 mb-3"><input id="gq" class="inp" placeholder="🔍 Cari nama / ID" oninput="filterGuru()"><select id="gr" class="inp" onchange="filterGuru()"><option value="">Semua role</option><option value="guru">Guru</option><option value="admin">Admin</option></select></div>
  <div id="gtbl">${guruTable()}</div>`},
-Jadwal:async()=>`<div class="card space-y-2 mb-4"><h2 class="font-extrabold">Upload jadwal pelajaran</h2><p class="text-xs text-slate-500">File .xlsx atau .csv dengan kolom: MATA PELAJARAN, JAM, NAMA GURU, KELAS (kelas boleh diisi sekali di baris pertama tiap kelompok). Upload baru menggantikan jadwal lama.</p><input id="jf" type="file" accept=".xlsx,.xls,.csv" class="inp"><button class="btn" onclick="importJadwal()">Upload</button></div>`+await jadwalHTML(),
+Jadwal:async()=>{JD=await getJD();try{GURUV=await all("guru")}catch(e){GURUV=[]}JH=todayHari(JD);const can=!isGuruRole();
+ return `<div id="jmx">${adminJ()}</div>`+(can?`<div id="jkode" class="card space-y-2 mt-5">${kodeCard()}</div>
+ <details class="card mt-4"><summary class="font-bold cursor-pointer text-sm">Upload jadwal dari Excel</summary><div class="space-y-2 mt-3"><p class="text-xs text-slate-500">Gunakan format file Jadwal_Pelajaran.xlsx: kolom HARI dan JAM, lalu pasangan kolom Mata Pelajaran + KG untuk tiap kelas (X-A, X-B, XI-A, XI-B, XII-A, XII-B). <b class="text-rose-600">Upload akan mengganti seluruh jadwal.</b></p><input id="jf" type="file" accept=".xlsx,.xls,.csv" class="inp"><button class="btn" onclick="importJadwal()">Upload jadwal</button></div></details>`:"")},
 Pengumuman:async()=>{const p=(await all("pengumuman")).sort((a,b)=>b.waktu>a.waktu?1:-1);
  return `<div class="card space-y-2 mb-4"><h2 class="font-extrabold">Buat pengumuman</h2><input id="pu" class="inp" placeholder="Judul pengumuman"><textarea id="pi" class="inp" rows="4" placeholder="Isi pengumuman"></textarea><p class="text-xs text-slate-500">Pengumuman akan muncul di menu Notifikasi semua siswa.</p><button class="btn" onclick="addInfo()">Kirim pengumuman</button></div>`+list(p,x=>`<div class="card mb-2 flex justify-between gap-2"><div><b>📢 ${esc(x.judul)}</b><p class="text-sm whitespace-pre-line">${esc(x.isi)}</p><div class="text-xs text-slate-500">${fmtWaktu(x.waktu)}${x.oleh?" - "+esc(x.oleh):""}</div></div><button class="btn2 h-fit" onclick="hapus('pengumuman','${x.id}','Pengumuman')">Hapus</button></div>`,"Belum ada pengumuman.")},
 Siswa:async()=>{SQ={kelas:"",q:"",by:"kelas",dir:1};
@@ -544,7 +547,6 @@ window.importSiswa=async()=>{
 };
 
 // ============ JADWAL / NOTIFIKASI / GURU ============
-let JR=[];
 const fmtWaktu=w=>{const d=new Date(w);return isNaN(d)?esc(w):d.toLocaleString("id-ID",{dateStyle:"medium",timeStyle:"short"})};
 const seenK=()=>"seen_"+(me?.nisn||"x");
 const getSeen=()=>{try{return localStorage.getItem(seenK())||""}catch(e){return ""}};
@@ -552,12 +554,106 @@ const setSeen=v=>{try{localStorage.setItem(seenK(),v)}catch(e){}};
 const setBadge=n=>{if($("bdg"))$("bdg").innerHTML=n?`<span class="pill bg-rose-600 text-white">${n}</span>`:"";if($("bdg2")){$("bdg2").textContent=n||"";$("bdg2").style.display=n?"flex":"none"}};
 const clearBadge=()=>setBadge(0);
 window.refreshBadge=async()=>{try{const s=getSeen();setBadge((await all("pengumuman")).filter(x=>x.waktu>s).length)}catch(e){}};
-const getJadwal=async()=>{try{const d=await getDoc(doc(db,"pengaturan","jadwal"));if(d.exists()&&d.data().rows?.length)return d.data().rows}catch(e){}return DEF_JADWAL};
-const jadwalTbl=k=>{const r=JR.filter(x=>x.kelas===k);
-  return r.length?`<div class="card overflow-x-auto p-0"><table class="w-full text-sm"><thead style="background:var(--g);color:#fff"><tr><th class="text-left p-3">Jam</th><th class="text-left p-3">Mata Pelajaran</th><th class="text-left p-3">Guru</th></tr></thead><tbody>`+r.map(x=>{const br=/istirahat/i.test(x.mapel);return `<tr class="border-t" ${br?'style="background:#fbf3df"':""}><td class="p-3 whitespace-nowrap font-semibold">${esc(x.jam)}</td><td class="p-3">${br?"☕ ":""}${esc(x.mapel)}</td><td class="p-3">${esc(x.guru)}</td></tr>`}).join("")+`</tbody></table></div>`:empty("Belum ada jadwal untuk kelas ini.")};
-const jadwalHTML=async def=>{JR=await getJadwal();const ks=[...new Set(JR.map(x=>x.kelas))].sort((a,b)=>a-b);if(!ks.length)return empty("Belum ada jadwal.");const d=ks.includes(def)?def:ks[0];
-  return `<div class="card mb-4 flex items-center gap-3"><b class="text-sm">Jadwal Pelajaran Kelas</b><select id="jk" class="inp" style="max-width:110px" onchange="renderJadwal()">${ks.map(k=>`<option ${k===d?"selected":""}>${k}</option>`).join("")}</select></div><div id="jt">${jadwalTbl(d)}</div>`};
-window.renderJadwal=()=>{$("jt").innerHTML=jadwalTbl(+$("jk").value)};
+const HARI_ID=["MINGGU","SENIN","SELASA","RABU","KAMIS","JUMAT","SABTU"];
+const normMapel=m=>{m=String(m??"").replace(/\s+/g," ").trim().toUpperCase();return({"AKIDAH AKHLAKK":"AKIDAH AKHLAK","ALQURAN HADIS":"ALQURAN HADIST","FISIKA":"IPA FISIKA","BIOLOGI":"IPA BIOLOGI"})[m]||m};
+const kelasId=t=>{const m=String(t??"").toUpperCase().replace(/\s/g,"").match(/^(XII|XI|X)-?([A-Z])/);return m?({X:10,XI:11,XII:12}[m[1]])+"-"+m[2]:null};
+const parseJadwal=aoa=>{
+  const nz=v=>String(v??"").trim();
+  const hr=aoa.findIndex(r=>r.some(c=>kelasId(c)));if(hr<0)return null;
+  const cols=[];aoa[hr].forEach((c,i)=>{const id=kelasId(c);if(id)cols.push({i,id,label:nz(c).replace(/\s*\(/," (").replace(/\s+/g," ")})});
+  const wali={};
+  for(let r=0;r<hr;r++)aoa[r].forEach((c,i)=>{const t0=nz(c);if(!/wali/i.test(t0))return;
+    const art=/^WALI\s*KELASN(?=[A-Z])/.test(t0);let t=t0.replace(/^WALI\s*KELAS\s*/i,"").trim();if(art)t=t.replace(/^N/,"");
+    const tgt=cols.find(x=>x.i>=i);if(tgt&&t)wali[parseInt(tgt.id)]=t});
+  const hari=[],kode={};let cur=null;
+  for(let r=hr+1;r<aoa.length;r++){const row=aoa[r],h=nz(row[0]).toUpperCase(),jam=nz(row[1]);
+    if(h){cur={nama:h,slots:[]};hari.push(cur)}
+    if(!cur||!jam)continue;
+    const c={};let any=false;
+    cols.forEach(({i,id})=>{const m=normMapel(row[i]);if(!m)return;any=true;const k=nz(row[i+1]).toUpperCase().replace(/\s+/g,"");c[id]={m,k};k.split("/").filter(Boolean).forEach(x=>kode[x]="")});
+    cur.slots.push({jam,ist:!any,c})}
+  return{v:2,kelas:cols.map(x=>({id:x.id,label:x.label,tingkat:parseInt(x.id)})),wali,kode,hari};
+};
+let JD=null,JH="SENIN",SJ={kelas:"",hari:"",found:true};
+const getJD=async()=>{try{const d=await getDoc(doc(db,"pengaturan","jadwal2"));if(d.exists()&&d.data().hari?.length)return d.data()}catch(e){console.error(e)}return JSON.parse(JSON.stringify(DEF_JADWAL))};
+const saveJD=()=>setDoc(doc(db,"pengaturan","jadwal2"),JD);
+const getJadwal=async()=>{const j=await getJD(),o=[];j.hari.forEach(h=>h.slots.forEach(s=>Object.values(s.c||{}).forEach(c=>o.push({mapel:c.m}))));return o};
+const todayHari=jd=>{const h=HARI_ID[new Date().getDay()];return jd.hari.some(x=>x.nama===h)?h:jd.hari[0].nama};
+const gNama=(c,jd)=>c?(c.g||String(c.k||"").split("/").map(x=>x.trim()).filter(Boolean).map(k=>jd.kode?.[k]||"").filter(Boolean).join(" / ")):"";
+const hariPills=(sel,fn)=>`<div class="flex gap-2 overflow-x-auto pb-2 mb-3">${JD.hari.map(h=>`<button class="${h.nama===sel?"btn":"btn2"}" style="white-space:nowrap" onclick="${fn}('${h.nama}')">${esc(h.nama)}</button>`).join("")}</div>`;
+const curHari=()=>JD.hari.find(x=>x.nama===JH)||JD.hari[0];
+
+// ---------- ADMIN / GURU: tabel jadwal ----------
+const adminJ=()=>{const can=!isGuruRole(),h=curHari(),K=JD.kelas,stk=bg=>`position:sticky;left:0;z-index:1;background:${bg}`;
+  const head=`<th class="p-2 text-left" style="${stk("var(--g)")};min-width:100px">Jam</th>`+K.map(k=>`<th class="p-2 text-left" style="min-width:150px">${esc(k.label)}</th>`).join("");
+  const rows=h.slots.map((s,si)=>{
+    const jam=`<td class="p-2 font-semibold" style="${stk(s.ist?"#fbf3df":"#fff")};${can?"cursor:pointer":""}" ${can?`onclick="editJam(${si})"`:""}>${esc(s.jam)}${can?' <span class="text-slate-400">✎</span>':""}</td>`;
+    if(s.ist)return `<tr class="border-t" style="background:#fbf3df">${jam}<td class="p-2 text-center font-semibold" colspan="${K.length}">☕ ISTIRAHAT</td></tr>`;
+    return `<tr class="border-t">${jam}${K.map(k=>{const c=s.c[k.id],g=gNama(c,JD);
+      return `<td class="p-2 align-top" ${can?`style="cursor:pointer" onclick="editCell(${si},'${k.id}')"`:""}>${c?`<div class="font-semibold">${esc(c.m)}</div><div class="text-xs ${g?"text-slate-500":"text-rose-500"}">${esc(g||(c.k?"Kode "+c.k:"(guru belum diisi)"))}</div>`:`<span class="text-slate-300">${can?"+ isi":"-"}</span>`}</td>`}).join("")}</tr>`}).join("");
+  return hariPills(h.nama,"pickHari")+`<div class="card overflow-x-auto p-0"><table class="w-full text-sm" style="border-collapse:separate;border-spacing:0"><thead style="background:var(--g);color:#fff"><tr>${head}</tr></thead><tbody>${rows||`<tr><td class="p-4 text-slate-500" colspan="${K.length+1}">Belum ada jam.</td></tr>`}</tbody></table></div>`
+   +(can?`<div class="flex flex-wrap gap-2 mt-3"><button class="btn2" onclick="editJam(-1)">+ Tambah jam</button><span class="text-xs text-slate-500 self-center">Klik kotak pelajaran untuk mengganti mata pelajaran / nama guru. Klik jam untuk mengubah jam.</span></div>`:"")};
+window.pickHari=h=>{JH=h;$("jmx").innerHTML=adminJ()};
+const renderJ=()=>{$("jmx").innerHTML=adminJ();if($("jkode"))$("jkode").innerHTML=kodeCard()};
+const persist=async()=>{try{await saveJD();return true}catch(e){console.error(e);alert("Gagal menyimpan jadwal ("+(e.code||e.message)+")");return false}};
+const namaGuruList=()=>[...new Set([...Object.values(JD.kode||{}),...GURUV.map(g=>g.nama)].filter(Boolean))].sort();
+
+window.editCell=(si,id)=>{if(isGuruRole())return;const h=curHari(),s=h.slots[si],c=s.c[id]||{m:"",k:"",g:""},kl=JD.kelas.find(k=>k.id===id);
+  const maps=[...new Set(JD.hari.flatMap(x=>x.slots.flatMap(z=>Object.values(z.c).map(q=>q.m))))].sort();
+  modal(`<h3 class="font-extrabold">${esc(h.nama)} &middot; ${esc(s.jam)}</h3><p class="text-xs text-slate-500">${esc(kl.label)}</p>`
+   +lbl("Mata pelajaran",`<input id="ecm" class="inp" list="ecml" value="${esc(c.m)}"><datalist id="ecml">${maps.map(m=>`<option value="${esc(m)}">`).join("")}</datalist>`)
+   +lbl("Nama guru",`<input id="ecg" class="inp" list="ecgl" value="${esc(gNama(c,JD))}" placeholder="${c.k?"Kode "+esc(c.k)+" (belum ada nama)":"Nama guru"}"><datalist id="ecgl">${namaGuruList().map(n=>`<option value="${esc(n)}">`).join("")}</datalist>`)
+   +`<div class="flex gap-2 mt-4"><button class="btn flex-1" onclick="saveCell(${si},'${id}')">Simpan</button>${s.c[id]?`<button class="btn2" onclick="clearCell(${si},'${id}')">Kosongkan</button>`:""}<button class="btn2" onclick="closeModal()">Batal</button></div>`)};
+window.saveCell=async(si,id)=>{const s=curHari().slots[si],m=$("ecm").value.trim().toUpperCase(),g=$("ecg").value.trim();
+  if(!m){delete s.c[id]}else{const old=s.c[id]||{};let k=old.k||"",gg="";
+    if(!g)k="";else{const hit=Object.entries(JD.kode).find(([c,n])=>n&&n.toLowerCase()===g.toLowerCase());
+      if(hit)k=hit[0];else if(g!==gNama({k},JD))gg=g}
+    s.c[id]=gg?{m,k,g:gg}:{m,k}}
+  if(await persist()){closeModal();renderJ()}};
+window.clearCell=async(si,id)=>{delete curHari().slots[si].c[id];if(await persist()){closeModal();renderJ()}};
+window.editJam=si=>{if(isGuruRole())return;const h=curHari(),s=si>=0?h.slots[si]:{jam:"",ist:false};
+  modal(`<h3 class="font-extrabold">${si>=0?"Edit jam":"Tambah jam"} &middot; ${esc(h.nama)}</h3>`
+   +lbl("Jam (contoh 07.00 - 08.15)",`<input id="ejj" class="inp" value="${esc(s.jam)}">`)
+   +`<label class="flex items-center gap-2 mt-3 text-sm"><input id="eji" type="checkbox" ${s.ist?"checked":""}> Jam istirahat (semua kelas)</label>`
+   +`<div class="flex gap-2 mt-4"><button class="btn flex-1" onclick="saveJam(${si})">Simpan</button>${si>=0?`<button class="btn2" onclick="delJam(${si})">Hapus jam</button>`:""}<button class="btn2" onclick="closeModal()">Batal</button></div>`)};
+window.saveJam=async si=>{const jam=$("ejj").value.trim(),ist=$("eji").checked;if(!jam)return alert("Isi jam.");
+  const h=curHari();if(si>=0){h.slots[si].jam=jam;h.slots[si].ist=ist;if(ist)h.slots[si].c={}}else h.slots.push({jam,ist,c:{}});
+  if(await persist()){closeModal();renderJ()}};
+window.delJam=async si=>{if(!confirm("Hapus jam ini beserta isinya untuk semua kelas?"))return;curHari().slots.splice(si,1);if(await persist()){closeModal();renderJ()}};
+
+// ---------- ADMIN: nama guru per kode + wali kelas ----------
+const kodeCard=()=>{const codes=Object.keys(JD.kode).sort(),use=c=>JD.hari.reduce((n,h)=>n+h.slots.reduce((m,s)=>m+Object.values(s.c).filter(x=>String(x.k||"").split("/").includes(c)).length,0),0),ts=[...new Set(JD.kelas.map(k=>k.tingkat))];
+  const empt=codes.filter(c=>!JD.kode[c]).length;
+  return `<h2 class="font-extrabold">Nama guru per kode (KG)</h2><p class="text-xs text-slate-500">Isi nama guru untuk setiap kode. Nama langsung menggantikan kode di seluruh jadwal (admin, guru, dan siswa).${empt?` <b class="text-rose-600">${empt} kode belum diisi.</b>`:""}</p>
+  <datalist id="gnl">${GURUV.map(g=>`<option value="${esc(g.nama)}">`).join("")}</datalist>
+  <div class="grid sm:grid-cols-2 gap-2">${codes.map(c=>`<div class="flex items-center gap-2"><span class="pill bg-amber-100 text-amber-700" style="min-width:2.2rem;text-align:center">${esc(c)}</span><input class="inp kn" data-k="${esc(c)}" list="gnl" value="${esc(JD.kode[c]||"")}" placeholder="Nama guru"><span class="text-xs text-slate-400" style="white-space:nowrap">${use(c)}x</span></div>`).join("")}</div>
+  <h3 class="font-bold text-sm mt-4">Wali kelas</h3><div class="grid sm:grid-cols-3 gap-2">${ts.map(t=>`<div><label class="text-xs text-slate-500">Kelas ${t}</label><input id="wl${t}" class="inp" list="gnl" value="${esc(JD.wali?.[t]||"")}"></div>`).join("")}</div>
+  <button class="btn mt-3" onclick="saveKode()">Simpan nama guru &amp; wali kelas</button>`};
+window.saveKode=async()=>{document.querySelectorAll(".kn").forEach(i=>{JD.kode[i.dataset.k]=i.value.trim()});
+  JD.wali=JD.wali||{};[...new Set(JD.kelas.map(k=>k.tingkat))].forEach(t=>{const v=$("wl"+t);if(v)JD.wali[t]=v.value.trim()});
+  if(await persist()){alert("Nama guru dan wali kelas tersimpan.");renderJ()}};
+
+window.importJadwal=async()=>{const f=$("jf").files[0];if(!f)return alert("Pilih file.");
+  let nj=null;try{const wb=XLSX.read(await f.arrayBuffer()),aoa=XLSX.utils.sheet_to_json(wb.Sheets[wb.SheetNames[0]],{header:1,defval:"",raw:false});nj=parseJadwal(aoa)}catch(e){console.error(e)}
+  if(!nj||!nj.hari.length)return alert("Format jadwal tidak dikenali. Pastikan ada baris judul kelas (X-A, X-B, XI-A, dst) serta kolom HARI dan JAM.");
+  const old=await getJD();Object.keys(nj.kode).forEach(c=>{nj.kode[c]=old.kode?.[c]||""});
+  Object.keys(old.wali||{}).forEach(t=>{if(!nj.wali[t])nj.wali[t]=old.wali[t]});
+  if(!confirm("Jadwal lama akan DIGANTI dengan isi file ("+nj.hari.length+" hari, "+nj.kelas.length+" kelas). Nama guru per kode yang sudah Anda isi tetap dipakai, tetapi nama guru yang diubah manual per kotak akan hilang. Lanjutkan?"))return;
+  JD=nj;if(await persist()){alert("Jadwal berhasil diupload.");go("Jadwal")}};
+
+// ---------- SISWA ----------
+const studentJ=()=>{const kl=JD.kelas.find(x=>x.id===SJ.kelas)||JD.kelas[0],h=JD.hari.find(x=>x.nama===SJ.hari)||JD.hari[0];
+  const rows=h.slots.map(s=>{if(s.ist)return `<tr class="border-t" style="background:#fbf3df"><td class="p-3 whitespace-nowrap font-semibold">${esc(s.jam)}</td><td class="p-3 font-semibold" colspan="2">☕ Istirahat</td></tr>`;
+    const c=s.c[kl.id];if(!c)return "";return `<tr class="border-t"><td class="p-3 whitespace-nowrap font-semibold">${esc(s.jam)}</td><td class="p-3">${esc(c.m)}</td><td class="p-3 text-slate-600">${esc(gNama(c,JD)||"-")}</td></tr>`}).join("");
+  return `<div class="card mb-3"><div class="flex items-center justify-between gap-3"><div><h2 class="font-extrabold">Jadwal Pelajaran</h2><div class="text-sm text-slate-500">${esc(kl.label)}${JD.wali?.[kl.tingkat]?" &middot; Wali kelas: "+esc(JD.wali[kl.tingkat]):""}</div></div>${SJ.found?"":`<select class="inp" style="max-width:150px" onchange="pickKelasS(this.value)">${JD.kelas.map(k=>`<option value="${k.id}" ${k.id===kl.id?"selected":""}>${esc(k.label)}</option>`).join("")}</select>`}</div>${SJ.found?"":`<p class="text-xs text-rose-600 mt-2">Kelas Anda (${esc(me.kelas||"-")}) belum ada di jadwal, silakan pilih kelas.</p>`}</div>`
+   +hariPills(h.nama,"pickHariS")+`<div class="card overflow-x-auto p-0"><table class="w-full text-sm"><thead style="background:var(--g);color:#fff"><tr><th class="text-left p-3">Jam</th><th class="text-left p-3">Mata Pelajaran</th><th class="text-left p-3">Guru</th></tr></thead><tbody>${rows||`<tr><td class="p-4 text-slate-500" colspan="3">Tidak ada pelajaran.</td></tr>`}</tbody></table></div>`};
+window.pickHariS=h=>{SJ.hari=h;$("sj").innerHTML=studentJ()};
+window.pickKelasS=k=>{SJ.kelas=k;$("sj").innerHTML=studentJ()};
+const jadwalHariIni=(jd,kelasId)=>{const k=jd.kelas.find(x=>x.id===String(kelasId||"").toUpperCase()),h=jd.hari.find(x=>x.nama===HARI_ID[new Date().getDay()]);let body="";
+  if(!k)body=empty("Jadwal untuk kelas Anda belum tersedia.");else if(!h)body=empty("Tidak ada jadwal pelajaran hari ini.");
+  else body=h.slots.map(s=>{if(s.ist)return `<div class="flex justify-between py-2 text-sm border-t" style="background:#fbf3df"><span>${esc(s.jam)}</span><span>☕ Istirahat</span></div>`;
+    const c=s.c[k.id];return c?`<div class="flex justify-between gap-3 py-2 text-sm border-t"><span class="whitespace-nowrap text-slate-500">${esc(s.jam)}</span><span class="text-right"><b>${esc(c.m)}</b><span class="block text-xs text-slate-500">${esc(gNama(c,jd)||"-")}</span></span></div>`:""}).join("");
+  return `<section class="card mt-4"><div class="flex justify-between items-center mb-1"><h2 class="font-extrabold text-sm">Jadwal hari ini${h?" ("+h.nama+")":""}</h2><button class="btn2" onclick="go('Jadwal')">Lihat semua</button></div>${body}</section>`};
 const readSheet=async id=>{const f=$(id).files[0];if(!f){alert("Pilih file.");return null}
   const wb=XLSX.read(await f.arrayBuffer());return XLSX.utils.sheet_to_json(wb.Sheets[wb.SheetNames[0]],{defval:""})};
 const gv=(r,k)=>r[Object.keys(r).find(h=>h.toLowerCase().includes(k))]??"";
@@ -573,14 +669,6 @@ window.importGuru=async()=>{
   for(const r of rows){const hk=Object.keys(r).find(h=>/(^|[^a-z])id([^a-z]|$)/i.test(h)),idGuru=String(hk?r[hk]:"").trim(),nm=String(gv(r,"nama")).trim(),sandi=String(gv(r,"sandi")).trim(),id=key(idGuru),rk=Object.keys(r).find(h=>/role|peran/i.test(h)),rl=rk?String(r[rk]).trim().toLowerCase():"";if(!id||!sandi)continue;
    if(!nm)nn++;b.set(doc(db,"guru",id),{idGuru,nama:nm||idGuru,sandi,...(rl?{role:rl==="admin"?"admin":"guru"}:{})},{merge:true});if(++n%400===0){await b.commit();b=writeBatch(db)}}
   await b.commit();alert(n+" akun guru berhasil diupload."+(nn?"\n"+nn+" baris tidak punya NAMA GURU, jadi namanya memakai ID Guru. Cek nama kolomnya.":""));go("Guru");
-};
-window.importJadwal=async()=>{
-  const rows=await readSheet("jf");if(!rows)return;
-  const out=[];let k=null;
-  for(const r of rows){const kk=parseInt(String(gv(r,"kelas")));if(!isNaN(kk))k=kk;const mapel=String(gv(r,"mata")).trim();if(!mapel||k==null)continue;
-   out.push({kelas:k,mapel,jam:String(gv(r,"jam")).trim(),guru:String(gv(r,"guru")).trim()})}
-  if(!out.length)return alert("Tidak ada data jadwal yang terbaca. Cek nama kolom.");
-  await setDoc(doc(db,"pengaturan","jadwal"),{rows:out});alert(out.length+" baris jadwal tersimpan.");go("Jadwal");
 };
 window.addInfo=async()=>{
   const j=$("pu").value.trim(),i=$("pi").value.trim();if(!j||!i)return alert("Isi judul dan isi pengumuman.");
