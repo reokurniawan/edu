@@ -88,7 +88,7 @@ canvas.sigpad{touch-action:none;width:100%;height:auto;border:1.5px dashed #94a3
 <section class="lp-hero"><div class="max-w-5xl mx-auto px-4 py-16 sm:py-24 relative z-10">
   <span class="pill" style="background:rgba(200,150,46,.25);color:#f5dfa8;font-size:.78rem;padding:.3rem .9rem">✨ Portal Digital Madrasah</span>
   <h1 class="text-3xl sm:text-5xl font-extrabold mt-4 leading-tight max-w-2xl">Satu aplikasi untuk seluruh urusan sekolah Anda.</h1>
-  <p class="mt-4 text-base sm:text-lg opacity-90 max-w-xl">MyIgi menghadirkan jadwal pelajaran, tugas, absensi, pembayaran, hingga pengumuman madrasah dalam satu genggaman. Cukup masuk dengan NISN, semua informasi siap dibuka kapan saja dan di mana saja.</p>
+  <p class="mt-4 text-base sm:text-lg opacity-90 max-w-xl">MyIgi menghadirkan jadwal pelajaran, absensi, pembayaran, hingga pengumuman madrasah dalam satu genggaman. Cukup masuk dengan NISN, semua informasi siap dibuka kapan saja dan di mana saja.</p>
   <div class="flex flex-wrap gap-3 mt-8"><button class="lp-btn" onclick="openLogin()">Masuk ke MyIgi →</button><a href="#fitur" class="lp-btn2">Lihat fitur</a><button class="lp-btn2" onclick="openPPDB()">📋 Daftar PPDB</button></div>
   <div class="grid grid-cols-3 gap-4 mt-12 max-w-md text-center sm:text-left">
     <div><div class="text-2xl font-extrabold">24/7</div><div class="text-xs opacity-75">Akses kapan saja</div></div>
@@ -102,13 +102,12 @@ canvas.sigpad{touch-action:none;width:100%;height:auto;border:1.5px dashed #94a3
   <div class="text-center max-w-xl mx-auto"><p class="text-sm font-bold" style="color:var(--gold)">FITUR UNGGULAN</p><h2 class="text-2xl sm:text-3xl font-extrabold mt-1">Lengkap, rapi, dan mudah digunakan</h2><p class="text-slate-500 mt-2 text-sm sm:text-base">Dirancang agar siswa, guru, dan orang tua selalu terhubung dengan perkembangan belajar di madrasah.</p></div>
   <div class="grid sm:grid-cols-2 lg:grid-cols-3 gap-4 mt-8">
     <div class="fcard"><div class="fic">📅</div><h3 class="font-extrabold">Jadwal Pelajaran</h3><p class="text-sm text-slate-500 mt-1">Lihat jadwal harian lengkap dengan jam, mata pelajaran, dan nama guru untuk setiap kelas.</p></div>
-    <div class="fcard"><div class="fic">📝</div><h3 class="font-extrabold">Pengumpulan Tugas</h3><p class="text-sm text-slate-500 mt-1">Kirim tugas lewat file atau tautan, pantau statusnya, dan lihat nilai begitu guru selesai menilai.</p></div>
     <div class="fcard"><div class="fic">💳</div><h3 class="font-extrabold">Pembayaran via QRIS</h3><p class="text-sm text-slate-500 mt-1">Bayar SPP dan biaya lain praktis dengan QRIS, lalu laporkan pembayaran langsung dari aplikasi.</p></div>
     <div class="fcard"><div class="fic">🗓️</div><h3 class="font-extrabold">Absensi &amp; Rekap Kehadiran</h3><p class="text-sm text-slate-500 mt-1">Kehadiran tercatat rapi per hari. Guru dapat melihat rekap per kelas dan mengekspornya ke Excel.</p></div>
     <div class="fcard"><div class="fic">🏆</div><h3 class="font-extrabold">Prestasi &amp; Pelanggaran</h3><p class="text-sm text-slate-500 mt-1">Setiap capaian dan catatan kedisiplinan terdokumentasi transparan sebagai bahan pembinaan karakter.</p></div>
     <div class="fcard"><div class="fic">📢</div><h3 class="font-extrabold">Pengumuman &amp; Notifikasi</h3><p class="text-sm text-slate-500 mt-1">Informasi penting dari madrasah langsung sampai ke siswa, lengkap dengan penanda pesan baru.</p></div>
     <div class="fcard"><div class="fic">🎧</div><h3 class="font-extrabold">Bantuan (CS)</h3><p class="text-sm text-slate-500 mt-1">Ada kendala? Kirim pesan ke admin dan terima balasannya langsung di aplikasi.</p></div>
-    <div class="fcard"><div class="fic">👩‍🏫</div><h3 class="font-extrabold">Panel Guru &amp; Admin</h3><p class="text-sm text-slate-500 mt-1">Kelola data siswa, guru, jadwal, nilai tugas, dan pembayaran dari satu dasbor yang ringkas.</p></div>
+    <div class="fcard"><div class="fic">👩‍🏫</div><h3 class="font-extrabold">Panel Guru &amp; Admin</h3><p class="text-sm text-slate-500 mt-1">Kelola data siswa, guru, jadwal, absensi, dan pembayaran dari satu dasbor yang ringkas.</p></div>
     <div class="fcard" style="background:linear-gradient(135deg,#0f5132,#157347);color:#fff;border:0"><div class="fic" style="background:rgba(255,255,255,.15)">🔐</div><h3 class="font-extrabold">Aman &amp; Personal</h3><p class="text-sm opacity-85 mt-1">Setiap pengguna masuk dengan akun masing-masing, sehingga data hanya dapat dilihat oleh yang berhak.</p></div>
   </div>
 </section>
@@ -119,7 +118,7 @@ canvas.sigpad{touch-action:none;width:100%;height:auto;border:1.5px dashed #94a3
   <div class="grid sm:grid-cols-3 gap-6 mt-8">
     <div class="flex gap-3"><div class="stp">1</div><div><h3 class="font-extrabold">Klik tombol Masuk</h3><p class="text-sm text-slate-500 mt-1">Jendela login akan muncul tanpa berpindah halaman.</p></div></div>
     <div class="flex gap-3"><div class="stp">2</div><div><h3 class="font-extrabold">Isi akun Anda</h3><p class="text-sm text-slate-500 mt-1">Siswa memakai NISN dan sandi tanggal lahir (ddmmyyyy). Guru memakai ID Guru dari madrasah.</p></div></div>
-    <div class="flex gap-3"><div class="stp">3</div><div><h3 class="font-extrabold">Nikmati semua fitur</h3><p class="text-sm text-slate-500 mt-1">Jadwal, tugas, pembayaran, dan pengumuman langsung tersedia di beranda.</p></div></div>
+    <div class="flex gap-3"><div class="stp">3</div><div><h3 class="font-extrabold">Nikmati semua fitur</h3><p class="text-sm text-slate-500 mt-1">Jadwal, absensi, pembayaran, dan pengumuman langsung tersedia di beranda.</p></div></div>
   </div>
   <div class="text-center mt-10"><button class="lp-btn" onclick="openLogin()">Masuk sekarang</button></div>
 </div></section>
@@ -177,7 +176,7 @@ canvas.sigpad{touch-action:none;width:100%;height:auto;border:1.5px dashed #94a3
     <button class="modal-x" onclick="closeLogin()" aria-label="Tutup">&times;</button>
     <div class="text-center"><div class="text-3xl font-extrabold" style="color:var(--g)">MyIgi</div><p class="text-sm text-slate-500">MA Insan Generasi Islami</p></div>
     <input id="u" class="inp" placeholder="NISN / ID Guru" inputmode="numeric" autocomplete="username">
-    <input id="p" type="password" class="inp" placeholder="Sandi (siswa: ddmmyyyy, contoh 12092004)" autocomplete="current-password">
+    <input id="p" type="password" class="inp" placeholder="Sandi siswa: tanggal lahir ddmmyyyy (contoh 27122010)" autocomplete="current-password">
     <p id="err" class="text-sm text-rose-600 hidden"></p>
     <button class="btn w-full" onclick="doLogin()">Masuk</button>
   </div>
@@ -206,11 +205,11 @@ const DEF_JADWAL=[{"kelas": 10, "mapel": "Matematika", "jam": "07:00 - 08:30", "
 const $=id=>document.getElementById(id);
 const esc=s=>String(s??"").replace(/[&<>"]/g,c=>({"&":"&amp;","<":"&lt;",">":"&gt;",'"':"&quot;"}[c]));
 const all=async n=>(await getDocs(collection(db,n))).docs.map(d=>({id:d.id,...d.data()}));
-const today=()=>new Date().toISOString().slice(0,10);
+const today=()=>{const d=new Date(),p=n=>String(n).padStart(2,"0");return d.getFullYear()+"-"+p(d.getMonth()+1)+"-"+p(d.getDate())};
 let me=null,isAdmin=false,tab="",siswa=[];
 // Role (field "role" di koleksi guru): "admin" = semua fitur. "guru" (default) = hanya Akademik, Kegiatan Madrasah, Grup Chat.
 const isGuruRole=()=>isAdmin&&me&&me.role==="guru";
-const GURU_OK=new Set(["Menu","Jadwal","Tugas","Absensi","Rekap","Jurnal","Presensi","Kegiatan","RekapKegiatan","Chat"]);
+const GURU_OK=new Set(["Menu","Jadwal","Absensi","Rekap","Jurnal","Presensi","Kegiatan","RekapKegiatan","Chat"]);
 
 const saved=sessionStorage.getItem("me");
 window.openLogin=()=>{$("loginModal").classList.remove("hidden");setTimeout(()=>$("u").focus(),50)};
@@ -235,7 +234,16 @@ window.doLogin=async()=>{
     }
     if(g){ isAdmin=true; me={nama:g.nama,idGuru:g.idGuru||"",role:String(g.role||"guru").toLowerCase()==="admin"?"admin":"guru"}; }
     else if(found){return fail("Sandi salah untuk ID ini. Cek lagi sandi di menu Guru (huruf besar/kecil berpengaruh, angka nol di depan bisa hilang jika file Excel berformat angka).")}
-    else{ const s=await getDoc(doc(db,"siswa",u)); if(!s.exists())return fail("ID/NISN \""+u+"\" tidak ditemukan di database."); if(norm(s.data().tgl)!==p)return fail("Sandi salah. Sandi siswa adalah tanggal lahir (ddmmyyyy)."); me=s.data(); isAdmin=false; }
+    else{
+      const nis=String(u).replace(/\s/g,"");
+      let sd=await getDoc(doc(db,"siswa",nis));
+      if(!sd.exists()&&/^\d{1,9}$/.test(nis))sd=await getDoc(doc(db,"siswa",nis.padStart(10,"0"))); // angka 0 di depan NISN yang terhapus
+      if(!sd.exists())return fail("NISN \""+u+"\" tidak ditemukan. Pastikan NISN benar (10 digit) atau hubungi admin.");
+      const dt=sd.data(),pw=p.replace(/\D/g,""),a=String(dt.tgl||"").replace(/\D/g,""),b=String(dt.tglLahir||"").replace(/\D/g,"");
+      if(!a&&!b)return fail("Tanggal lahir Anda belum tersimpan di database. Minta admin mengunggah ulang data siswa.");
+      if(!pw||(pw!==a&&pw!==b))return fail("Sandi salah. Sandi siswa adalah tanggal lahir dengan format ddmmyyyy (contoh 27122010).");
+      me=dt;isAdmin=false;
+    }
   }catch(e){console.error("Login error:",e);return fail("Gagal terhubung ke database ("+(e.code||e.message||"error")+"). Jika 'permission-denied', periksa Rules Firestore.")}
   sessionStorage.setItem("me",JSON.stringify({u,p}));
   start();
@@ -252,8 +260,7 @@ document.addEventListener("click",()=>$("menu")&&$("menu").classList.add("hidden
 window.home=()=>{go(isAdmin?"Menu":"Beranda")};
 function start(){
   closeLogin();$("login").classList.add("hidden");$("app").classList.remove("hidden");
-  const t=["Siswa","Guru","Jadwal","Pengumuman","Pelanggaran","Prestasi","Tugas","Absensi","Rekap","Pembayaran","Bantuan"];
-  $("tabs").style.display="none";$("tabs").innerHTML="";
+    $("tabs").style.display="none";$("tabs").innerHTML="";
   $("menu").innerHTML=`<div class="px-3 py-2 border-b mb-1"><div class="font-bold text-sm">${esc(me.nama)}</div><div class="text-xs text-slate-500">${isAdmin?(isGuruRole()?"Guru":"Admin"):esc(me.kelas)}</div></div>`
    +(isAdmin?"":`<button class="mi" onclick="go('Notifikasi')">${IC.bell}<span>Notifikasi</span><span id="bdg" class="ml-auto"></span></button><button class="mi" onclick="go('KartuID')"><span style="font-size:1.2rem">🪪</span><span>Kartu ID &amp; QR</span></button><button class="mi" onclick="go('Bantuan')">${IC.help}<span>Bantuan (CS)</span></button><button class="mi" onclick="go('Chat')">${IC.chat}<span>Grup Chat</span></button>`)
    +`<button class="mi" style="color:#be123c" onclick="logout()">${IC.out}<span>Keluar</span></button>`;
@@ -293,15 +300,15 @@ const fileB64=f=>new Promise((r,j)=>{const x=new FileReader();x.onload=()=>r(x.r
 // ============ SISWA ============
 const S={
 Beranda:async()=>{
-  const [pel,pr,ab]=await Promise.all([all("pelanggaran"),all("prestasi"),all("absensi")]);
+  const [pel,pr,ab]=await Promise.all([all("pelanggaran"),all("prestasi"),getDocs(query(collection(db,"absensi"),where("nisn","==",me.nisn))).then(r=>r.docs.map(d=>d.data()))]);
   const mine=a=>a.filter(x=>x.nisn===me.nisn);
-  const alpha=mine(ab).filter(x=>x.status==="A").length;
+  const cnt=v=>mine(ab).filter(x=>x.status===v).length;
   return `<section class="hero p-6 space-y-3"><p class="text-sm opacity-80">Assalamu'alaikum,</p>
   <h1 class="text-2xl sm:text-3xl font-extrabold">${esc(me.nama)}</h1>
   <div class="flex gap-8 text-sm pt-2"><div><div class="opacity-70 text-xs">NISN</div><b>${esc(me.nisn)}</b></div><div><div class="opacity-70 text-xs">Kelas</div><b>${esc(me.kelas)}</b></div></div></section>
-  <section class="grid grid-cols-3 gap-3 mt-4">${[["Jadwal","📅"],["Tugas","📝"],["Pembayaran","💳"]].map(([t,i])=>`<button class="tile" onclick="go('${t}')"><span class="text-3xl">${i}</span><span class="text-sm font-bold">${t}</span></button>`).join("")}</section>
-  <section class="grid grid-cols-3 gap-3 mt-4">
-   <div class="card text-center"><div class="text-3xl font-extrabold text-rose-600">${alpha}</div><div class="text-xs text-slate-500">Alpha</div></div>
+  <section class="grid grid-cols-2 gap-3 mt-4">${[["Jadwal","📅"],["Pembayaran","💳"]].map(([t,i])=>`<button class="tile" onclick="go('${t}')"><span class="text-3xl">${i}</span><span class="text-sm font-bold">${t}</span></button>`).join("")}</section>
+  <section class="mt-4"><h2 class="font-extrabold text-sm mb-2">Kehadiran saya</h2><div class="grid grid-cols-4 gap-2">${[["H","Hadir","#16a34a"],["S","Sakit","#2563eb"],["I","Izin","#d97706"],["A","Alpha","#e11d48"]].map(([v,l,c])=>`<div class="card text-center"><div class="text-2xl font-extrabold" style="color:${c}">${cnt(v)}</div><div class="text-xs text-slate-500">${l}</div></div>`).join("")}</div></section>
+  <section class="grid grid-cols-2 gap-3 mt-4">
    <button class="card text-center" onclick="go('Pelanggaran')"><div class="text-3xl font-extrabold text-amber-600">${mine(pel).length}</div><div class="text-xs text-slate-500">Pelanggaran</div><div class="text-[10px] text-slate-400 mt-1">Lihat semua ›</div></button>
    <button class="card text-center" onclick="go('Prestasi')"><div class="text-3xl font-extrabold" style="color:var(--g)">${mine(pr).length}</div><div class="text-xs text-slate-500">Prestasi</div><div class="text-[10px] text-slate-400 mt-1">Lihat semua ›</div></button></section>
   <section class="mt-4"><button class="card w-full flex items-center gap-3 text-left" onclick="go('Chat')"><span class="text-3xl">💬</span><span><b class="block">Grup Chat</b><span class="text-xs text-slate-500">Ngobrol dengan teman sekelas dan guru</span></span><span class="ml-auto text-slate-400">›</span></button></section>
@@ -314,14 +321,6 @@ Notifikasi:async()=>{
   const p=(await all("pengumuman")).sort((a,b)=>b.waktu>a.waktu?1:-1),prev=getSeen();
   setSeen(p[0]?.waktu||"");clearBadge();
   return list(p,x=>`<div class="card mb-2" style="border-left:4px solid var(--gold)"><div class="flex justify-between gap-2"><b>📢 ${esc(x.judul)}</b>${x.waktu>prev?'<span class="pill bg-rose-100 text-rose-700 h-fit">Baru</span>':""}</div><p class="text-sm mt-1 whitespace-pre-line">${esc(x.isi)}</p><div class="text-xs text-slate-500 mt-1">${fmtWaktu(x.waktu)}</div></div>`,"Belum ada pengumuman.");
-},
-Tugas:async()=>{
-  const t=(await all("tugas")).filter(x=>x.nisn===me.nisn).sort((a,b)=>b.tgl>a.tgl?1:-1);
-  return `<div class="card space-y-2 mb-4"><h2 class="font-extrabold">Kumpulkan tugas</h2>
-  <input id="tm" class="inp" placeholder="Mata pelajaran"><input id="tj" class="inp" placeholder="Judul tugas">
-  <input id="tl" class="inp" placeholder="Link tugas (opsional, mis. Google Drive)"><input id="tf" type="file" class="inp">
-  <p class="text-xs text-slate-500">File maksimal 700 KB. Untuk file besar, pakai link.</p><button class="btn" onclick="kirimTugas()">Kirim tugas</button></div>`+
-  list(t,x=>`<div class="card mb-2"><div class="flex justify-between gap-2"><b>${esc(x.judul)}</b><span class="pill ${x.status==="Selesai"?"bg-emerald-100 text-emerald-700":x.status==="Revisi"?"bg-amber-100 text-amber-700":"bg-slate-100"}">${esc(x.status)}</span></div><div class="text-xs text-slate-500">${esc(x.mapel)} - ${esc(x.tgl)}</div>${x.nilai!==""&&x.nilai!=null?`<div class="text-sm mt-1">Nilai: <b>${esc(x.nilai)}</b></div>`:""}</div>`,"Belum ada tugas dikirim.");
 },
 Pembayaran:async()=>{
   const q=(await getDoc(doc(db,"pengaturan","qris"))).data()?.url;
@@ -337,13 +336,6 @@ Bantuan:async()=>{
   return `<div class="card space-y-2 mb-4"><h2 class="font-extrabold">Butuh bantuan?</h2><textarea id="bp" class="inp" rows="3" placeholder="Tulis pesan Anda"></textarea><button class="btn" onclick="kirimBantuan()">Kirim</button></div>`+list(b,x=>`<div class="card mb-2"><p>${esc(x.pesan)}</p>${x.balasan?`<p class="text-sm mt-2 p-2 rounded-lg" style="background:#e8f3ec"><b>Admin:</b> ${esc(x.balasan)}</p>`:'<p class="text-xs text-slate-400 mt-1">Menunggu balasan</p>'}</div>`,"Belum ada pesan.");
 }};
 
-window.kirimTugas=async()=>{
-  const m=$("tm").value.trim(),j=$("tj").value.trim(),l=$("tl").value.trim(),f=$("tf").files[0];
-  if(!m||!j||(!l&&!f))return alert("Isi mapel, judul, dan link atau file.");
-  if(f&&f.size>700000)return alert("File terlalu besar. Pakai link.");
-  await addDoc(collection(db,"tugas"),{nisn:me.nisn,nama:me.nama,kelas:me.kelas,mapel:m,judul:j,link:l,file:f?await fileB64(f):"",namaFile:f?.name||"",tgl:today(),nilai:"",status:"Menunggu"});
-  go("Tugas");
-};
 window.kirimBayar=async()=>{
   const j=$("pj").value;if(!j)return alert("Isi jumlah.");
   await addDoc(collection(db,"pembayaran"),{nisn:me.nisn,nama:me.nama,metode:$("pm").value,jumlah:+j,ket:$("pk").value,tgl:today(),status:"Menunggu"});go("Pembayaran");
@@ -364,18 +356,14 @@ Guru:async()=>{const g=(await all("guru")).sort((a,b)=>a.nama>b.nama?1:-1);
 Jadwal:async()=>`<div class="card space-y-2 mb-4"><h2 class="font-extrabold">Upload jadwal pelajaran</h2><p class="text-xs text-slate-500">File .xlsx atau .csv dengan kolom: MATA PELAJARAN, JAM, NAMA GURU, KELAS (kelas boleh diisi sekali di baris pertama tiap kelompok). Upload baru menggantikan jadwal lama.</p><input id="jf" type="file" accept=".xlsx,.xls,.csv" class="inp"><button class="btn" onclick="importJadwal()">Upload</button></div>`+await jadwalHTML(),
 Pengumuman:async()=>{const p=(await all("pengumuman")).sort((a,b)=>b.waktu>a.waktu?1:-1);
  return `<div class="card space-y-2 mb-4"><h2 class="font-extrabold">Buat pengumuman</h2><input id="pu" class="inp" placeholder="Judul pengumuman"><textarea id="pi" class="inp" rows="4" placeholder="Isi pengumuman"></textarea><p class="text-xs text-slate-500">Pengumuman akan muncul di menu Notifikasi semua siswa.</p><button class="btn" onclick="addInfo()">Kirim pengumuman</button></div>`+list(p,x=>`<div class="card mb-2 flex justify-between gap-2"><div><b>📢 ${esc(x.judul)}</b><p class="text-sm whitespace-pre-line">${esc(x.isi)}</p><div class="text-xs text-slate-500">${fmtWaktu(x.waktu)}${x.oleh?" - "+esc(x.oleh):""}</div></div><button class="btn2 h-fit" onclick="hapus('pengumuman','${x.id}','Pengumuman')">Hapus</button></div>`,"Belum ada pengumuman.")},
-Siswa:async()=>`<div class="card space-y-2 mb-4"><h2 class="font-extrabold">Upload data siswa</h2><p class="text-xs text-slate-500">File .xlsx atau .csv dengan kolom: NAMA, KELAS, NISN, TGL LAHIR. Sandi siswa = tanggal lahir (ddmmyyyy).</p><input id="xf" type="file" accept=".xlsx,.xls,.csv" class="inp"><button class="btn" onclick="importSiswa()">Upload</button></div>
- <p class="text-sm mb-2">${siswa.length} siswa</p>`+list(siswa.sort((a,b)=>a.kelas>b.kelas?1:-1),x=>`<div class="card mb-2 flex justify-between"><div><b>${esc(x.nama)}</b><div class="text-xs text-slate-500">${esc(x.kelas)} - ${esc(x.nisn)}</div></div><button class="btn2" onclick="hapus('siswa','${x.id}','Siswa')">Hapus</button></div>`,"Belum ada data siswa."),
+Siswa:async()=>`<div class="card space-y-2 mb-4"><h2 class="font-extrabold">Upload data siswa</h2><p class="text-xs text-slate-500">Bisa langsung memakai file dari Dapodik/EMIS dengan kolom: Nama Lengkap, NISN, Tanggal Lahir, Tingkat - Rombel, Status (hanya yang berstatus Aktif yang diunggah). Login siswa: NISN + sandi tanggal lahir (ddmmyyyy, contoh 27122010).</p><input id="xf" type="file" accept=".xlsx,.xls,.csv" class="inp"><button class="btn" onclick="importSiswa()">Upload</button></div>
+ <p class="text-sm mb-2">${siswa.length} siswa</p>`+list(siswa.sort((a,b)=>a.kelas>b.kelas?1:-1),x=>`<div class="card mb-2 flex justify-between"><div><b>${esc(x.nama)}</b><div class="text-xs text-slate-500">${esc(x.kelas)} - ${esc(x.nisn)} - Sandi: <span class="font-mono ${x.tgl?"":"text-rose-600"}">${x.tgl?esc(x.tgl):"KOSONG"}</span></div></div><button class="btn2" onclick="hapus('siswa','${x.id}','Siswa')">Hapus</button></div>`,"Belum ada data siswa."),
 Pelanggaran:async()=>{const p=(await all("pelanggaran")).sort((a,b)=>b.waktu>a.waktu?1:-1);
  return `<div class="card space-y-2 mb-4"><h2 class="font-extrabold">Input pelanggaran</h2>${sel("ps")}<input id="pk" class="inp" placeholder="Keterangan pelanggaran"><input id="pw" type="datetime-local" class="inp"><button class="btn" onclick="addPel()">Simpan</button></div>`+list(p,x=>`<div class="card mb-2 flex justify-between"><div><b>${esc(x.nama)}</b> (${esc(x.kelas)})<div class="text-sm">${esc(x.ket)}</div><div class="text-xs text-slate-500">${esc(x.waktu)}</div></div><button class="btn2" onclick="hapus('pelanggaran','${x.id}','Pelanggaran')">Hapus</button></div>`,"Belum ada pelanggaran.")},
-Tugas:async()=>{const t=(await all("tugas")).sort((a,b)=>b.tgl>a.tgl?1:-1);const m=[...new Set(t.map(x=>x.mapel))];
- return `<div class="card mb-4"><select id="fm" class="inp" onchange="filterTugas()"><option value="">Semua pelajaran</option>${m.map(x=>`<option>${esc(x)}</option>`).join("")}</select></div><div id="tl">${list(t,x=>`<div class="card mb-2 tg" data-m="${esc(x.mapel)}"><div class="flex justify-between gap-2"><div><b>${esc(x.judul)}</b><div class="text-xs text-slate-500">${esc(x.nama)} (${esc(x.kelas)}) - ${esc(x.mapel)} - ${esc(x.tgl)}</div></div><span class="pill bg-slate-100 h-fit">${esc(x.status)}</span></div>
- <div class="text-sm mt-1">${x.link?`<a class="underline text-emerald-700" target="_blank" href="${esc(x.link)}">Buka link</a> `:""}${x.file?`<a class="underline text-emerald-700" download="${esc(x.namaFile)}" href="${x.file}">Unduh ${esc(x.namaFile)}</a>`:""}</div>
- <div class="flex gap-2 mt-2"><input id="n${x.id}" class="inp" style="max-width:90px" placeholder="Nilai" value="${esc(x.nilai)}"><select id="s${x.id}" class="inp" style="max-width:130px">${["Menunggu","Revisi","Selesai"].map(s=>`<option ${s===x.status?"selected":""}>${s}</option>`).join("")}</select><button class="btn" onclick="nilai('${x.id}')">Simpan</button></div></div>`,"Belum ada tugas masuk.")}</div>`},
 Prestasi:async()=>{const p=await all("prestasi");
  return `<div class="card space-y-2 mb-4"><h2 class="font-extrabold">Input prestasi</h2>${sel("ps")}<input id="pj" class="inp" placeholder="Nama prestasi"><input id="pk" class="inp" placeholder="Keterangan (juara, tingkat)"><input id="pt" type="date" class="inp" value="${today()}"><button class="btn" onclick="addPrestasi()">Simpan</button></div>`+list(p,x=>`<div class="card mb-2 flex justify-between"><div>🏆 <b>${esc(x.judul)}</b> - ${esc(x.nama)}<div class="text-xs text-slate-500">${esc(x.tgl)} - ${esc(x.ket)}</div></div><button class="btn2" onclick="hapus('prestasi','${x.id}','Prestasi')">Hapus</button></div>`,"Belum ada prestasi.")},
 Absensi:async()=>{const k=[...new Set(siswa.map(x=>x.kelas))].sort();
- return `<div class="card space-y-2 mb-4"><h2 class="font-extrabold">Absensi siswa</h2><div class="flex gap-2"><select id="ak" class="inp" onchange="loadAbsen()"><option value="">Pilih kelas</option>${k.map(x=>`<option>${esc(x)}</option>`).join("")}</select><input id="at" type="date" class="inp" value="${today()}" onchange="loadAbsen()"></div></div><div id="ab"></div>`},
+ return `<div class="card space-y-2 mb-4"><h2 class="font-extrabold">Absensi siswa</h2><div class="grid grid-cols-2 gap-2"><select id="ak" class="inp" onchange="loadAbsen()"><option value="">Pilih kelas</option>${k.map(x=>`<option>${esc(x)}</option>`).join("")}</select><input id="at" type="date" class="inp" value="${today()}" onchange="loadAbsen()"></div><p class="text-xs text-slate-500">Pilih kelas dan tanggal. Semua siswa otomatis Hadir, ubah hanya yang Sakit, Izin, atau Alpha, lalu simpan.</p></div><div id="ab"></div>`},
 Pembayaran:async()=>{const p=(await all("pembayaran")).sort((a,b)=>b.tgl>a.tgl?1:-1);const q=(await getDoc(doc(db,"pengaturan","qris"))).data()?.url||"";
  return `<div class="card space-y-2 mb-4"><h2 class="font-extrabold">Gambar QRIS</h2><input id="qu" class="inp" placeholder="Link gambar QRIS" value="${esc(q)}"><button class="btn" onclick="setQris()">Simpan QRIS</button></div>`+list(p,x=>`<div class="card mb-2"><b>${esc(x.nama)}</b> - Rp ${Number(x.jumlah).toLocaleString("id-ID")} (${esc(x.metode)})<div class="text-xs text-slate-500">${esc(x.ket)} - ${esc(x.tgl)}</div><div class="flex gap-2 mt-2"><span class="pill bg-slate-100">${esc(x.status)}</span><button class="btn2" onclick="bayarOk('${x.id}')">Tandai lunas</button></div></div>`,"Belum ada pembayaran.")},
 Bantuan:async()=>list(await all("bantuan"),x=>`<div class="card mb-2"><b>${esc(x.nama)}</b><p class="text-sm">${esc(x.pesan)}</p><div class="flex gap-2 mt-2"><input id="r${x.id}" class="inp" placeholder="Balasan" value="${esc(x.balasan)}"><button class="btn" onclick="balas('${x.id}')">Kirim</button></div></div>`,"Belum ada pesan.")
@@ -384,32 +372,70 @@ const sw=n=>siswa.find(s=>s.nisn===n)||{};
 window.hapus=async(c,id,t)=>{if(confirm("Hapus data ini?")){await deleteDoc(doc(db,c,id));go(t)}};
 window.addPel=async()=>{const s=sw($("ps").value);if(!$("pk").value||!$("pw").value)return alert("Lengkapi keterangan dan waktu.");await addDoc(collection(db,"pelanggaran"),{nisn:s.nisn,nama:s.nama,kelas:s.kelas,ket:$("pk").value,waktu:$("pw").value.replace("T"," ")});go("Pelanggaran")};
 window.addPrestasi=async()=>{const s=sw($("ps").value);if(!$("pj").value)return alert("Isi nama prestasi.");await addDoc(collection(db,"prestasi"),{nisn:s.nisn,nama:s.nama,judul:$("pj").value,ket:$("pk").value,tgl:$("pt").value});go("Prestasi")};
-window.nilai=async id=>{await updateDoc(doc(db,"tugas",id),{nilai:$("n"+id).value,status:$("s"+id).value});alert("Tersimpan.")};
-window.filterTugas=()=>{const v=$("fm").value;document.querySelectorAll(".tg").forEach(e=>e.style.display=!v||e.dataset.m===v?"":"none")};
 window.setQris=async()=>{await setDoc(doc(db,"pengaturan","qris"),{url:$("qu").value});alert("Tersimpan.")};
 window.bayarOk=async id=>{await updateDoc(doc(db,"pembayaran",id),{status:"Lunas"});go("Pembayaran")};
 window.balas=async id=>{await updateDoc(doc(db,"bantuan",id),{balasan:$("r"+id).value});alert("Terkirim.")};
+const ST=[["H","Hadir","#16a34a"],["S","Sakit","#2563eb"],["I","Izin","#d97706"],["A","Alpha","#e11d48"]];
+let ABS={};
+const absBtn=n=>ST.map(([v,l,c])=>`<button type="button" onclick="absSet('${n}','${v}')" style="flex:1;padding:.5rem 0;border-radius:.6rem;font-size:.8rem;font-weight:700;border:1.5px solid ${c};${ABS[n]===v?`background:${c};color:#fff`:`background:#fff;color:${c}`}">${l}</button>`).join("");
+const absSum=()=>{const c={H:0,S:0,I:0,A:0};Object.values(ABS).forEach(v=>c[v]++);const e=$("abSum");if(e)e.textContent=`Hadir ${c.H} · Sakit ${c.S} · Izin ${c.I} · Alpha ${c.A}`};
+window.absSet=(n,v)=>{ABS[n]=v;$("ar"+n).innerHTML=absBtn(n);absSum()};
+window.absSemua=v=>{Object.keys(ABS).forEach(n=>{ABS[n]=v;$("ar"+n).innerHTML=absBtn(n)});absSum()};
 window.loadAbsen=async()=>{
-  const k=$("ak").value,t=$("at").value;if(!k)return($("ab").innerHTML="");
-  const ex=(await all("absensi")).filter(x=>x.kelas===k&&x.tgl===t);
-  $("ab").innerHTML=siswa.filter(s=>s.kelas===k).sort((a,b)=>a.nama>b.nama?1:-1).map(s=>{const c=ex.find(x=>x.nisn===s.nisn)?.status||"H";
-   return `<div class="card mb-2 flex justify-between items-center"><b class="text-sm">${esc(s.nama)}</b><div class="flex gap-3 text-sm">${["H","I","A"].map(v=>`<label><input type="radio" name="a${s.nisn}" value="${v}" ${v===c?"checked":""}> ${v}</label>`).join("")}</div></div>`}).join("")+`<button class="btn" onclick="saveAbsen()">Simpan absensi</button>`;
+  const k=$("ak").value,t=$("at").value;
+  if(!k)return($("ab").innerHTML="");
+  if(!t)return($("ab").innerHTML=empty("Pilih tanggal."));
+  const sis=siswa.filter(s=>s.kelas===k).sort((a,b)=>a.nama>b.nama?1:-1);
+  if(!sis.length)return($("ab").innerHTML=empty("Tidak ada siswa di kelas ini."));
+  $("ab").innerHTML=empty("Memuat…");
+  let ex=[];
+  try{ex=(await getDocs(query(collection(db,"absensi"),where("tgl","==",t)))).docs.map(d=>d.data()).filter(x=>x.kelas===k)}
+  catch(e){console.error(e);return($("ab").innerHTML=empty("Gagal memuat absensi ("+(e.code||e.message)+")."))}
+  ABS={};sis.forEach(s=>{ABS[s.nisn]=ex.find(x=>x.nisn===s.nisn)?.status||"H"});
+  const info=ex.length?`<span class="pill bg-emerald-100 text-emerald-700">Sudah diabsen${ex[0].oleh?" oleh "+esc(ex[0].oleh):""}</span>`:`<span class="pill bg-amber-100 text-amber-700">Belum diabsen</span>`;
+  $("ab").innerHTML=`<div class="card mb-2 flex flex-wrap items-center justify-between gap-2"><div>${info}<div id="abSum" class="text-xs text-slate-500 mt-1"></div></div><button class="btn2" onclick="absSemua('H')">Semua hadir</button></div>`
+   +sis.map((s,i)=>`<div class="card mb-2"><div class="text-sm"><span class="text-slate-400">${i+1}.</span> <b>${esc(s.nama)}</b></div><div id="ar${s.nisn}" class="flex gap-1 mt-2">${absBtn(s.nisn)}</div></div>`).join("")
+   +`<button class="btn w-full" onclick="saveAbsen()">Simpan absensi</button>`;
+  absSum();
 };
 window.saveAbsen=async()=>{
-  const k=$("ak").value,t=$("at").value,b=writeBatch(db);
-  siswa.filter(s=>s.kelas===k).forEach(s=>{const v=document.querySelector(`input[name=a${s.nisn}]:checked`).value;b.set(doc(db,"absensi",`${t}_${s.nisn}`),{nisn:s.nisn,nama:s.nama,kelas:k,tgl:t,status:v})});
-  await b.commit();alert("Absensi tersimpan.");
+  const k=$("ak").value,t=$("at").value;if(!k||!t)return alert("Pilih kelas dan tanggal.");
+  const sis=siswa.filter(s=>s.kelas===k);if(!sis.length)return;
+  try{
+    const waktu=new Date().toISOString();let b=writeBatch(db),n=0;
+    for(const s of sis){b.set(doc(db,"absensi",`${t}_${s.nisn}`),{nisn:s.nisn,nama:s.nama,kelas:k,tgl:t,status:ABS[s.nisn]||"H",oleh:me.nama,waktu});if(++n%400===0){await b.commit();b=writeBatch(db)}}
+    await b.commit();alert("Absensi "+k+" tanggal "+t+" tersimpan.");loadAbsen();
+  }catch(e){console.error(e);alert("Gagal menyimpan absensi ("+(e.code||e.message)+").")}
 };
 window.importSiswa=async()=>{
   const f=$("xf").files[0];if(!f)return alert("Pilih file.");
   const wb=XLSX.read(await f.arrayBuffer(),{cellDates:true}),rows=XLSX.utils.sheet_to_json(wb.Sheets[wb.SheetNames[0]],{defval:""});
-  const g=(r,k)=>r[Object.keys(r).find(h=>h.toLowerCase().includes(k))]??"";
-  const fmt=v=>{if(v instanceof Date){const p=n=>String(n).padStart(2,"0");return p(v.getDate())+p(v.getMonth()+1)+v.getFullYear()}return String(v).replace(/\D/g,"")};
-  let n=0,b=writeBatch(db);
-  for(const r of rows){const nisn=String(g(r,"nisn")).trim(),nama=String(g(r,"nama")).trim();if(!nisn||!nama)continue;
-   b.set(doc(db,"siswa",nisn),{nisn,nama,kelas:String(g(r,"kelas")).trim(),tgl:fmt(g(r,"lahir")||g(r,"tgl"))});
-   if(++n%400===0){await b.commit();b=writeBatch(db)}}
-  await b.commit();alert(n+" siswa berhasil diupload.");go("Siswa");
+  const nz=h=>String(h).toLowerCase().replace(/[^a-z]/g,"");
+  const col=(r,...names)=>{const ks=Object.keys(r);for(const n of names){const k=ks.find(h=>nz(h)===n);if(k!==undefined)return r[k]}for(const n of names){const k=ks.find(h=>nz(h).includes(n));if(k!==undefined)return r[k]}return ""};
+  const p2=n=>String(n).padStart(2,"0");
+  const parseTgl=v=>{
+    if(v instanceof Date&&!isNaN(v))return{d:v.getDate(),m:v.getMonth()+1,y:v.getFullYear()};
+    if(typeof v==="number"&&v>10000){const o=XLSX.SSF.parse_date_code(v);return o?{d:o.d,m:o.m,y:o.y}:null}
+    const t=String(v).trim();let m;
+    if(m=t.match(/^(\d{4})[-\/.](\d{1,2})[-\/.](\d{1,2})/))return{y:+m[1],m:+m[2],d:+m[3]};
+    if(m=t.match(/^(\d{1,2})[-\/.](\d{1,2})[-\/.](\d{4})/))return{d:+m[1],m:+m[2],y:+m[3]};
+    if(m=t.match(/^(\d{2})(\d{2})(\d{4})$/)){if(+m[2]<=12&&+m[3]>=1900&&+m[3]<=2100)return{d:+m[1],m:+m[2],y:+m[3]}}
+    if(m=t.match(/^(\d{4})(\d{2})(\d{2})$/))return{y:+m[1],m:+m[2],d:+m[3]};
+    return null};
+  const parseKelas=v=>{const parts=String(v).trim().split(/\s+-\s+/);return parts[parts.length-1].replace(/^kelas\s*/i,"").trim().toUpperCase()};
+  let n=0,skipStatus=0,noTgl=[],b=writeBatch(db);
+  for(const r of rows){
+    let nisn=String(col(r,"nisn")).trim().replace(/\.0+$/,""),nama=String(col(r,"namalengkap","nama")).trim();
+    if(!nisn||!nama)continue;
+    if(/^\d{6,9}$/.test(nisn))nisn=nisn.padStart(10,"0");
+    const st=String(col(r,"status")).trim();if(st&&!/aktif/i.test(st)){skipStatus++;continue}
+    const tg=parseTgl(col(r,"tanggallahir","tgllahir","tanggal","tgl"));
+    if(!tg||!tg.y||tg.m<1||tg.m>12||tg.d<1||tg.d>31)noTgl.push(nama);
+    const kelas=parseKelas(col(r,"tingkatrombel","rombel","kelas"));
+    b.set(doc(db,"siswa",nisn),{nisn,nama,kelas,tingkat:parseInt(kelas)||"",tgl:tg?p2(tg.d)+p2(tg.m)+tg.y:"",tglLahir:tg?tg.y+"-"+p2(tg.m)+"-"+p2(tg.d):"",tempatLahir:String(col(r,"tempatlahir")).trim(),jk:String(col(r,"jeniskelamin","kelamin")).trim(),status:st||"Aktif"});
+    if(++n%400===0){await b.commit();b=writeBatch(db)}}
+  await b.commit();
+  alert(n+" siswa berhasil diupload."+(skipStatus?"\n"+skipStatus+" siswa non-aktif dilewati.":"")+(noTgl.length?"\nTanggal lahir tidak terbaca untuk: "+noTgl.slice(0,8).join(", ")+(noTgl.length>8?" dan lainnya":"")+". Mereka belum bisa login.":""));go("Siswa");
 };
 
 // ============ JADWAL / NOTIFIKASI / GURU ============
@@ -458,27 +484,27 @@ window.addInfo=async()=>{
 
 // ============ REKAP KEHADIRAN ============
 let RK=null;
-const stLabel={H:"Hadir",I:"Izin",A:"Alpha"};
+const stLabel={H:"Hadir",S:"Sakit",I:"Izin",A:"Alpha"};
 window.loadRekap=async()=>{
   const kls=$("rkk").value,d1=$("rka").value,d2=$("rkb").value;
   if(!d1||!d2||d1>d2){RK=null;$("rks").innerHTML=empty("Periode tanggal tidak valid.");return}
   $("rks").innerHTML=empty("Memuat…");
-  const ab=(await all("absensi")).filter(x=>x.tgl>=d1&&x.tgl<=d2&&(!kls||x.kelas===kls));
+  const ab=(await getDocs(query(collection(db,"absensi"),where("tgl",">=",d1),where("tgl","<=",d2)))).docs.map(d=>d.data()).filter(x=>!kls||x.kelas===kls);
   const sis=siswa.filter(s=>!kls||s.kelas===kls).sort((a,b)=>a.kelas===b.kelas?(a.nama>b.nama?1:-1):(a.kelas>b.kelas?1:-1));
   const rows=sis.map(s=>{const a=ab.filter(x=>x.nisn===s.nisn),c=v=>a.filter(x=>x.status===v).length,h=c("H");
-   return{nama:s.nama,kelas:s.kelas,nisn:s.nisn,h,i:c("I"),a:c("A"),tot:a.length,pct:a.length?Math.round(h/a.length*100):null}});
+   return{nama:s.nama,kelas:s.kelas,nisn:s.nisn,h,s:c("S"),i:c("I"),a:c("A"),tot:a.length,pct:a.length?Math.round(h/a.length*100):null}});
   const days=new Set(ab.map(x=>x.tgl)).size;
   RK={rows,ab,d1,d2,kls};
-  $("rks").innerHTML=`<p class="text-sm mb-2">${rows.length} siswa - ${days} hari absensi tercatat</p>`+(days?`<div class="card overflow-x-auto p-0"><table class="w-full text-sm"><thead style="background:var(--g);color:#fff"><tr><th class="text-left p-3">Nama</th><th class="p-3">Kelas</th><th class="p-3">H</th><th class="p-3">I</th><th class="p-3">A</th><th class="p-3">% Hadir</th></tr></thead><tbody>${rows.map(r=>`<tr class="border-t text-center"><td class="p-3 text-left font-semibold">${esc(r.nama)}</td><td class="p-3 whitespace-nowrap">${esc(r.kelas)}</td><td class="p-3">${r.h}</td><td class="p-3">${r.i}</td><td class="p-3 ${r.a?"text-rose-600 font-bold":""}">${r.a}</td><td class="p-3">${r.pct==null?"-":r.pct+"%"}</td></tr>`).join("")}</tbody></table></div>`:empty("Belum ada absensi pada periode ini."));
+  $("rks").innerHTML=`<p class="text-sm mb-2">${rows.length} siswa - ${days} hari absensi tercatat</p>`+(days?`<div class="card overflow-x-auto p-0"><table class="w-full text-sm"><thead style="background:var(--g);color:#fff"><tr><th class="text-left p-3">Nama</th><th class="p-3">Kelas</th><th class="p-3">H</th><th class="p-3">S</th><th class="p-3">I</th><th class="p-3">A</th><th class="p-3">% Hadir</th></tr></thead><tbody>${rows.map(r=>`<tr class="border-t text-center"><td class="p-3 text-left font-semibold">${esc(r.nama)}</td><td class="p-3 whitespace-nowrap">${esc(r.kelas)}</td><td class="p-3">${r.h}</td><td class="p-3">${r.s}</td><td class="p-3">${r.i}</td><td class="p-3 ${r.a?"text-rose-600 font-bold":""}">${r.a}</td><td class="p-3">${r.pct==null?"-":r.pct+"%"}</td></tr>`).join("")}</tbody></table></div>`:empty("Belum ada absensi pada periode ini."));
 };
 window.exportRekap=()=>{if(isGuruRole())return alert("Fitur download rekapitulasi hanya untuk admin.");
   if(!RK||!RK.ab.length)return alert("Tidak ada data absensi untuk diekspor.");
   const {rows,ab,d1,d2,kls}=RK;
-  const s1=[["REKAP KEHADIRAN SISWA"],["Periode: "+d1+" s/d "+d2+(kls?" | Kelas: "+kls:" | Semua kelas")],[],["No","Nama","Kelas","NISN","Hadir","Izin","Alpha","Total Pencatatan","% Hadir"],
-   ...rows.map((r,i)=>[i+1,r.nama,r.kelas,r.nisn,r.h,r.i,r.a,r.tot,r.pct==null?"":r.pct/100])];
+  const s1=[["REKAP KEHADIRAN SISWA"],["Periode: "+d1+" s/d "+d2+(kls?" | Kelas: "+kls:" | Semua kelas")],[],["No","Nama","Kelas","NISN","Hadir","Sakit","Izin","Alpha","Total Pencatatan","% Hadir"],
+   ...rows.map((r,i)=>[i+1,r.nama,r.kelas,r.nisn,r.h,r.s,r.i,r.a,r.tot,r.pct==null?"":r.pct/100])];
   const w1=XLSX.utils.aoa_to_sheet(s1);
-  rows.forEach((r,i)=>{const c=w1["I"+(5+i)];if(c&&typeof c.v==="number")c.z="0%"});
-  w1["!cols"]=[{wch:5},{wch:28},{wch:12},{wch:14},{wch:8},{wch:8},{wch:8},{wch:17},{wch:10}];
+  rows.forEach((r,i)=>{const c=w1["J"+(5+i)];if(c&&typeof c.v==="number")c.z="0%"});
+  w1["!cols"]=[{wch:5},{wch:28},{wch:12},{wch:14},{wch:8},{wch:8},{wch:8},{wch:8},{wch:17},{wch:10}];
   const det=[...ab].sort((a,b)=>a.tgl===b.tgl?(a.kelas===b.kelas?(a.nama>b.nama?1:-1):(a.kelas>b.kelas?1:-1)):(a.tgl>b.tgl?1:-1));
   const w2=XLSX.utils.aoa_to_sheet([["Tanggal","Nama","Kelas","NISN","Status"],...det.map(x=>[x.tgl,x.nama,x.kelas,x.nisn,stLabel[x.status]||x.status])]);
   w2["!cols"]=[{wch:12},{wch:28},{wch:12},{wch:14},{wch:10}];
@@ -489,7 +515,7 @@ window.exportRekap=()=>{if(isGuruRole())return alert("Fitur download rekapitulas
 // ============ MENU KARTU ADMIN ============
 IC.chat=svg('<path d="M21 15a2 2 0 0 1-2 2H7l-4 4V5a2 2 0 0 1 2-2h14a2 2 0 0 1 2 2z"/>');
 const MENU=[
- ["Akademik",[["Jadwal","📅","Jadwal pelajaran semua kelas","#e0f2fe"],["Tugas","📝","Periksa & nilai tugas siswa","#fef3c7"],["Absensi","✅","Catat kehadiran harian","#dcfce7"],["Rekap","🗓️","Rekap kehadiran & ekspor Excel","#ede9fe","Rekap Kehadiran"],["Jurnal","📓","Isi jurnal mengajar guru","#fce7f3","Jurnal Guru"],["Presensi","📸","Absen guru dengan kamera & lokasi","#fee2e2","Presensi Guru"]]],
+ ["Akademik",[["Jadwal","📅","Jadwal pelajaran semua kelas","#e0f2fe"],["Absensi","✅","Catat kehadiran harian","#dcfce7"],["Rekap","🗓️","Rekap kehadiran & ekspor Excel","#ede9fe","Rekap Kehadiran"],["Jurnal","📓","Isi jurnal mengajar guru","#fce7f3","Jurnal Guru"],["Presensi","📸","Absen guru dengan kamera & lokasi","#fee2e2","Presensi Guru"]]],
  ["Data Madrasah",[["Siswa","🎓","Upload & kelola data siswa","#e0e7ff"],["Guru","👩‍🏫","Akun & sandi guru","#ccfbf1"]]],
  ["Kesiswaan",[["Pelanggaran","⚠️","Catatan kedisiplinan","#ffe4e6"],["Prestasi","🏆","Capaian & penghargaan siswa","#fef9c3"]]],
  ["PPDB",[["PPDB","📋","Data pendaftar & unduh berkas PDF","#fef3c7","Data PPDB"],["VerifPPDB","🔍","Scan QR cek keaslian berkas","#dcfce7","Verifikasi QR"]]],
