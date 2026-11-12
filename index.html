@@ -343,7 +343,11 @@ window.kirimBayar=async()=>{
 window.kirimBantuan=async()=>{const t=$("bp").value.trim();if(!t)return;await addDoc(collection(db,"bantuan"),{nisn:me.nisn,nama:me.nama,pesan:t,balasan:""});go("Bantuan")};
 
 // ============ ADMIN ============
-const sel=(id)=>`<select id="${id}" class="inp">${opts(siswa)}</select>`;
+const sel=id=>`<input id="${id}q" class="inp" placeholder="🔍 Cari nama / NISN / kelas…" oninput="cariSiswa('${id}')" autocomplete="off"><select id="${id}" class="inp">${opts(siswa.slice().sort((a,b)=>a.nama>b.nama?1:-1))}</select><p id="${id}h" class="text-xs text-slate-500">${siswa.length} siswa</p>`;
+window.cariSiswa=id=>{const q=key($(id+"q").value),a=siswa.slice().sort((x,y)=>x.nama>y.nama?1:-1).filter(s=>!q||key(s.nama+s.nisn+s.kelas).includes(q));
+  $(id).innerHTML=a.length?opts(a):'<option value="">Tidak ditemukan</option>';$(id+"h").textContent=a.length+" siswa";};
+let EDIT=null,PELV=[],PRV=[];
+const nowLocal=()=>{const d=new Date(),p=n=>String(n).padStart(2,"0");return today()+"T"+p(d.getHours())+":"+p(d.getMinutes())};
 const A={
 Rekap:async()=>{const k=[...new Set(siswa.map(x=>x.kelas))].sort(),t=today();
  return `<div class="card space-y-2 mb-4"><h2 class="font-extrabold">Rekap kehadiran siswa</h2>
@@ -356,12 +360,12 @@ Guru:async()=>{const g=(await all("guru")).sort((a,b)=>a.nama>b.nama?1:-1);
 Jadwal:async()=>`<div class="card space-y-2 mb-4"><h2 class="font-extrabold">Upload jadwal pelajaran</h2><p class="text-xs text-slate-500">File .xlsx atau .csv dengan kolom: MATA PELAJARAN, JAM, NAMA GURU, KELAS (kelas boleh diisi sekali di baris pertama tiap kelompok). Upload baru menggantikan jadwal lama.</p><input id="jf" type="file" accept=".xlsx,.xls,.csv" class="inp"><button class="btn" onclick="importJadwal()">Upload</button></div>`+await jadwalHTML(),
 Pengumuman:async()=>{const p=(await all("pengumuman")).sort((a,b)=>b.waktu>a.waktu?1:-1);
  return `<div class="card space-y-2 mb-4"><h2 class="font-extrabold">Buat pengumuman</h2><input id="pu" class="inp" placeholder="Judul pengumuman"><textarea id="pi" class="inp" rows="4" placeholder="Isi pengumuman"></textarea><p class="text-xs text-slate-500">Pengumuman akan muncul di menu Notifikasi semua siswa.</p><button class="btn" onclick="addInfo()">Kirim pengumuman</button></div>`+list(p,x=>`<div class="card mb-2 flex justify-between gap-2"><div><b>📢 ${esc(x.judul)}</b><p class="text-sm whitespace-pre-line">${esc(x.isi)}</p><div class="text-xs text-slate-500">${fmtWaktu(x.waktu)}${x.oleh?" - "+esc(x.oleh):""}</div></div><button class="btn2 h-fit" onclick="hapus('pengumuman','${x.id}','Pengumuman')">Hapus</button></div>`,"Belum ada pengumuman.")},
-Siswa:async()=>`<div class="card space-y-2 mb-4"><h2 class="font-extrabold">Upload data siswa</h2><p class="text-xs text-slate-500">Bisa langsung memakai file dari Dapodik/EMIS dengan kolom: Nama Lengkap, NISN, Tanggal Lahir, Tingkat - Rombel, Status (hanya yang berstatus Aktif yang diunggah). Login siswa: NISN + sandi tanggal lahir (ddmmyyyy, contoh 27122010).</p><input id="xf" type="file" accept=".xlsx,.xls,.csv" class="inp"><button class="btn" onclick="importSiswa()">Upload</button></div>
+Siswa:async()=>`<div class="card space-y-2 mb-4"><h2 class="font-extrabold">Upload data siswa</h2><p class="text-xs text-slate-500">Bisa langsung memakai file dari Dapodik/EMIS dengan kolom: Nama Lengkap, NISN, Tanggal Lahir, Tingkat - Rombel, Status (hanya yang berstatus Aktif yang diunggah). Login siswa: NISN + sandi tanggal lahir (ddmmyyyy, contoh 27122010). <b class="text-rose-600">Perhatian: upload akan MENGGANTI seluruh data siswa. Siswa yang tidak ada di file akan dihapus.</b></p><input id="xf" type="file" accept=".xlsx,.xls,.csv" class="inp"><button class="btn" onclick="importSiswa()">Upload &amp; ganti semua data siswa</button></div>
  <p class="text-sm mb-2">${siswa.length} siswa</p>`+list(siswa.sort((a,b)=>a.kelas>b.kelas?1:-1),x=>`<div class="card mb-2 flex justify-between"><div><b>${esc(x.nama)}</b><div class="text-xs text-slate-500">${esc(x.kelas)} - ${esc(x.nisn)} - Sandi: <span class="font-mono ${x.tgl?"":"text-rose-600"}">${x.tgl?esc(x.tgl):"KOSONG"}</span></div></div><button class="btn2" onclick="hapus('siswa','${x.id}','Siswa')">Hapus</button></div>`,"Belum ada data siswa."),
-Pelanggaran:async()=>{const p=(await all("pelanggaran")).sort((a,b)=>b.waktu>a.waktu?1:-1);
- return `<div class="card space-y-2 mb-4"><h2 class="font-extrabold">Input pelanggaran</h2>${sel("ps")}<input id="pk" class="inp" placeholder="Keterangan pelanggaran"><input id="pw" type="datetime-local" class="inp"><button class="btn" onclick="addPel()">Simpan</button></div>`+list(p,x=>`<div class="card mb-2 flex justify-between"><div><b>${esc(x.nama)}</b> (${esc(x.kelas)})<div class="text-sm">${esc(x.ket)}</div><div class="text-xs text-slate-500">${esc(x.waktu)}</div></div><button class="btn2" onclick="hapus('pelanggaran','${x.id}','Pelanggaran')">Hapus</button></div>`,"Belum ada pelanggaran.")},
-Prestasi:async()=>{const p=await all("prestasi");
- return `<div class="card space-y-2 mb-4"><h2 class="font-extrabold">Input prestasi</h2>${sel("ps")}<input id="pj" class="inp" placeholder="Nama prestasi"><input id="pk" class="inp" placeholder="Keterangan (juara, tingkat)"><input id="pt" type="date" class="inp" value="${today()}"><button class="btn" onclick="addPrestasi()">Simpan</button></div>`+list(p,x=>`<div class="card mb-2 flex justify-between"><div>🏆 <b>${esc(x.judul)}</b> - ${esc(x.nama)}<div class="text-xs text-slate-500">${esc(x.tgl)} - ${esc(x.ket)}</div></div><button class="btn2" onclick="hapus('prestasi','${x.id}','Prestasi')">Hapus</button></div>`,"Belum ada prestasi.")},
+Pelanggaran:async()=>{const p=(await all("pelanggaran")).sort((a,b)=>b.waktu>a.waktu?1:-1);PELV=p;EDIT=null;
+ return `<div class="card space-y-2 mb-4"><h2 id="pht" class="font-extrabold">Input pelanggaran</h2>${sel("ps")}<input id="pk" class="inp" placeholder="Keterangan pelanggaran"><input id="pw" type="datetime-local" class="inp" value="${nowLocal()}"><div class="flex gap-2"><button id="pbtn" class="btn" onclick="addPel()">Simpan</button><button id="pcb" class="btn2 hidden" onclick="go('Pelanggaran')">Batal</button></div></div>`+list(p,x=>`<div class="card mb-2 flex justify-between gap-2"><div><b>${esc(x.nama)}</b> (${esc(x.kelas)})<div class="text-sm">${esc(x.ket)}</div><div class="text-xs text-slate-500">${esc(x.waktu)}</div></div><div class="flex flex-col gap-1"><button class="btn2" onclick="editPel('${x.id}')">Edit</button><button class="btn2" onclick="hapus('pelanggaran','${x.id}','Pelanggaran')">Hapus</button></div></div>`,"Belum ada pelanggaran.")},
+Prestasi:async()=>{const p=await all("prestasi");PRV=p;EDIT=null;
+ return `<div class="card space-y-2 mb-4"><h2 id="pht" class="font-extrabold">Input prestasi</h2>${sel("ps")}<input id="pj" class="inp" placeholder="Nama prestasi"><input id="pk" class="inp" placeholder="Keterangan (juara, tingkat)"><input id="pt" type="date" class="inp" value="${today()}"><div class="flex gap-2"><button id="pbtn" class="btn" onclick="addPrestasi()">Simpan</button><button id="pcb" class="btn2 hidden" onclick="go('Prestasi')">Batal</button></div></div>`+list(p,x=>`<div class="card mb-2 flex justify-between gap-2"><div>🏆 <b>${esc(x.judul)}</b> - ${esc(x.nama)}<div class="text-xs text-slate-500">${esc(x.tgl)} - ${esc(x.ket)}</div></div><div class="flex flex-col gap-1"><button class="btn2" onclick="editPrestasi('${x.id}')">Edit</button><button class="btn2" onclick="hapus('prestasi','${x.id}','Prestasi')">Hapus</button></div></div>`,"Belum ada prestasi.")},
 Absensi:async()=>{const k=[...new Set(siswa.map(x=>x.kelas))].sort();
  return `<div class="card space-y-2 mb-4"><h2 class="font-extrabold">Absensi siswa</h2><div class="grid grid-cols-2 gap-2"><select id="ak" class="inp" onchange="loadAbsen()"><option value="">Pilih kelas</option>${k.map(x=>`<option>${esc(x)}</option>`).join("")}</select><input id="at" type="date" class="inp" value="${today()}" onchange="loadAbsen()"></div><p class="text-xs text-slate-500">Pilih kelas dan tanggal. Semua siswa otomatis Hadir, ubah hanya yang Sakit, Izin, atau Alpha, lalu simpan.</p></div><div id="ab"></div>`},
 Pembayaran:async()=>{const p=(await all("pembayaran")).sort((a,b)=>b.tgl>a.tgl?1:-1);const q=(await getDoc(doc(db,"pengaturan","qris"))).data()?.url||"";
@@ -370,8 +374,20 @@ Bantuan:async()=>list(await all("bantuan"),x=>`<div class="card mb-2"><b>${esc(x
 };
 const sw=n=>siswa.find(s=>s.nisn===n)||{};
 window.hapus=async(c,id,t)=>{if(confirm("Hapus data ini?")){await deleteDoc(doc(db,c,id));go(t)}};
-window.addPel=async()=>{const s=sw($("ps").value);if(!$("pk").value||!$("pw").value)return alert("Lengkapi keterangan dan waktu.");await addDoc(collection(db,"pelanggaran"),{nisn:s.nisn,nama:s.nama,kelas:s.kelas,ket:$("pk").value,waktu:$("pw").value.replace("T"," ")});go("Pelanggaran")};
-window.addPrestasi=async()=>{const s=sw($("ps").value);if(!$("pj").value)return alert("Isi nama prestasi.");await addDoc(collection(db,"prestasi"),{nisn:s.nisn,nama:s.nama,judul:$("pj").value,ket:$("pk").value,tgl:$("pt").value});go("Prestasi")};
+const pickSiswa=nisn=>{$("psq").value="";cariSiswa("ps");$("ps").value=nisn;return $("ps").value===nisn};
+const modeEdit=t=>{$("pht").textContent=t;$("pbtn").textContent="Simpan perubahan";$("pcb").classList.remove("hidden");window.scrollTo({top:0,behavior:"smooth"})};
+window.editPel=id=>{const x=PELV.find(v=>v.id===id);if(!x)return;if(!pickSiswa(x.nisn))return alert("Siswa ini sudah tidak ada di data siswa.");
+  $("pk").value=x.ket||"";$("pw").value=String(x.waktu||"").replace(" ","T");EDIT=id;modeEdit("Edit pelanggaran")};
+window.editPrestasi=id=>{const x=PRV.find(v=>v.id===id);if(!x)return;if(!pickSiswa(x.nisn))return alert("Siswa ini sudah tidak ada di data siswa.");
+  $("pj").value=x.judul||"";$("pk").value=x.ket||"";$("pt").value=x.tgl||"";EDIT=id;modeEdit("Edit prestasi")};
+window.addPel=async()=>{const s=sw($("ps").value);if(!s.nisn)return alert("Pilih siswa dulu.");if(!$("pk").value.trim()||!$("pw").value)return alert("Lengkapi keterangan dan waktu.");
+  const d={nisn:s.nisn,nama:s.nama,kelas:s.kelas,ket:$("pk").value.trim(),waktu:$("pw").value.replace("T"," ")};
+  try{if(EDIT)await updateDoc(doc(db,"pelanggaran",EDIT),d);else await addDoc(collection(db,"pelanggaran"),d)}catch(e){return alert("Gagal menyimpan ("+(e.code||e.message)+")")}
+  EDIT=null;go("Pelanggaran")};
+window.addPrestasi=async()=>{const s=sw($("ps").value);if(!s.nisn)return alert("Pilih siswa dulu.");if(!$("pj").value.trim())return alert("Isi nama prestasi.");
+  const d={nisn:s.nisn,nama:s.nama,kelas:s.kelas,judul:$("pj").value.trim(),ket:$("pk").value.trim(),tgl:$("pt").value};
+  try{if(EDIT)await updateDoc(doc(db,"prestasi",EDIT),d);else await addDoc(collection(db,"prestasi"),d)}catch(e){return alert("Gagal menyimpan ("+(e.code||e.message)+")")}
+  EDIT=null;go("Prestasi")};
 window.setQris=async()=>{await setDoc(doc(db,"pengaturan","qris"),{url:$("qu").value});alert("Tersimpan.")};
 window.bayarOk=async id=>{await updateDoc(doc(db,"pembayaran",id),{status:"Lunas"});go("Pembayaran")};
 window.balas=async id=>{await updateDoc(doc(db,"bantuan",id),{balasan:$("r"+id).value});alert("Terkirim.")};
@@ -423,7 +439,7 @@ window.importSiswa=async()=>{
     if(m=t.match(/^(\d{4})(\d{2})(\d{2})$/))return{y:+m[1],m:+m[2],d:+m[3]};
     return null};
   const parseKelas=v=>{const parts=String(v).trim().split(/\s+-\s+/);return parts[parts.length-1].replace(/^kelas\s*/i,"").trim().toUpperCase()};
-  let n=0,skipStatus=0,noTgl=[],b=writeBatch(db);
+  let skipStatus=0,noTgl=[];const recs=[];
   for(const r of rows){
     let nisn=String(col(r,"nisn")).trim().replace(/\.0+$/,""),nama=String(col(r,"namalengkap","nama")).trim();
     if(!nisn||!nama)continue;
@@ -432,10 +448,19 @@ window.importSiswa=async()=>{
     const tg=parseTgl(col(r,"tanggallahir","tgllahir","tanggal","tgl"));
     if(!tg||!tg.y||tg.m<1||tg.m>12||tg.d<1||tg.d>31)noTgl.push(nama);
     const kelas=parseKelas(col(r,"tingkatrombel","rombel","kelas"));
-    b.set(doc(db,"siswa",nisn),{nisn,nama,kelas,tingkat:parseInt(kelas)||"",tgl:tg?p2(tg.d)+p2(tg.m)+tg.y:"",tglLahir:tg?tg.y+"-"+p2(tg.m)+"-"+p2(tg.d):"",tempatLahir:String(col(r,"tempatlahir")).trim(),jk:String(col(r,"jeniskelamin","kelamin")).trim(),status:st||"Aktif"});
-    if(++n%400===0){await b.commit();b=writeBatch(db)}}
-  await b.commit();
-  alert(n+" siswa berhasil diupload."+(skipStatus?"\n"+skipStatus+" siswa non-aktif dilewati.":"")+(noTgl.length?"\nTanggal lahir tidak terbaca untuk: "+noTgl.slice(0,8).join(", ")+(noTgl.length>8?" dan lainnya":"")+". Mereka belum bisa login.":""));go("Siswa");
+    recs.push({nisn,nama,kelas,tingkat:parseInt(kelas)||"",tgl:tg?p2(tg.d)+p2(tg.m)+tg.y:"",tglLahir:tg?tg.y+"-"+p2(tg.m)+"-"+p2(tg.d):"",tempatLahir:String(col(r,"tempatlahir")).trim(),jk:String(col(r,"jeniskelamin","kelamin")).trim(),status:st||"Aktif"});
+  }
+  if(!recs.length)return alert("Tidak ada data siswa yang terbaca dari file. Data lama TIDAK diubah. Cek nama kolom pada file.");
+  const ids=new Set(recs.map(x=>x.nisn));
+  try{
+    const old=(await getDocs(collection(db,"siswa"))).docs,del=old.filter(d=>!ids.has(d.id));
+    if(!confirm("Data siswa lama ("+old.length+" siswa) akan diganti dengan "+ids.size+" siswa dari file ini.\n"+del.length+" siswa lama yang tidak ada di file akan DIHAPUS.\n\nLanjutkan?"))return;
+    const ops=[...recs.map(x=>[1,x]),...del.map(d=>[0,d.ref])];let b=writeBatch(db),n=0;
+    for(const [t,v] of ops){if(t)b.set(doc(db,"siswa",v.nisn),v);else b.delete(v);if(++n%400===0){await b.commit();b=writeBatch(db)}}
+    await b.commit();
+    alert(ids.size+" siswa berhasil diupload. "+del.length+" data lama dihapus."+(skipStatus?"\n"+skipStatus+" siswa non-aktif dilewati.":"")+(noTgl.length?"\nTanggal lahir tidak terbaca untuk: "+noTgl.slice(0,8).join(", ")+(noTgl.length>8?" dan lainnya":"")+". Mereka belum bisa login.":""));
+  }catch(e){console.error(e);return alert("Gagal mengunggah data siswa ("+(e.code||e.message)+"). Coba lagi.")}
+  go("Siswa");
 };
 
 // ============ JADWAL / NOTIFIKASI / GURU ============
