@@ -175,7 +175,7 @@ canvas.sigpad{touch-action:none;width:100%;height:auto;border:1.5px dashed #94a3
   <div class="modal-box space-y-4" role="dialog" aria-modal="true" aria-label="Masuk">
     <button class="modal-x" onclick="closeLogin()" aria-label="Tutup">&times;</button>
     <div class="text-center"><div class="text-3xl font-extrabold" style="color:var(--g)">MyIgi</div><p class="text-sm text-slate-500">MA Insan Generasi Islami</p></div>
-    <input id="u" class="inp" placeholder="NISN / ID Guru" inputmode="numeric" autocomplete="username">
+    <input id="u" type="text" class="inp" placeholder="NISN (siswa) / ID Guru" inputmode="text" autocapitalize="none" autocorrect="off" spellcheck="false" autocomplete="username">
     <input id="p" type="password" class="inp" placeholder="Sandi siswa: tanggal lahir ddmmyyyy (contoh 27122010)" autocomplete="current-password">
     <p id="err" class="text-sm text-rose-600 hidden"></p>
     <button class="btn w-full" onclick="doLogin()">Masuk</button>
