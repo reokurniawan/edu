@@ -566,7 +566,6 @@ const kelasTxt=r=>Object.entries(r.kelas).map(([k,n])=>k+" ("+n+")").join(", ");
 
 A.Presensi=async()=>{
   const full=!isGuruRole();await getLokasi();
-  const kl=[...new Set(siswa.map(x=>x.kelas))].sort(),mp=[...new Set((await getJadwal()).map(x=>x.mapel).filter(m=>!/istirahat/i.test(m)))].sort();
   PGG=full?(await all("guru")).sort((a,b)=>(a.nama||"")>(b.nama||"")?1:-1):[];
   const ok=PGL.lat!=null&&PGL.lng!=null;
   const lokInfo=ok?`${esc(PGL.nama)} - radius ${fmJ(PGL.radius)} - <a class="underline text-emerald-700" target="_blank" rel="noopener" href="https://www.google.com/maps?q=${PGL.lat},${PGL.lng}">lihat di Maps</a>`:"Lokasi madrasah belum diatur oleh admin.";
@@ -575,9 +574,8 @@ A.Presensi=async()=>{
   const tIn=PGT.find(pgIsIn),tOut=PGT.find(pgIsOut),tIzin=PGT.find(pgIsIzin);
   const form=full?"":`<div class="card space-y-2 mb-4"><h2 class="font-extrabold">📸 Presensi guru (Clock In / Clock Out)</h2>
   <p class="text-xs text-slate-500">📍 ${lokInfo}</p>
-  <p class="text-xs text-slate-500">Clock In / Clock Out hanya bisa dilakukan di dalam radius lokasi madrasah, dengan foto selfie langsung dari kamera.<br>⏰ Clock In maksimal jam 06.45; lewat dari itu tercatat <b>terlambat</b>. Clock Out mulai jam 12.10; pulang lebih awal wajib mengisi alasan.</p>
+  <p class="text-xs text-slate-500">Clock In / Clock Out hanya bisa dilakukan di dalam radius lokasi madrasah, dengan foto selfie langsung dari kamera.<br>⏰ Clock In maksimal jam 06.45; lewat dari itu tercatat <b>terlambat</b> beserta lama keterlambatannya. Clock Out mulai jam 12.10; pulang lebih awal wajib mengisi alasan.</p>
   <div class="text-sm rounded-xl p-3 border bg-slate-50">Hari ini: ${tIzin?`<b class="text-amber-700">Izin</b>`:`Clock In <b>${tIn?esc(tIn.jam):"-"}</b>${tIn&&pgLate(tIn)?` <span class="pill bg-rose-100 text-rose-700">Terlambat</span>`:""} · Clock Out <b>${tOut?esc(tOut.jam):"-"}</b>${tOut&&tOut.pulangAwal?` <span class="pill bg-amber-100 text-amber-700">Pulang awal</span>`:""}`}</div>
-  <div class="grid grid-cols-2 gap-2"><input id="pgKls" class="inp" list="pgKlsL" placeholder="Kelas (opsional)"><datalist id="pgKlsL">${kl.map(k=>`<option value="${esc(k)}">`).join("")}</datalist><input id="pgMp" class="inp" list="pgMpL" placeholder="Mata pelajaran (opsional)"><datalist id="pgMpL">${mp.map(k=>`<option value="${esc(k)}">`).join("")}</datalist></div>
   <textarea id="pgAls" class="inp" rows="2" placeholder="Alasan pulang lebih awal (wajib diisi jika Clock Out sebelum jam 12.10)"></textarea>
   <div id="pgCam" class="hidden"><video id="pgVid" autoplay playsinline muted style="width:100%;border-radius:.75rem;background:#000;transform:scaleX(-1)"></video></div>
   <img id="pgPrev" class="hidden w-full rounded-xl border" alt="Foto presensi">
@@ -656,7 +654,7 @@ window.pgKirim=async()=>{
   else{ex.pulangAwal=mn<PG_OUT_M;if(ex.pulangAwal){if(!als)return alert("Clock Out sebelum jam 12.10 wajib mengisi alasan pulang.");ex.alasan=als}}
   $("pgB3").disabled=true;
   try{
-    const ref=await addDoc(collection(db,"presensiGuru"),{tgl:pgYmd(n),jam:pgp(n.getHours())+":"+pgp(n.getMinutes()),waktu:n.toISOString(),guruId:key(me.idGuru),idGuru:me.idGuru,nama:me.nama,kelas:$("pgKls").value.trim(),mapel:$("pgMp").value.trim(),lat:pgPos.lat,lng:pgPos.lng,akurasi:Math.round(pgPos.acc),jarak:Math.round(d),...ex});
+    const ref=await addDoc(collection(db,"presensiGuru"),{tgl:pgYmd(n),jam:pgp(n.getHours())+":"+pgp(n.getMinutes()),waktu:n.toISOString(),guruId:key(me.idGuru),idGuru:me.idGuru,nama:me.nama,kelas:"",mapel:"",lat:pgPos.lat,lng:pgPos.lng,akurasi:Math.round(pgPos.acc),jarak:Math.round(d),...ex});
     await setDoc(doc(db,"presensiFoto",ref.id),{foto:pgFoto});
   }catch(e){$("pgB3").disabled=false;return alert("Presensi gagal tersimpan. Periksa koneksi lalu coba lagi.")}
   pgFoto="";alert(pgJ==="masuk"?(ex.terlambat?"Clock In tersimpan. Status: TERLAMBAT "+ex.telatMenit+" menit.":"Clock In tersimpan, tepat waktu."):(ex.pulangAwal?"Clock Out tersimpan (pulang lebih awal).":"Clock Out tersimpan."));go("Presensi");
@@ -694,11 +692,25 @@ const pgRows=()=>{
   PGV.forEach(x=>{add(x.guruId,x.nama,x.idGuru);const r=m.get(x.guruId);if(pgIsIzin(x)){r.izin.add(x.tgl);return}if(pgIsOut(x)){r.out.add(x.tgl);if(x.pulangAwal)r.awal.add(x.tgl);return}r.hari.add(x.tgl);if(pgLate(x)&&!r.telat.has(x.tgl)){r.telat.add(x.tgl);r.menit+=x.telatMenit??Math.max(0,pgMnt(x.jam)-PG_IN_M)}});
   return [...m.values()].filter(r=>!g||r.id===g).sort((a,b)=>a.nama>b.nama?1:-1);
 };
+const pgHar=()=>{const m=new Map(),hari=pgYmd(new Date());
+  pgDet().forEach(x=>{const k=x.guruId+"|"+x.tgl;if(!m.has(k))m.set(k,{nama:x.nama,idGuru:x.idGuru||"",tgl:x.tgl});const r=m.get(k);if(pgIsIzin(x))r.izin=x.ket||"-";else if(pgIsOut(x))r.out=x;else r.in=x});
+  return [...m.values()].map(r=>{const k=[];let tone="ok";
+    if(r.izin!==undefined){k.push("Izin: "+r.izin);tone="izin"}
+    else{
+      if(r.in){if(pgLate(r.in)){const mm=r.in.telatMenit??Math.max(0,pgMnt(r.in.jam)-PG_IN_M);k.push("Terlambat"+(mm?" "+mm+" menit":""));tone="late"}else k.push("Tepat waktu")}
+      else{k.push("Tidak Clock In");tone="late"}
+      if(r.out){if(r.out.pulangAwal){k.push("Pulang awal"+(r.out.alasan?" ("+r.out.alasan+")":""));if(tone==="ok")tone="awal"}}
+      else if(r.in&&r.tgl<hari){k.push("Belum Clock Out");if(tone==="ok")tone="awal"}
+    }
+    return{tgl:r.tgl,nama:r.nama,idGuru:r.idGuru,jamIn:r.in?r.in.jam:"",jamOut:r.out?r.out.jam:"",ket:k.join(" · "),tone}
+  }).sort((a,b)=>a.tgl===b.tgl?(a.nama>b.nama?1:-1):(a.tgl<b.tgl?1:-1))};
+const pgTone={ok:"bg-emerald-100 text-emerald-700",late:"bg-rose-100 text-rose-700",awal:"bg-amber-100 text-amber-700",izin:"bg-amber-100 text-amber-700"};
 window.renderPG=()=>{
   const rows=pgRows(),det=pgDet().reverse(),full=!isGuruRole();
   $("pgRekap").innerHTML=`<p class="text-sm mb-2">${rows.filter(r=>r.hari.size).length} guru hadir - ${rows.reduce((a,r)=>a+r.telat.size,0)} kali terlambat - ${rows.reduce((a,r)=>a+r.izin.size,0)} hari izin</p>`
   +(rows.length?`<div class="card overflow-x-auto p-0 mb-4"><table class="w-full text-sm"><thead style="background:var(--g);color:#fff"><tr><th class="text-left p-3">Guru</th><th class="p-3">Hadir</th><th class="p-3">Tepat waktu</th><th class="p-3">Terlambat</th><th class="p-3">Izin</th><th class="p-3">Pulang awal</th><th class="p-3">Belum Clock Out</th></tr></thead><tbody>${rows.map(r=>`<tr class="border-t"><td class="p-3 font-semibold">${esc(r.nama)}</td><td class="p-3 text-center ${r.hari.size?"":"text-rose-600 font-bold"}">${r.hari.size}</td><td class="p-3 text-center">${r.hari.size-r.telat.size}</td><td class="p-3 text-center ${r.telat.size?"text-rose-600 font-bold":""}">${r.telat.size}${r.menit?` <span class="text-[10px] font-normal">(${r.menit} mnt)</span>`:""}</td><td class="p-3 text-center ${r.izin.size?"text-amber-600 font-bold":""}">${r.izin.size}</td><td class="p-3 text-center">${r.awal.size}</td><td class="p-3 text-center">${pgLupa(r)}</td></tr>`).join("")}</tbody></table></div>`:empty("Belum ada data guru."))
-  +`<h3 class="msec">Riwayat presensi</h3>`+list(det,x=>x.status==="Izin"?`<div class="card mb-2 flex justify-between gap-2"><div><b>${esc(x.nama)}</b> <span class="pill bg-amber-100 text-amber-700">Izin</span><div class="text-sm whitespace-pre-line"><b>Keterangan:</b> ${esc(x.ket||"-")}</div><div class="text-xs text-slate-500">${esc(x.tgl)}</div></div>${full?`<div class="flex flex-col gap-1"><button class="btn2" onclick="pgHapus('${x.id}')">Hapus</button></div>`:""}</div>`:`<div class="card mb-2 flex justify-between gap-2"><div><b>${esc(x.nama)}</b> ${pgIsOut(x)?`<span class="pill bg-sky-100 text-sky-700">Clock Out</span>${x.pulangAwal?` <span class="pill bg-amber-100 text-amber-700">Pulang awal</span>`:""}`:`<span class="pill bg-emerald-100 text-emerald-700">Clock In</span>${pgLate(x)?` <span class="pill bg-rose-100 text-rose-700">Terlambat${x.telatMenit?" "+x.telatMenit+" mnt":""}</span>`:""}`}${x.kelas?` <span class="pill bg-slate-100 text-slate-700">${esc(x.kelas)}</span>`:""}<div class="text-sm">${esc(x.mapel||"")}</div>${x.alasan?`<div class="text-sm whitespace-pre-line"><b>Alasan pulang:</b> ${esc(x.alasan)}</div>`:""}<div class="text-xs text-slate-500">${esc(x.tgl)} ${esc(x.jam)} - ${fmJ(x.jarak||0)} dari lokasi</div></div><div class="flex flex-col gap-1"><button class="btn2" onclick="pgLihat('${x.id}')">Foto</button>${full?`<button class="btn2" onclick="pgHapus('${x.id}')">Hapus</button>`:""}</div></div>`,"Belum ada presensi pada bulan ini.");
+  +`<h3 class="msec">Jam Clock In / Clock Out</h3>`+(()=>{const h=pgHar();return h.length?`<div class="card overflow-x-auto p-0 mb-4"><table class="w-full text-sm"><thead style="background:var(--g);color:#fff"><tr><th class="text-left p-3">Tanggal</th><th class="text-left p-3">Guru</th><th class="p-3">Clock In</th><th class="p-3">Clock Out</th><th class="text-left p-3">Keterangan</th></tr></thead><tbody>${h.map(r=>`<tr class="border-t"><td class="p-3 whitespace-nowrap">${esc(r.tgl)}</td><td class="p-3 font-semibold">${esc(r.nama)}</td><td class="p-3 text-center font-semibold ${r.tone==="late"&&r.jamIn?"text-rose-600":""}">${r.jamIn?esc(r.jamIn):"-"}</td><td class="p-3 text-center font-semibold">${r.jamOut?esc(r.jamOut):"-"}</td><td class="p-3"><span class="pill ${pgTone[r.tone]}">${esc(r.ket)}</span></td></tr>`).join("")}</tbody></table></div>`:empty("Belum ada presensi pada bulan ini.")})()
+  +`<h3 class="msec">Riwayat presensi</h3>`+list(det,x=>x.status==="Izin"?`<div class="card mb-2 flex justify-between gap-2"><div><b>${esc(x.nama)}</b> <span class="pill bg-amber-100 text-amber-700">Izin</span><div class="text-sm whitespace-pre-line"><b>Keterangan:</b> ${esc(x.ket||"-")}</div><div class="text-xs text-slate-500">${esc(x.tgl)}</div></div>${full?`<div class="flex flex-col gap-1"><button class="btn2" onclick="pgHapus('${x.id}')">Hapus</button></div>`:""}</div>`:`<div class="card mb-2 flex justify-between gap-2"><div><b>${esc(x.nama)}</b> ${pgIsOut(x)?`<span class="pill bg-sky-100 text-sky-700">Clock Out</span>${x.pulangAwal?` <span class="pill bg-amber-100 text-amber-700">Pulang awal</span>`:""}`:`<span class="pill bg-emerald-100 text-emerald-700">Clock In</span>${pgLate(x)?` <span class="pill bg-rose-100 text-rose-700">Terlambat${x.telatMenit?" "+x.telatMenit+" mnt":""}</span>`:""}`}${x.alasan?`<div class="text-sm whitespace-pre-line"><b>Alasan pulang:</b> ${esc(x.alasan)}</div>`:""}<div class="text-xs text-slate-500">${esc(x.tgl)} ${esc(x.jam)} - ${fmJ(x.jarak||0)} dari lokasi</div></div><div class="flex flex-col gap-1"><button class="btn2" onclick="pgLihat('${x.id}')">Foto</button>${full?`<button class="btn2" onclick="pgHapus('${x.id}')">Hapus</button>`:""}</div></div>`,"Belum ada presensi pada bulan ini.");
 };
 window.pgLihat=async id=>{
   let d;try{d=await getDoc(doc(db,"presensiFoto",id))}catch(e){return alert("Foto gagal dimuat.")}
@@ -713,13 +725,16 @@ window.exportPresensi=()=>{
   const [y,mo]=b.split("-").map(Number),nd=new Date(y,mo,0).getDate();
   const g=$("pgGuru")?.value,gn=g?(rows[0]?.nama||""):"Semua guru";
   const s1=[["REKAP KEHADIRAN GURU"],["Bulan: "+b+" | "+gn+" | Clock In maks 06.45 | Clock Out mulai 12.10 | Radius "+PGL.radius+" m"],[],["No","Nama","ID Guru","Hari Hadir","Tepat Waktu","Terlambat (hari)","Total Menit Terlambat","Hari Izin","Pulang Awal","Belum Clock Out"],...rows.map((r,i)=>[i+1,r.nama,r.idGuru,r.hari.size,r.hari.size-r.telat.size,r.telat.size,r.menit,r.izin.size,r.awal.size,pgLupa(r)])];
+  const hr=pgHar();
+  const sj=[["JAM CLOCK IN / CLOCK OUT GURU"],["Bulan: "+b+" | "+gn+" | Clock In maks 06.45 | Clock Out mulai 12.10"],[],["No","Tanggal","Nama","ID Guru","Clock In","Clock Out","Keterangan"],...hr.map((r,i)=>[i+1,r.tgl,r.nama,r.idGuru,r.jamIn||"-",r.jamOut||"-",r.ket])];
+  const wj=XLSX.utils.aoa_to_sheet(sj);wj["!cols"]=[{wch:5},{wch:12},{wch:28},{wch:14},{wch:10},{wch:10},{wch:50}];
   const w1=XLSX.utils.aoa_to_sheet(s1);w1["!cols"]=[{wch:5},{wch:28},{wch:14},{wch:11},{wch:12},{wch:16},{wch:20},{wch:10},{wch:12},{wch:16}];
   const days=Array.from({length:nd},(_,i)=>i+1);
   const s2=[["REKAP HARIAN (H = hadir tepat waktu, T = terlambat, I = izin)"],[],["No","Nama",...days,"Hadir","Terlambat","Izin"],...rows.map((r,i)=>[i+1,r.nama,...days.map(d=>{const t=b+"-"+pgp(d);return r.izin.has(t)?"I":r.telat.has(t)?"T":r.hari.has(t)?"H":""}),r.hari.size,r.telat.size,r.izin.size])];
   const w2=XLSX.utils.aoa_to_sheet(s2);w2["!cols"]=[{wch:5},{wch:28},...days.map(()=>({wch:4})),{wch:8},{wch:10},{wch:8}];
-  const s3=[["Tanggal","Jam","Jenis","Status","Keterangan / Alasan","Nama","ID Guru","Kelas","Mata Pelajaran","Jarak dari Lokasi (m)","Akurasi GPS (m)","Latitude","Longitude"],...det.map(x=>pgIsIzin(x)?[x.tgl,"","Izin","Izin",x.ket||"",x.nama,x.idGuru,"","","","","",""]:[x.tgl,x.jam,pgIsOut(x)?"Clock Out":"Clock In",pgIsOut(x)?(x.pulangAwal?"Pulang awal":"Pulang"):(pgLate(x)?"Terlambat"+(x.telatMenit?" ("+x.telatMenit+" mnt)":""):"Tepat waktu"),x.alasan||"",x.nama,x.idGuru,x.kelas||"",x.mapel||"",x.jarak,x.akurasi,x.lat,x.lng])];
-  const w3=XLSX.utils.aoa_to_sheet(s3);w3["!cols"]=[{wch:12},{wch:8},{wch:11},{wch:22},{wch:40},{wch:28},{wch:14},{wch:10},{wch:24},{wch:20},{wch:15},{wch:12},{wch:12}];
-  const wb=XLSX.utils.book_new();XLSX.utils.book_append_sheet(wb,w1,"Rekap");XLSX.utils.book_append_sheet(wb,w2,"Rekap Harian");XLSX.utils.book_append_sheet(wb,w3,"Detail Presensi");
+  const s3=[["Tanggal","Jam","Jenis","Status","Keterangan / Alasan","Nama","ID Guru","Jarak dari Lokasi (m)","Akurasi GPS (m)","Latitude","Longitude"],...det.map(x=>pgIsIzin(x)?[x.tgl,"","Izin","Izin",x.ket||"",x.nama,x.idGuru,"","","",""]:[x.tgl,x.jam,pgIsOut(x)?"Clock Out":"Clock In",pgIsOut(x)?(x.pulangAwal?"Pulang awal":"Pulang"):(pgLate(x)?"Terlambat"+(x.telatMenit?" ("+x.telatMenit+" mnt)":""):"Tepat waktu"),x.alasan||"",x.nama,x.idGuru,x.jarak,x.akurasi,x.lat,x.lng])];
+  const w3=XLSX.utils.aoa_to_sheet(s3);w3["!cols"]=[{wch:12},{wch:8},{wch:11},{wch:22},{wch:40},{wch:28},{wch:14},{wch:20},{wch:15},{wch:12},{wch:12}];
+  const wb=XLSX.utils.book_new();XLSX.utils.book_append_sheet(wb,w1,"Rekap");XLSX.utils.book_append_sheet(wb,wj,"Jam Clock In-Out");XLSX.utils.book_append_sheet(wb,w2,"Rekap Harian");XLSX.utils.book_append_sheet(wb,w3,"Detail Presensi");
   XLSX.writeFile(wb,"Presensi_Guru_"+b+".xlsx");
 };
 
