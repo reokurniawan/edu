@@ -4,6 +4,14 @@
 <meta charset="UTF-8">
 <meta name="viewport" content="width=device-width, initial-scale=1">
 <title>MyIgi - MA Insan Generasi Islami</title>
+<meta name="theme-color" content="#0f5132">
+<link rel="manifest" href="manifest.json">
+<link rel="icon" type="image/png" href="icon-192.png">
+<link rel="apple-touch-icon" href="apple-touch-icon.png">
+<meta name="mobile-web-app-capable" content="yes">
+<meta name="apple-mobile-web-app-capable" content="yes">
+<meta name="apple-mobile-web-app-title" content="MyIgi">
+<meta name="apple-mobile-web-app-status-bar-style" content="default">
 <script src="https://cdn.tailwindcss.com"></script>
 <script src="https://cdnjs.cloudflare.com/ajax/libs/xlsx/0.18.5/xlsx.full.min.js"></script>
 <script src="https://cdnjs.cloudflare.com/ajax/libs/qrcode-generator/1.4.4/qrcode.min.js"></script>
@@ -74,6 +82,20 @@ input[type=month]{display:block;box-sizing:border-box;width:100%;min-width:0;-we
 canvas.sigpad{touch-action:none;width:100%;height:auto;border:1.5px dashed #94a3b8;border-radius:.75rem;background:#fff;cursor:crosshair;display:block}
 .ppband{background:linear-gradient(135deg,#fff8e6,#fdf1cf);border:1px solid #ecd9a0;border-radius:1.25rem}
 </style>
+<script>
+if('serviceWorker' in navigator){window.addEventListener('load',()=>navigator.serviceWorker.register('sw.js').catch(()=>{}));}
+// Tombol/permintaan instal (Chrome)
+window.__pwaPrompt=null;
+window.addEventListener('beforeinstallprompt',e=>{e.preventDefault();window.__pwaPrompt=e;document.dispatchEvent(new Event('pwa-ready'));});
+window.addEventListener('appinstalled',()=>{window.__pwaPrompt=null;const b=document.getElementById('pwaInstallBtn');if(b)b.remove();});
+window.installApp=async()=>{if(!window.__pwaPrompt)return;window.__pwaPrompt.prompt();await window.__pwaPrompt.userChoice;window.__pwaPrompt=null;const b=document.getElementById('pwaInstallBtn');if(b)b.remove();};
+document.addEventListener('pwa-ready',()=>{
+  if(document.getElementById('pwaInstallBtn'))return;
+  const b=document.createElement('button');b.id='pwaInstallBtn';b.textContent='📲 Instal Aplikasi';
+  b.style.cssText='position:fixed;right:16px;bottom:16px;z-index:90;background:#0f5132;color:#fff;border-radius:999px;padding:.7rem 1.2rem;font-weight:800;font-size:.85rem;box-shadow:0 8px 22px rgba(0,0,0,.25)';
+  b.onclick=window.installApp;document.body.appendChild(b);
+});
+</script>
 </head>
 <body>
 <div id="login">
