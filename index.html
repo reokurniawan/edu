@@ -219,7 +219,7 @@ document.addEventListener("keydown",e=>{if(e.key==="Escape")closeLogin();if(e.ke
 $("yr").textContent=new Date().getFullYear();
 window.doLogin=async()=>{
   const u=$("u").value.trim(),p=$("p").value.trim(),E=$("err");E.classList.add("hidden");
-  const fail=m=>{E.textContent=m;E.classList.remove("hidden");if(!saved)openLogin()};
+  const fail=m=>{E.textContent=m;E.classList.remove("hidden");sessionStorage.removeItem("me");openLogin()};
   const norm=v=>String(v??"").trim();
   try{
     let g=null,found=false;
@@ -241,7 +241,6 @@ window.doLogin=async()=>{
   start();
 };
 window.logout=()=>{sessionStorage.clear();location.reload()};
-if(saved){const s=JSON.parse(saved);$("u").value=s.u;$("p").value=s.p;doLogin()}
 
 const svg=p=>`<svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">${p}</svg>`;
 const IC={user:svg('<path d="M20 21v-2a4 4 0 0 0-4-4H8a4 4 0 0 0-4 4v2"/><circle cx="12" cy="7" r="4"/>'),
@@ -270,9 +269,15 @@ window.go=async n=>{
   if(window.vpStop)window.vpStop();
   tab=n;document.querySelectorAll(".tab").forEach(b=>b.classList.toggle("on",b.dataset.t===n));
   $("main").innerHTML='<p class="text-slate-500">Memuat…</p>';
-  if(isAdmin)siswa=await all("siswa");
   const hm=isAdmin?"Menu":"Beranda",back=n!==hm?`<button class="btn2 mb-3" onclick="go('${hm}')">← ${hm}</button>`:"";
-  $("main").innerHTML=back+await (isAdmin?A:S)[n]();
+  try{
+    if(isAdmin)siswa=await all("siswa");
+    $("main").innerHTML=back+await (isAdmin?A:S)[n]();
+  }catch(e){
+    console.error("Gagal memuat halaman:",e);
+    $("main").innerHTML=back+`<div class="card text-center space-y-2"><p class="font-bold">Halaman gagal dimuat</p><p class="text-sm text-slate-500">Periksa koneksi internet Anda, lalu coba lagi.</p><button class="btn" onclick="go('${n}')">Coba lagi</button></div>`;
+    return;
+  }
   if(isAdmin&&n==="Rekap")loadRekap();
   if(isAdmin&&n==="Presensi")loadPG();
   if(n==="Chat")initChat();
@@ -1279,6 +1284,9 @@ window.vpCek=async txt=>{
 };
 window.vpOk=async id=>{await updateDoc(doc(db,"ppdb",id),{status:"Terverifikasi"});const k=await getDoc(doc(db,"ppdb",id));vpCek("No: "+id+"\nKode: "+k.data().kode)};
 
+
+// Login otomatis dari sesi tersimpan: HARUS paling akhir agar semua fungsi/const sudah siap
+if(saved){try{const s=JSON.parse(saved);$("u").value=s.u;$("p").value=s.p;doLogin()}catch(e){sessionStorage.removeItem("me")}}
 </script>
 </body>
 </html>
