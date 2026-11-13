@@ -348,11 +348,15 @@ Notifikasi:async()=>{
   return list(p,x=>`<div class="card mb-2" style="border-left:4px solid var(--gold)"><div class="flex justify-between gap-2"><b>📢 ${esc(x.judul)}</b>${x.waktu>prev?'<span class="pill bg-rose-100 text-rose-700 h-fit">Baru</span>':""}</div><p class="text-sm mt-1 whitespace-pre-line">${esc(x.isi)}</p><div class="text-xs text-slate-500 mt-1">${fmtWaktu(x.waktu)}</div></div>`,"Belum ada pengumuman.");
 },
 Pembayaran:async()=>{
-  let d=null;try{const g=await getDoc(doc(db,"pembayaranData",me.nisn));if(g.exists())d=g.data()}catch(e){console.error(e)}
-  if(!d||!d.baris?.length)return `<div class="card mb-4"><h2 class="font-extrabold">💳 Informasi Pembayaran</h2></div>`+empty("Belum ada data pembayaran untuk Anda. Hubungi bagian administrasi jika ada pertanyaan.");
-  return `<div class="card mb-3"><h2 class="font-extrabold">💳 Informasi Pembayaran</h2><p class="text-xs text-slate-500 mt-1">${esc(me.nama)} · ${esc(me.kelas)}${d.updated?" · Diperbarui "+fmtWaktu(d.updated):""}</p></div>
-  <div class="card overflow-x-auto p-0"><table class="w-full text-sm whitespace-nowrap"><thead style="background:var(--g);color:#fff"><tr><th class="text-left p-3">No</th>${d.kolom.map(k=>`<th class="text-left p-3">${esc(k)}</th>`).join("")}</tr></thead><tbody>${d.baris.map((r,i)=>`<tr class="border-t"><td class="p-3">${i+1}</td>${r.v.map(c=>`<td class="p-3">${bayarCell(c)}</td>`).join("")}</tr>`).join("")}</tbody></table></div>
-  <p class="text-xs text-slate-500 mt-2">Data bersumber dari bagian administrasi madrasah. Jika ada ketidaksesuaian, hubungi admin.</p>`;
+  let d=null,u=null;
+  try{const [g,h]=await Promise.all([getDoc(doc(db,"pembayaranData",me.nisn)),getDoc(doc(db,"pengaturan","pembayaranUmum"))]);if(g.exists())d=g.data();if(h.exists())u=h.data()}catch(e){console.error(e)}
+  const pribadi=d&&d.baris?.length;
+  if(!u&&!pribadi)return `<div class="card mb-4"><h2 class="font-extrabold">💳 Informasi Pembayaran</h2></div>`+empty("Informasi pembayaran belum tersedia. Hubungi bagian administrasi jika ada pertanyaan.");
+  return `<div class="card mb-3"><h2 class="font-extrabold">💳 Informasi Pembayaran</h2><p class="text-xs text-slate-500 mt-1">${esc(me.nama)} · ${esc(me.kelas)}</p></div>`
+  +(u?umumHtml(u):"")
+  +(pribadi?`<h3 class="font-extrabold text-sm mt-4 mb-2">Tagihan & pembayaran Anda${d.updated?` <span class="text-xs font-normal text-slate-500">· diperbarui ${fmtWaktu(d.updated)}</span>`:""}</h3>
+  <div class="card overflow-x-auto p-0"><table class="w-full text-sm whitespace-nowrap"><thead style="background:var(--g);color:#fff"><tr><th class="text-left p-3">No</th>${d.kolom.map(k=>`<th class="text-left p-3">${esc(k)}</th>`).join("")}</tr></thead><tbody>${d.baris.map((r,i)=>`<tr class="border-t"><td class="p-3">${i+1}</td>${r.v.map(c=>`<td class="p-3">${bayarCell(c)}</td>`).join("")}</tr>`).join("")}</tbody></table></div>`:"")
+  +`<p class="text-xs text-slate-500 mt-2">Data bersumber dari bagian administrasi madrasah. Jika ada ketidaksesuaian, hubungi admin.</p>`;
 },
 LayananMandiri:async()=>{
   LTOPIK="";
@@ -369,6 +373,33 @@ Bantuan:async()=>{
   return `<div class="card space-y-2 mb-4"><h2 class="font-extrabold">Butuh bantuan?</h2><textarea id="bp" class="inp" rows="3" placeholder="Tulis pesan Anda"></textarea><button class="btn" onclick="kirimBantuan()">Kirim</button></div>`+list(b,x=>`<div class="card mb-2"><p>${esc(x.pesan)}</p>${x.balasan?`<p class="text-sm mt-2 p-2 rounded-lg" style="background:#e8f3ec"><b>Admin:</b> ${esc(x.balasan)}</p>`:'<p class="text-xs text-slate-400 mt-1">Menunggu balasan</p>'}</div>`,"Belum ada pesan.");
 }};
 
+const umumHtml=u=>(u.sheets||[]).map(sh=>{
+  const W=Math.max(1,...sh.rows.map(r=>r.c.reduce((a,x)=>a+(x.cs||1),0))),hd=sh.rows.slice(0,sh.nHead),bd=sh.rows.slice(sh.nHead);
+  const th=x=>`<th class="p-3 text-center" style="border:1px solid rgba(255,255,255,.35)" ${x.cs?`colspan="${x.cs}"`:""} ${x.rs?`rowspan="${x.rs}"`:""}>${esc(x.t)}</th>`;
+  const body=bd.map(r=>{const ne=r.c.filter(x=>x.t);
+    if(ne.length===1&&!ne[0].n)return `<tr class="border-t"><td colspan="${W}" class="p-3 text-xs text-slate-500">${esc(ne[0].t)}</td></tr>`;
+    const tot=r.c.some(x=>!x.n&&/^total/i.test(x.t));
+    return `<tr class="border-t" ${tot?'style="background:#f1efe6;font-weight:700"':""}>${r.c.map(x=>`<td class="p-3 ${x.n?"text-right whitespace-nowrap":""}" ${x.cs?`colspan="${x.cs}"`:""} ${x.rs?`rowspan="${x.rs}"`:""}>${esc(x.t)}</td>`).join("")}</tr>`}).join("");
+  return (sh.nama&&u.sheets.length>1?`<h3 class="font-extrabold text-sm mt-4 mb-2">${esc(sh.nama)}</h3>`:"")+`<div class="card overflow-x-auto p-0 mb-3"><table class="w-full text-sm"><thead style="background:var(--g);color:#fff">${hd.map(r=>`<tr>${r.c.map(th).join("")}</tr>`).join("")}</thead><tbody>${body}</tbody></table></div>`}).join("")+(u.waktu?`<p class="text-xs text-slate-500 -mt-1 mb-1">Diperbarui ${fmtWaktu(u.waktu)}</p>`:"");
+const fmtAngka=c=>{const v=c.v,z=c.z||"";if(/%/.test(z))return String(c.w??v);if(v===0)return /"-"/.test(z)?"-":"0";
+  return Number.isInteger(v)&&(Math.abs(v)>=10000||/#,##|0,0/.test(z))?v.toLocaleString("id-ID"):String(c.w??v)};
+const sheetRows=ws=>{if(!ws||!ws["!ref"])return null;
+  const rg=XLSX.utils.decode_range(ws["!ref"]),org={},cov=new Set(),rows=[];let nHead=-1;
+  (ws["!merges"]||[]).forEach(m=>{org[m.s.r+","+m.s.c]={cs:m.e.c-m.s.c+1,rs:m.e.r-m.s.r+1};for(let r=m.s.r;r<=m.e.r;r++)for(let c=m.s.c;c<=m.e.c;c++)if(r!==m.s.r||c!==m.s.c)cov.add(r+","+c)});
+  for(let r=rg.s.r;r<=rg.e.r;r++){const cells=[];let any=false,num=false;
+    for(let c=rg.s.c;c<=rg.e.c;c++){const k=r+","+c;if(cov.has(k))continue;
+      const cell=ws[XLSX.utils.encode_cell({r,c})];let t="",n=false;
+      if(cell&&cell.v!==undefined&&cell.v!==null&&cell.v!==""){if(cell.t==="n"){n=true;num=true;t=fmtAngka(cell)}else t=String(cell.w??cell.v).trim()}
+      if(t)any=true;const x={t};if(n)x.n=1;const o=org[k];if(o){if(o.cs>1)x.cs=o.cs;if(o.rs>1)x.rs=o.rs}cells.push(x)}
+    if(!any)continue;rows.push({c:cells});if(num&&nHead<0)nHead=rows.length-1}
+  return rows.length?{rows,nHead:nHead<0?1:nHead}:null};
+window.importUmum=async(wb,f)=>{
+  const sheets=wb.SheetNames.map(n=>{const r=sheetRows(wb.Sheets[n]);return r?{nama:n,...r}:null}).filter(Boolean);
+  if(!sheets.length)return alert("File kosong atau tidak terbaca. Data lama TIDAK diubah.");
+  if(!confirm("Isi file \""+f.name+"\" ("+sheets.length+" sheet) akan ditampilkan ke SEMUA akun siswa dan menggantikan rincian biaya sebelumnya.\n\nLanjutkan?"))return;
+  try{await setDoc(doc(db,"pengaturan","pembayaranUmum"),{file:f.name,waktu:new Date().toISOString(),sheets})}
+  catch(e){console.error(e);return alert("Gagal mengunggah ("+(e.code||e.message)+"). Jika file sangat besar, kecilkan isinya.")}
+  alert("Berhasil. Isi file sudah tampil di akun semua siswa.");go("Pembayaran")};
 const bayarCell=c=>{const t=esc(c);if(/^(lunas|sudah|paid)/i.test(c))return `<span class="pill bg-emerald-100 text-emerald-700">${t}</span>`;if(/(belum|tunggak|kurang|cicil)/i.test(c))return `<span class="pill bg-rose-100 text-rose-700">${t}</span>`;return t};
 const LAYANAN_TOPIK=[["Aduan Guru","👩‍🏫","Sampaikan aduan terkait guru"],["Konseling","💬","Ceritakan masalahmu untuk didampingi"],["Laporan Bullying","🛡️","Laporkan perundungan yang kamu alami atau lihat"]];
 let LTOPIK="",LAY=[],LQ={topik:"",status:""};
@@ -508,13 +539,15 @@ Prestasi:async()=>{const p=await all("prestasi");PRV=p;EDIT=null;
  return `<div class="card space-y-2 mb-4"><h2 id="pht" class="font-extrabold">Input prestasi</h2>${sel("ps")}<input id="pj" class="inp" placeholder="Nama prestasi"><input id="pk" class="inp" placeholder="Keterangan (juara, tingkat)"><input id="pt" type="date" class="inp" value="${today()}"><div class="flex gap-2"><button id="pbtn" class="btn" onclick="addPrestasi()">Simpan</button><button id="pcb" class="btn2 hidden" onclick="go('Prestasi')">Batal</button></div></div>`+list(p,x=>`<div class="card mb-2 flex justify-between gap-2"><div>🏆 <b>${esc(x.judul)}</b> - ${esc(x.nama)}<div class="text-xs text-slate-500">${esc(x.tgl)} - ${esc(x.ket)}</div></div><div class="flex flex-col gap-1"><button class="btn2" onclick="editPrestasi('${x.id}')">Edit</button><button class="btn2" onclick="hapus('prestasi','${x.id}','Prestasi')">Hapus</button></div></div>`,"Belum ada prestasi.")},
 Absensi:async()=>{const k=[...new Set(siswa.map(x=>x.kelas))].sort();
  return `<div class="card space-y-2 mb-4"><h2 class="font-extrabold">Absensi siswa</h2><div class="grid grid-cols-2 gap-2"><select id="ak" class="inp" onchange="loadAbsen()"><option value="">Pilih kelas</option>${k.map(x=>`<option>${esc(x)}</option>`).join("")}</select><input id="at" type="date" class="inp" value="${today()}" onchange="loadAbsen()"></div><p class="text-xs text-slate-500">Pilih kelas dan tanggal. Semua siswa otomatis Hadir, ubah hanya yang Sakit, Izin, atau Alpha, lalu simpan.</p></div><div id="ab"></div>`},
-Pembayaran:async()=>{let info={};try{const g=await getDoc(doc(db,"pengaturan","pembayaranInfo"));if(g.exists())info=g.data()}catch(e){}
+Pembayaran:async()=>{let info={},um=null;try{const [g,h]=await Promise.all([getDoc(doc(db,"pengaturan","pembayaranInfo")),getDoc(doc(db,"pengaturan","pembayaranUmum"))]);if(g.exists())info=g.data();if(h.exists())um=h.data()}catch(e){}
  PBV=(await all("pembayaranData")).map(d=>{const sx=sw(d.nisn);return{...d,nama:sx.nama||d.nama||"-",kelas:sx.kelas||d.kelas||"-"}}).sort((x,y)=>String(x.kelas).localeCompare(String(y.kelas),"id",{numeric:true})||String(x.nama).localeCompare(String(y.nama),"id"));PBK=info.kolom||[];
- return `<div class="card space-y-2 mb-4"><h2 class="font-extrabold">Upload data pembayaran (Excel)</h2>
- <p class="text-xs text-slate-500">File .xlsx/.csv dengan baris judul kolom yang memuat <b>NISN</b>. Kolom lain bebas (mis. Jenis Pembayaran, Tagihan, Dibayar, Sisa, Status) dan akan tampil apa adanya sebagai tabel di akun siswa. Satu siswa boleh punya banyak baris. Kolom <b>Nama</b> dan <b>Kelas</b> tidak ditampilkan ke siswa. <b class="text-rose-600">Upload akan MENGGANTI seluruh data pembayaran sebelumnya.</b></p>
- <input id="bf" type="file" accept=".xlsx,.xls,.csv" class="inp"><div class="flex flex-wrap gap-2"><button class="btn" onclick="importBayar()">Upload data pembayaran</button><button class="btn2" onclick="templateBayar()">⬇ Unduh template</button>${PBV.length?`<button class="btn2" onclick="hapusBayar()">Hapus semua data</button>`:""}</div>
- ${info.waktu?`<p class="text-xs text-slate-500">Terakhir upload: ${fmtWaktu(info.waktu)} · ${esc(info.file||"")} · ${info.siswa||0} siswa, ${info.baris||0} baris</p>`:""}</div>
- <input id="bq" class="inp mb-3" placeholder="🔍 Cari nama / NISN / kelas" oninput="filterBayar()"><div id="bt">${bayarTable()}</div>`},
+ return `<div class="card space-y-2 mb-4"><h2 class="font-extrabold">Upload file pembayaran (Excel)</h2>
+ <p class="text-xs text-slate-500">Cukup upload file Excel/CSV, tanpa template. <b>Jika file tidak punya kolom NISN</b> (mis. Rincian Biaya per kelas), seluruh isi file ditampilkan apa adanya ke <b>semua akun siswa</b>. <b>Jika ada kolom NISN</b>, tiap siswa hanya melihat barisnya sendiri. Upload baru menggantikan data jenis yang sama sebelumnya.</p>
+ <input id="bf" type="file" accept=".xlsx,.xls,.csv" class="inp"><div class="flex flex-wrap gap-2"><button class="btn" onclick="importBayar()">Upload file pembayaran</button>${um?`<button class="btn2" onclick="hapusUmum()">Hapus tampilan umum</button>`:""}${PBV.length?`<button class="btn2" onclick="hapusBayar()">Hapus data per siswa</button>`:""}</div>
+ ${info.waktu?`<p class="text-xs text-slate-500">Data per siswa terakhir: ${fmtWaktu(info.waktu)} · ${esc(info.file||"")} · ${info.siswa||0} siswa, ${info.baris||0} baris</p>`:""}</div>
+ ${um?`<h3 class="font-extrabold text-sm mb-2">Tampilan untuk semua siswa <span class="text-xs font-normal text-slate-500">· ${esc(um.file||"")}</span></h3>${umumHtml(um)}`:""}
+ ${PBV.length?`<h3 class="font-extrabold text-sm mt-4 mb-2">Data pembayaran per siswa</h3><input id="bq" class="inp mb-3" placeholder="🔍 Cari nama / NISN / kelas" oninput="filterBayar()"><div id="bt">${bayarTable()}</div>`:""}
+ ${!um&&!PBV.length?empty("Belum ada data pembayaran. Upload file Excel di atas."):""}`},
 LayananMandiri:async()=>{LAY=(await all("layanan")).sort((a,b)=>b.waktu>a.waktu?1:-1);LQ={topik:"",status:""};
  return `<h2 class="font-extrabold mb-2">Layanan Mandiri Siswa</h2><div class="grid grid-cols-2 gap-2 mb-3"><select id="lqt" class="inp" onchange="filterLayanan()"><option value="">Semua topik</option>${LAYANAN_TOPIK.map(t=>`<option>${t[0]}</option>`).join("")}</select><select id="lqs" class="inp" onchange="filterLayanan()"><option value="">Semua status</option><option>Belum Ditanggapi</option><option>Sudah Ditanggapi</option></select></div><div id="lyl">${layananList()}</div>`},
 Bantuan:async()=>list(await all("bantuan"),x=>`<div class="card mb-2"><b>${esc(x.nama)}</b><p class="text-sm">${esc(x.pesan)}</p><div class="flex gap-2 mt-2"><input id="r${x.id}" class="inp" placeholder="Balasan" value="${esc(x.balasan)}"><button class="btn" onclick="balas('${x.id}')">Kirim</button></div></div>`,"Belum ada pesan.")
@@ -544,8 +577,9 @@ const bayarTable=()=>{const q=key($("bq")?$("bq").value:"");const a=PBV.filter(x
   if(!rows.length)return empty(PBV.length?"Tidak ditemukan.":"Belum ada data pembayaran. Upload file Excel di atas.");
   return `<p class="text-xs text-slate-500 mb-2">${a.length} siswa, ${rows.length} baris${rows.length>lim?" (menampilkan "+lim+" pertama)":""}</p><div class="card overflow-x-auto p-0"><table class="w-full text-sm whitespace-nowrap"><thead style="background:var(--g);color:#fff"><tr><th class="text-left p-3">Nama</th><th class="text-left p-3">NISN</th><th class="text-left p-3">Kelas</th>${PBK.map(k=>`<th class="text-left p-3">${esc(k)}</th>`).join("")}</tr></thead><tbody>${rows.slice(0,lim).map(({x,r})=>`<tr class="border-t"><td class="p-3 font-semibold">${esc(x.nama)}</td><td class="p-3 font-mono">${esc(x.nisn)}</td><td class="p-3">${esc(x.kelas)}</td>${r.v.map(c=>`<td class="p-3">${esc(c)}</td>`).join("")}</tr>`).join("")}</tbody></table></div>`};
 window.filterBayar=()=>{$("bt").innerHTML=bayarTable()};
-window.templateBayar=()=>{const ws=XLSX.utils.aoa_to_sheet([["NISN","Nama","Kelas","Jenis Pembayaran","Tagihan","Dibayar","Sisa","Status","Keterangan"],["0012345678","Contoh Siswa","10-A","SPP Oktober",150000,100000,50000,"Belum Lunas","Cicilan 1"],["0012345678","Contoh Siswa","10-A","SPP November",150000,150000,0,"Lunas",""]]);ws["!cols"]=[{wch:14},{wch:24},{wch:8},{wch:20},{wch:12},{wch:12},{wch:12},{wch:14},{wch:22}];
-  const wb=XLSX.utils.book_new();XLSX.utils.book_append_sheet(wb,ws,"Pembayaran");XLSX.writeFile(wb,"Template_Pembayaran.xlsx")};
+window.hapusUmum=async()=>{if(!confirm("Hapus tampilan pembayaran untuk semua siswa?"))return;
+  try{await deleteDoc(doc(db,"pengaturan","pembayaranUmum"))}catch(e){return alert("Gagal menghapus ("+(e.code||e.message)+")")}
+  go("Pembayaran")};
 window.hapusBayar=async()=>{if(!confirm("Hapus SEMUA data pembayaran? Tabel di akun siswa akan kosong."))return;
   try{const old=(await getDocs(collection(db,"pembayaranData"))).docs;let b=writeBatch(db),n=0;for(const d of old){b.delete(d.ref);if(++n%400===0){await b.commit();b=writeBatch(db)}}await b.commit();await deleteDoc(doc(db,"pengaturan","pembayaranInfo"))}
   catch(e){return alert("Gagal menghapus ("+(e.code||e.message)+")")}
@@ -556,7 +590,7 @@ window.importBayar=async()=>{const f=$("bf").files[0];if(!f)return alert("Pilih 
     const wb=XLSX.read(await f.arrayBuffer(),{type:"array"});
     const aoa=XLSX.utils.sheet_to_json(wb.Sheets[wb.SheetNames[0]],{header:1,raw:false,defval:"",blankrows:false});
     const hr=aoa.findIndex(r=>r.some(c=>/^nisn$/i.test(nz(c))));
-    if(hr<0)return alert("Kolom NISN tidak ditemukan. Data lama TIDAK diubah. Gunakan template agar format sesuai.");
+    if(hr<0)return importUmum(wb,f);
     const head=aoa[hr].map(nz),ni=head.findIndex(h=>/^nisn$/i.test(h)),nmI=head.findIndex(h=>/^nama(\s*lengkap)?$/i.test(h)),klI=head.findIndex(h=>/^kelas$/i.test(h));
     const idx=head.map((h,i)=>i).filter(i=>head[i]&&i!==ni&&i!==nmI&&i!==klI);
     if(!idx.length)return alert("Tidak ada kolom informasi pembayaran selain NISN. Data lama TIDAK diubah.");
