@@ -479,7 +479,10 @@ Pembayaran:async()=>{const p=(await all("pembayaran")).sort((a,b)=>b.tgl>a.tgl?1
 Bantuan:async()=>list(await all("bantuan"),x=>`<div class="card mb-2"><b>${esc(x.nama)}</b><p class="text-sm">${esc(x.pesan)}</p><div class="flex gap-2 mt-2"><input id="r${x.id}" class="inp" placeholder="Balasan" value="${esc(x.balasan)}"><button class="btn" onclick="balas('${x.id}')">Kirim</button></div></div>`,"Belum ada pesan.")
 };
 const sw=n=>siswa.find(s=>s.nisn===n)||{};
-window.hapus=async(c,id,t)=>{if(confirm("Hapus data ini?")){await deleteDoc(doc(db,c,id));go(t)}};
+window.hapus=async(c,id,t)=>{let n="data ini";if(c==="siswa"){const x=siswa.find(v=>v.id===id);if(x)n="siswa "+x.nama+" (NISN "+x.nisn+", kelas "+x.kelas+")"}
+  if(!confirm("Hapus "+n+"? Tindakan ini tidak bisa dibatalkan."))return;
+  try{await deleteDoc(doc(db,c,id))}catch(e){return alert("Gagal menghapus ("+(e.code||e.message)+")")}
+  go(t)};
 const pickSiswa=nisn=>{$("psq").value="";cariSiswa("ps");$("ps").value=nisn;return $("ps").value===nisn};
 const modeEdit=t=>{$("pht").textContent=t;$("pbtn").textContent="Simpan perubahan";$("pcb").classList.remove("hidden");window.scrollTo({top:0,behavior:"smooth"})};
 window.editPel=id=>{const x=PELV.find(v=>v.id===id);if(!x)return;if(!pickSiswa(x.nisn))return alert("Siswa ini sudah tidak ada di data siswa.");
@@ -890,7 +893,7 @@ const pgMnt=s=>{const[a,b]=String(s||"0:0").split(":");return(+a)*60+(+b)},pgNow
 const pgIsIzin=x=>x.status==="Izin",pgIsOut=x=>x.jenis==="pulang",pgIsIn=x=>!pgIsIzin(x)&&!pgIsOut(x);
 const pgLate=x=>pgIsIn(x)&&(x.terlambat!==undefined?x.terlambat:pgMnt(x.jam)>PG_IN_M);
 const pgLupa=r=>[...r.hari].filter(t=>!r.out.has(t)&&t<pgYmd(new Date())).length;
-const pgSelf=()=>key(me.idGuru||("admin"+me.nama)),PG_ACC=300; // akurasi GPS maksimal (meter) agar lokasi dianggap valid
+const pgSelf=()=>key(me.idGuru||("admin"+me.nama)),PG_ACC=100; // akurasi GPS maksimal (meter) agar lokasi dianggap valid
 const pgp=n=>String(n).padStart(2,"0");
 const pgYmd=d=>d.getFullYear()+"-"+pgp(d.getMonth()+1)+"-"+pgp(d.getDate());
 const hav=(la1,ln1,la2,ln2)=>{const R=6371000,r=x=>x*Math.PI/180,a=Math.sin(r(la2-la1)/2)**2+Math.cos(r(la1))*Math.cos(r(la2))*Math.sin(r(ln2-ln1)/2)**2;return 2*R*Math.asin(Math.sqrt(a))};
@@ -899,9 +902,8 @@ const parseKoord=s=>{s=String(s||"").trim();const pp=parsePlus(s);if(pp)return p
   if(!m)return null;const lat=+m[1],lng=+m[2];return Math.abs(lat)<=90&&Math.abs(lng)<=180?{lat,lng}:null};
 const OLC="23456789CFGHJMPQRVWX";
 const parsePlus=s=>{const m=String(s||"").toUpperCase().match(/([23456789CFGHJMPQRVWX]{8}\+[23456789CFGHJMPQRVWX]{2})/);if(!m)return null;const c=m[1].replace("+","");let la=-90,ln=-180,r=20;for(let i=0;i<10;i+=2){la+=OLC.indexOf(c[i])*r;ln+=OLC.indexOf(c[i+1])*r;if(i<8)r/=20}return{lat:+(la+r/2).toFixed(7),lng:+(ln+r/2).toFixed(7)}};
-// Lokasi bawaan (Plus Code 6P5M3G5Q+2P); admin bisa mengubahnya di menu Presensi Guru
-// Lokasi absen TETAP (tidak bisa diubah dari aplikasi). Lintang 6°55'58.591"S
-const PG_LAT=-(6+55/60+58.591/3600),PG_LNG=113.5393125; // PG_LNG: bujur lokasi, ganti jika berbeda
+// Lokasi absen guru TETAP: MA Insan Generasi Islami, Plus Code 6P5M3G5Q+2Q7 (Waru, Pamekasan). Radius 300 m.
+const PG_LAT=-6.9424625,PG_LNG=113.5394219;
 let PGL=Object.freeze({lat:PG_LAT,lng:PG_LNG,radius:300,nama:"Lokasi madrasah"}),pgJ="masuk",PGT=[],PGV=[],PGG=[],pgStream=null,pgPos=null,pgFoto="";
 const getLokasi=async()=>PGL;
 window.pgStop=()=>{if(pgStream){pgStream.getTracks().forEach(t=>t.stop());pgStream=null}};
