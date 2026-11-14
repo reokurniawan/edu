@@ -517,7 +517,7 @@ window.editGuru=id=>{const x=GURUV.find(v=>v.id===id);if(!x)return;
   modal(`<h3 class="font-extrabold">Edit akun guru / staf</h3>`
    +lbl("ID Guru (tidak dapat diubah)",`<input class="inp" value="${esc(x.idGuru||x.id)}" disabled>`)
    +lbl("Nama",`<input id="egn" class="inp" value="${esc(x.nama||"")}">`)
-   +lbl("Role",`<select id="egr" class="inp"><option value="guru" ${normRole(x.role)==="guru"?"selected":""}>Guru (Akademik, Kegiatan, Chat)</option><option value="staf" ${normRole(x.role)==="staf"?"selected":""}>Staf (fitur sama seperti Guru)</option><option value="admin" ${normRole(x.role)==="admin"?"selected":""}>Admin (semua fitur)</option></select>`)
+   +lbl("Role",`<select id="egr" class="inp"><option value="guru" ${normRole(x.role)==="guru"?"selected":""}>Guru (Akademik, Kegiatan, Chat, Slip Gaji & Guru Pengganti)</option><option value="staf" ${normRole(x.role)==="staf"?"selected":""}>Staf (fitur sama seperti Guru)</option><option value="admin" ${normRole(x.role)==="admin"?"selected":""}>Admin (semua fitur)</option></select>`)
    +lbl("Status sertifikasi",`<select id="egs2" class="inp"><option value="" ${!normSert(x.sertifikasi)?"selected":""}>Belum diisi</option><option ${normSert(x.sertifikasi)==="Sertifikasi"?"selected":""}>Sertifikasi</option><option ${normSert(x.sertifikasi)==="Inpassing"?"selected":""}>Inpassing</option><option ${normSert(x.sertifikasi)==="Non Sertifikasi"?"selected":""}>Non Sertifikasi</option></select>`)
    +lbl("Tanggal lahir",`<input id="egt" type="date" class="inp" value="${esc(x.tglLahir||"")}" data-prev="${esc(x.tglLahir||"")}" oninput="gSync()">`)
    +lbl("Sandi login (otomatis ikut tanggal lahir ddmmyyyy, boleh diubah)",`<input id="egs" class="inp font-mono" value="${esc(x.sandi||"")}">`)
@@ -868,7 +868,7 @@ const gv=(r,k)=>r[Object.keys(r).find(h=>h.toLowerCase().includes(k))]??"";
 window.setRole=async(id,role)=>{
   if(isGuruRole())return;
   if(role!=="admin"&&key(me.idGuru)===id)return alert("Anda tidak bisa menurunkan role akun yang sedang dipakai.");
-  if(!confirm("Ubah role akun ini menjadi "+(role==="admin"?"Admin (akses semua fitur)":roleLbl(role)+" (hanya Akademik, Kegiatan Madrasah, Grup Chat)")+"?"))return;
+  if(!confirm("Ubah role akun ini menjadi "+(role==="admin"?"Admin (akses semua fitur)":roleLbl(role)+" (Akademik, Slip Gaji, Guru Pengganti, Kegiatan Madrasah, Grup Chat)")+"?"))return;
   await updateDoc(doc(db,"guru",id),{role});go("Guru");
 };
 window.importGuru=async()=>{
@@ -2029,9 +2029,10 @@ A.Pengganti=async()=>{
   return `<div class="card space-y-2 mb-4"><h2 class="font-extrabold">🔁 Guru pengganti jam kosong</h2>
   <p class="text-xs text-slate-500">Catat bila guru berhalangan hadir dan jam pelajarannya diganti guru lain. Guru pengganti mendapat tarif pengganti jam kosong (dengan syarat mengisi jurnal pada sesi tersebut), dan sesi tersebut tidak dihitung sebagai jam mengajar guru yang berhalangan. ${isGuruRole()?"Pengajuan dari guru menunggu persetujuan admin.":"Pengajuan yang Anda buat langsung disetujui."}</p>
   <div><label class="text-xs text-slate-500">Tanggal</label><input id="pnTgl" type="date" class="inp" value="${tg}" onchange="pnRefresh()"></div>
-  <div><label class="text-xs text-slate-500">Guru yang berhalangan</label><select id="pnAsal" class="inp" onchange="pnRefresh()" ${locked?"disabled":""}>${locked?"":'<option value="">Pilih guru</option>'}${opt(locked?[mine]:GURUV,mine&&mine.id)}</select></div>
+  ${locked?`<div><label class="text-xs text-slate-500">Peran Anda pada sesi ini</label><select id="pnPeran" class="inp" onchange="pnPeran()"><option value="abs">Saya guru yang berhalangan</option><option value="pen">Saya guru pengganti</option></select></div>`:""}<div><label class="text-xs text-slate-500">Guru yang berhalangan</label><select id="pnAsal" class="inp" onchange="pnRefresh()" ${locked?"disabled":""}><option value="">Pilih guru</option>${opt(GURUV,locked?mine.id:"")}</select></div>
   <div><label class="text-xs text-slate-500">Sesi yang digantikan</label><div id="pnSesi" class="space-y-1"></div></div>
   <div><label class="text-xs text-slate-500">Guru pengganti</label><select id="pnPeng" class="inp"><option value="">Pilih guru pengganti</option>${opt(GURUV)}</select></div>
+  <div id="pnJur" class="space-y-2 ${locked?"hidden":""}"><div id="pnJurT" class="text-xs text-slate-500">Jurnal guru pengganti (opsional). Jika dikosongkan, guru pengganti bisa mengisinya nanti. Jurnal yang sama dipakai untuk semua sesi yang dicentang.</div><textarea id="pnJm" class="inp" rows="2" placeholder="Materi / topik yang diajarkan"></textarea><textarea id="pnJt" class="inp" rows="2" placeholder="Tujuan pembelajaran (opsional)"></textarea><textarea id="pnJc" class="inp" rows="2" placeholder="Catatan / kendala (opsional)"></textarea></div>
   <div class="grid grid-cols-2 gap-2"><select id="pnAlasan" class="inp"><option>Sakit</option><option>Izin</option><option>Dinas luar</option><option>Keperluan keluarga</option><option>Lainnya</option></select><input id="pnKet" class="inp" placeholder="Keterangan (opsional)"></div>
   <button class="btn w-full" onclick="pnSimpan()">${isGuruRole()?"Ajukan guru pengganti":"Simpan guru pengganti"}</button></div>
   <div class="card mb-4 grid grid-cols-2 gap-2"><input id="pnBulan" type="month" class="inp" value="${tg.slice(0,7)}" onchange="pnRender()"><select id="pnSt" class="inp" onchange="pnRender()"><option value="">Semua status</option><option>Menunggu</option><option>Disetujui</option><option>Ditolak</option></select></div>
@@ -2044,8 +2045,9 @@ window.pnRefresh=async()=>{const gid=$("pnAsal").value,t=$("pnTgl").value;
 window.pnSimpan=async()=>{const asal=GURUV.find(x=>x.id===$("pnAsal").value),peng=GURUV.find(x=>x.id===$("pnPeng").value),t=$("pnTgl").value;
   if(!asal)return alert("Pilih guru yang berhalangan.");if(!peng)return alert("Pilih guru pengganti.");if(peng.id===asal.id)return alert("Guru pengganti tidak boleh sama dengan guru yang berhalangan.");
   const ck=[...document.querySelectorAll(".pnCk:checked")].map(c=>PGSES[+c.value]);if(!ck.length)return alert("Centang minimal satu sesi yang digantikan.");
-  const status=isGuruRole()?"Menunggu":"Disetujui";
-  try{for(const s of ck)await addDoc(collection(db,"guruPengganti"),{tgl:t,guruAsalId:asal.id,guruAsal:asal.nama||asal.idGuru,penggantiId:peng.id,pengganti:peng.nama||peng.idGuru,sesiKey:s.key,jam:s.jam,kelasId:s.kelasId,kelas:s.kelas,mapel:s.mapel,alasan:$("pnAlasan").value,ket:$("pnKet").value.trim(),status,dibuat:new Date().toISOString(),oleh:me.nama})}
+  const status=isGuruRole()?"Menunggu":"Disetujui",penMode=!!$("pnPeran")&&$("pnPeran").value==="pen",jm=$("pnJm").value.trim(),jurnal=(penMode||!isGuruRole())&&jm?{materi:jm,tujuan:$("pnJt").value.trim(),catatan:$("pnJc").value.trim()}:null;
+  if(penMode&&!jurnal)return alert("Isi jurnal dulu: materi yang Anda ajarkan sebagai guru pengganti wajib diisi.");
+  try{for(const s of ck){await addDoc(collection(db,"guruPengganti"),{tgl:t,guruAsalId:asal.id,guruAsal:asal.nama||asal.idGuru,penggantiId:peng.id,pengganti:peng.nama||peng.idGuru,sesiKey:s.key,jam:s.jam,kelasId:s.kelasId,kelas:s.kelas,mapel:s.mapel,alasan:$("pnAlasan").value,ket:$("pnKet").value.trim(),status,jurnal,dibuat:new Date().toISOString(),oleh:me.nama});if(status==="Disetujui"&&jurnal)await pnBuatJurnal({tgl:t,jam:s.jam,kelasId:s.kelasId,mapel:s.mapel,pengganti:peng.nama||peng.idGuru,penggantiId:peng.id,sesiKey:s.key,guruAsal:asal.nama||asal.idGuru,jurnal})}}
   catch(e){return alert("Gagal menyimpan ("+(e.code||e.message)+")")}
   alert(status==="Menunggu"?"Pengajuan terkirim, menunggu persetujuan admin.":"Guru pengganti tersimpan.");go("Pengganti")};
 window.pnRender=async()=>{const out=$("pnOut");if(!out)return;const b=$("pnBulan").value,st=$("pnSt").value;
@@ -2060,9 +2062,20 @@ window.pnRender=async()=>{const out=$("pnOut");if(!out)return;const b=$("pnBulan
     return `<div class="card mb-2"><div class="flex justify-between gap-2"><div><b>${esc(x.mapel)}</b> <span class="pill bg-emerald-100 text-emerald-700">${esc(x.kelas)}</span><div class="text-xs text-slate-500">${fmtTgl(x.tgl)} · ${esc(x.jam)}</div></div><span class="pill h-fit ${pnStat[x.status]||"bg-slate-100"}">${esc(x.status)}</span></div>
     <div class="text-sm mt-1"><b>${esc(x.guruAsal)}</b> → diganti <b>${esc(x.pengganti)}</b></div><div class="text-xs text-slate-500">${esc(x.alasan||"")}${x.ket?" · "+esc(x.ket):""}</div>
     ${x.status==="Disetujui"?`<div class="text-xs mt-1 ${isi?"text-emerald-700":"text-rose-600"}">${isi?"✓ Jurnal pengganti sudah diisi":"⚠ Guru pengganti belum mengisi jurnal (belum dibayar)"}</div>`:""}
+    ${x.status==="Menunggu"&&x.jurnal?`<div class="text-xs mt-1 text-emerald-700">✓ Jurnal pengganti sudah dilampirkan, tercatat otomatis saat disetujui</div>`:""}
     ${x.status==="Disetujui"&&isi?`<div class="mt-2 p-2 rounded-lg text-xs whitespace-pre-line" style="background:#f0fdf4"><b>Materi:</b> ${esc(jr.materi)}${jr.tujuan?"\n<b>Tujuan:</b> "+esc(jr.tujuan):""}${jr.catatan?"\n<b>Catatan:</b> "+esc(jr.catatan):""}</div>`:""}
     <div class="flex flex-wrap gap-2 mt-2">${x.status==="Disetujui"&&canJ&&!isi?`<button class="btn" onclick="pnJurnal('${x.id}')">📓 Isi jurnal pengganti</button>`:""}${!isGuruRole()&&x.status==="Menunggu"?`<button class="btn" onclick="pnSet('${x.id}','Disetujui')">Setujui</button><button class="btn2" onclick="pnSet('${x.id}','Ditolak')">Tolak</button>`:""}${can?`<button class="btn2" onclick="pnHapus('${x.id}')">Hapus</button>`:""}</div></div>`},"Belum ada catatan guru pengganti.")};
-window.pnSet=async(id,status)=>{try{await updateDoc(doc(db,"guruPengganti",id),{status,diputuskan:me.nama})}catch(e){return alert("Gagal ("+(e.code||e.message)+")")}pnRender()};
+window.pnSet=async(id,status)=>{try{await updateDoc(doc(db,"guruPengganti",id),{status,diputuskan:me.nama});if(status==="Disetujui"){const x=PGN.find(p=>p.id===id);if(x)await pnBuatJurnal(x)}}catch(e){return alert("Gagal ("+(e.code||e.message)+")")}pnRender()};
+const pnBuatJurnal=async x=>{const j=x.jurnal;if(!j||!j.materi)return;
+  const dup=await getDocs(query(collection(db,"jurnal"),where("tgl","==",x.tgl)));
+  if(dup.docs.some(d=>{const v=d.data();return v.guruId===x.penggantiId&&(v.sesi===x.sesiKey||kelasNorm(v.kelas)===x.kelasId)}))return;
+  await addDoc(collection(db,"jurnal"),{tgl:x.tgl,jam:x.jam,kelas:x.kelasId,mapel:x.mapel,guru:x.pengganti,guruId:x.penggantiId,materi:j.materi,tujuan:j.tujuan||"",catatan:j.catatan||"",sesi:x.sesiKey,pengganti:true,menggantikan:x.guruAsal,dibuat:new Date().toISOString()})};
+window.pnPeran=()=>{const pen=$("pnPeran").value==="pen",mid=key(me.idGuru||"");
+  $("pnAsal").disabled=!pen;$("pnPeng").disabled=pen;
+  $("pnAsal").value=pen?"":mid;$("pnPeng").value=pen?mid:"";
+  $("pnJur").classList.toggle("hidden",!pen);
+  $("pnJurT").textContent=pen?"Jurnal wajib diisi oleh guru pengganti. Jurnal yang sama dipakai untuk semua sesi yang dicentang.":"";
+  pnRefresh()};
 window.pnJurnal=id=>{const x=PGN.find(p=>p.id===id);if(!x)return;
   modal(`<h3 class="font-extrabold">📓 Jurnal guru pengganti</h3><p class="text-xs text-slate-500 mt-1">${esc(x.mapel)} · ${esc(x.kelas)} · ${fmtTgl(x.tgl)} · ${esc(x.jam)}<br>Menggantikan ${esc(x.guruAsal)} · pengajar: ${esc(x.pengganti)}</p>`
    +lbl("Materi / topik yang diajarkan",`<textarea id="pjMateri" class="inp" rows="2" placeholder="Wajib diisi"></textarea>`)
