@@ -348,11 +348,13 @@ Notifikasi:async()=>{
   return list(p,x=>`<div class="card mb-2" style="border-left:4px solid var(--gold)"><div class="flex justify-between gap-2"><b>📢 ${esc(x.judul)}</b>${x.waktu>prev?'<span class="pill bg-rose-100 text-rose-700 h-fit">Baru</span>':""}</div><p class="text-sm mt-1 whitespace-pre-line">${esc(x.isi)}</p><div class="text-xs text-slate-500 mt-1">${fmtWaktu(x.waktu)}</div></div>`,"Belum ada pengumuman.");
 },
 Pembayaran:async()=>{
-  let d=null,u=null;
+  let d=null,u=null,cat=[];
   try{const [g,h]=await Promise.all([getDoc(doc(db,"pembayaranData",me.nisn)),getDoc(doc(db,"pengaturan","pembayaranUmum"))]);if(g.exists())d=g.data();if(h.exists())u=h.data()}catch(e){console.error(e)}
+  try{cat=(await getDocs(query(collection(db,"pembayaranCatatan"),where("nisn","==",me.nisn)))).docs.map(x=>({id:x.id,...x.data()})).sort((a,b)=>String(a.jenis).localeCompare(String(b.jenis),"id",{numeric:true}))}catch(e){console.error(e)}
   const pribadi=d&&d.baris?.length;
-  if(!u&&!pribadi)return `<div class="card mb-4"><h2 class="font-extrabold">💳 Informasi Pembayaran</h2></div>`+empty("Informasi pembayaran belum tersedia. Hubungi bagian administrasi jika ada pertanyaan.");
+  if(!u&&!pribadi&&!cat.length)return `<div class="card mb-4"><h2 class="font-extrabold">💳 Informasi Pembayaran</h2></div>`+empty("Informasi pembayaran belum tersedia. Hubungi bagian administrasi jika ada pertanyaan.");
   return `<div class="card mb-3"><h2 class="font-extrabold">💳 Informasi Pembayaran</h2><p class="text-xs text-slate-500 mt-1">${esc(me.nama)} · ${esc(me.kelas)}</p></div>`
+  +catHtml(cat)
   +(u?umumHtml(u):"")
   +(pribadi?`<h3 class="font-extrabold text-sm mt-4 mb-2">Tagihan & pembayaran Anda${d.updated?` <span class="text-xs font-normal text-slate-500">· diperbarui ${fmtWaktu(d.updated)}</span>`:""}</h3>
   <div class="card overflow-x-auto p-0"><table class="w-full text-sm whitespace-nowrap"><thead style="background:var(--g);color:#fff"><tr><th class="text-left p-3">No</th>${d.kolom.map(k=>`<th class="text-left p-3">${esc(k)}</th>`).join("")}</tr></thead><tbody>${d.baris.map((r,i)=>`<tr class="border-t"><td class="p-3">${i+1}</td>${r.v.map(c=>`<td class="p-3">${bayarCell(c)}</td>`).join("")}</tr>`).join("")}</tbody></table></div>`:"")
@@ -373,6 +375,12 @@ Bantuan:async()=>{
   return `<div class="card space-y-2 mb-4"><h2 class="font-extrabold">Butuh bantuan?</h2><textarea id="bp" class="inp" rows="3" placeholder="Tulis pesan Anda"></textarea><button class="btn" onclick="kirimBantuan()">Kirim</button></div>`+list(b,x=>`<div class="card mb-2"><p>${esc(x.pesan)}</p>${x.balasan?`<p class="text-sm mt-2 p-2 rounded-lg" style="background:#e8f3ec"><b>Admin:</b> ${esc(x.balasan)}</p>`:'<p class="text-xs text-slate-400 mt-1">Menunggu balasan</p>'}</div>`,"Belum ada pesan.");
 }};
 
+const catHtml=c=>{if(!c.length)return"";
+  const T=c.reduce((n,x)=>n+(+x.tagihan||0),0),B=c.reduce((n,x)=>n+(+x.dibayar||0),0),K=c.reduce((n,x)=>n+pyKurang(x),0),kur=c.filter(x=>pyKurang(x)>0),lun=c.filter(x=>pyStat(x)[0]==="Lunas");
+  return `<div class="grid grid-cols-3 gap-2 mb-3"><div class="card text-center"><div class="text-[11px] text-slate-500">Total tagihan</div><b class="text-sm">${rp(T)}</b></div><div class="card text-center"><div class="text-[11px] text-slate-500">Sudah dibayar</div><b class="text-sm text-emerald-700">${rp(B)}</b></div><div class="card text-center"><div class="text-[11px] text-slate-500">Kekurangan</div><b class="text-sm ${K?"text-rose-600":"text-emerald-700"}">${rp(K)}</b></div></div>`
+  +(lun.length?`<div class="card mb-3" style="border-left:4px solid #16a34a"><b class="text-sm text-emerald-700">✅ Sudah dibayar lunas</b><div class="text-sm mt-1">${lun.map(x=>esc(x.jenis)).join(", ")}</div></div>`:"")
+  +(K>0?`<div class="card mb-3" style="border-left:4px solid #e11d48"><b class="text-sm text-rose-600">⚠️ Masih ada kekurangan</b><div class="text-sm mt-1 space-y-0.5">${kur.map(x=>`<div>${esc(x.jenis)}: kurang <b>${rp(pyKurang(x))}</b>${+x.dibayar>0?` <span class="text-xs text-slate-500">(sudah bayar ${rp(x.dibayar)} dari ${rp(x.tagihan)})</span>`:""}</div>`).join("")}</div></div>`:`<div class="card mb-3" style="border-left:4px solid #16a34a"><b class="text-sm text-emerald-700">Seluruh tagihan sudah lunas. Terima kasih 🙏</b></div>`)
+  +`<div class="card overflow-x-auto p-0 mb-3"><table class="w-full text-sm whitespace-nowrap"><thead style="background:var(--g);color:#fff"><tr><th class="text-left p-3">Jenis</th><th class="text-right p-3">Tagihan</th><th class="text-right p-3">Dibayar</th><th class="text-right p-3">Kurang</th><th class="p-3">Status</th><th class="text-left p-3">Tgl bayar</th><th class="text-left p-3">Keterangan</th></tr></thead><tbody>${c.map(x=>{const [t,cl]=pyStat(x);return `<tr class="border-t"><td class="p-3 font-semibold">${esc(x.jenis)}</td><td class="p-3 text-right">${rp(x.tagihan)}</td><td class="p-3 text-right">${rp(x.dibayar)}</td><td class="p-3 text-right ${pyKurang(x)?"text-rose-600 font-bold":""}">${rp(pyKurang(x))}</td><td class="p-3 text-center"><span class="pill ${cl}">${t}</span></td><td class="p-3">${x.tgl&&+x.dibayar>0?fmtTgl(x.tgl):"-"}</td><td class="p-3">${esc(x.ket||"")}</td></tr>`}).join("")}</tbody></table></div>`};
 const umumHtml=u=>(u.sheets||[]).map(sh=>{
   const W=Math.max(1,...sh.rows.map(r=>r.c.reduce((a,x)=>a+(x.cs||1),0))),hd=sh.rows.slice(0,sh.nHead),bd=sh.rows.slice(sh.nHead);
   const th=x=>`<th class="p-3 text-center" style="border:1px solid rgba(255,255,255,.35)" ${x.cs?`colspan="${x.cs}"`:""} ${x.rs?`rowspan="${x.rs}"`:""}>${esc(x.t)}</th>`;
@@ -540,14 +548,14 @@ Prestasi:async()=>{const p=await all("prestasi");PRV=p;EDIT=null;
 Absensi:async()=>{const k=[...new Set(siswa.map(x=>x.kelas))].sort();
  return `<div class="card space-y-2 mb-4"><h2 class="font-extrabold">Absensi siswa</h2><div class="grid grid-cols-2 gap-2"><select id="ak" class="inp" onchange="loadAbsen()"><option value="">Pilih kelas</option>${k.map(x=>`<option>${esc(x)}</option>`).join("")}</select><input id="at" type="date" class="inp" value="${today()}" onchange="loadAbsen()"></div><p class="text-xs text-slate-500">Pilih kelas dan tanggal. Semua siswa otomatis Hadir, ubah hanya yang Sakit, Izin, atau Alpha, lalu simpan.</p></div><div id="ab"></div>`},
 Pembayaran:async()=>{let info={},um=null;try{const [g,h]=await Promise.all([getDoc(doc(db,"pengaturan","pembayaranInfo")),getDoc(doc(db,"pengaturan","pembayaranUmum"))]);if(g.exists())info=g.data();if(h.exists())um=h.data()}catch(e){}
- PBV=(await all("pembayaranData")).map(d=>{const sx=sw(d.nisn);return{...d,nama:sx.nama||d.nama||"-",kelas:sx.kelas||d.kelas||"-"}}).sort((x,y)=>String(x.kelas).localeCompare(String(y.kelas),"id",{numeric:true})||String(x.nama).localeCompare(String(y.nama),"id"));PBK=info.kolom||[];
- return `<div class="card space-y-2 mb-4"><h2 class="font-extrabold">Upload file pembayaran (Excel)</h2>
+ PBV=(await all("pembayaranData")).map(d=>{const sx=sw(d.nisn);return{...d,nama:sx.nama||d.nama||"-",kelas:sx.kelas||d.kelas||"-"}}).sort((x,y)=>String(x.kelas).localeCompare(String(y.kelas),"id",{numeric:true})||String(x.nama).localeCompare(String(y.nama),"id"));PBK=info.kolom||[];PYE=null;PYR=await all("pembayaranCatatan");
+ return pyBox()+`<div class="card space-y-2 mb-4"><h2 class="font-extrabold">Upload file pembayaran (Excel)</h2>
  <p class="text-xs text-slate-500">Cukup upload file Excel/CSV, tanpa template. <b>Jika file tidak punya kolom NISN</b> (mis. Rincian Biaya per kelas), seluruh isi file ditampilkan apa adanya ke <b>semua akun siswa</b>. <b>Jika ada kolom NISN</b>, tiap siswa hanya melihat barisnya sendiri. Upload baru menggantikan data jenis yang sama sebelumnya.</p>
  <input id="bf" type="file" accept=".xlsx,.xls,.csv" class="inp"><div class="flex flex-wrap gap-2"><button class="btn" onclick="importBayar()">Upload file pembayaran</button>${um?`<button class="btn2" onclick="hapusUmum()">Hapus tampilan umum</button>`:""}${PBV.length?`<button class="btn2" onclick="hapusBayar()">Hapus data per siswa</button>`:""}</div>
  ${info.waktu?`<p class="text-xs text-slate-500">Data per siswa terakhir: ${fmtWaktu(info.waktu)} · ${esc(info.file||"")} · ${info.siswa||0} siswa, ${info.baris||0} baris</p>`:""}</div>
  ${um?`<h3 class="font-extrabold text-sm mb-2">Tampilan untuk semua siswa <span class="text-xs font-normal text-slate-500">· ${esc(um.file||"")}</span></h3>${umumHtml(um)}`:""}
  ${PBV.length?`<h3 class="font-extrabold text-sm mt-4 mb-2">Data pembayaran per siswa</h3><input id="bq" class="inp mb-3" placeholder="🔍 Cari nama / NISN / kelas" oninput="filterBayar()"><div id="bt">${bayarTable()}</div>`:""}
- ${!um&&!PBV.length?empty("Belum ada data pembayaran. Upload file Excel di atas."):""}`},
+ ${!um&&!PBV.length&&!PYR.length?empty("Belum ada data pembayaran. Catat pembayaran di atas atau upload file Excel."):""}`},
 LayananMandiri:async()=>{LAY=(await all("layanan")).sort((a,b)=>b.waktu>a.waktu?1:-1);LQ={topik:"",status:""};
  return `<h2 class="font-extrabold mb-2">Layanan Mandiri Siswa</h2><div class="grid grid-cols-2 gap-2 mb-3"><select id="lqt" class="inp" onchange="filterLayanan()"><option value="">Semua topik</option>${LAYANAN_TOPIK.map(t=>`<option>${t[0]}</option>`).join("")}</select><select id="lqs" class="inp" onchange="filterLayanan()"><option value="">Semua status</option><option>Belum Ditanggapi</option><option>Sudah Ditanggapi</option></select></div><div id="lyl">${layananList()}</div>`},
 Bantuan:async()=>list(await all("bantuan"),x=>`<div class="card mb-2"><b>${esc(x.nama)}</b><p class="text-sm">${esc(x.pesan)}</p><div class="flex gap-2 mt-2"><input id="r${x.id}" class="inp" placeholder="Balasan" value="${esc(x.balasan)}"><button class="btn" onclick="balas('${x.id}')">Kirim</button></div></div>`,"Belum ada pesan.")
@@ -572,6 +580,50 @@ window.addPrestasi=async()=>{const s=sw($("ps").value);if(!s.nisn)return alert("
   try{if(EDIT)await updateDoc(doc(db,"prestasi",EDIT),d);else await addDoc(collection(db,"prestasi"),d)}catch(e){return alert("Gagal menyimpan ("+(e.code||e.message)+")")}
   EDIT=null;go("Prestasi")};
 let PBV=[],PBK=[];
+let PYR=[],PYE=null;
+const rp=n=>"Rp "+(Number(n)||0).toLocaleString("id-ID");
+const pyKurang=x=>Math.max(0,(+x.tagihan||0)-(+x.dibayar||0));
+const pyStat=x=>{const t=+x.tagihan||0,b=+x.dibayar||0;if(b<=0)return["Belum bayar","bg-rose-100 text-rose-700"];if(b>=t)return["Lunas","bg-emerald-100 text-emerald-700"];return["Kurang","bg-amber-100 text-amber-700"]};
+const pyBox=()=>{const kl=[...new Set(siswa.map(x=>x.kelas))].sort();
+  return `<div class="card space-y-2 mb-4"><div class="flex justify-between gap-2"><h2 id="pyT" class="font-extrabold">💳 Catat pembayaran siswa</h2><button id="pyCb" class="btn2 hidden" onclick="pyBatal()">Batal edit</button></div>
+  <p class="text-xs text-slate-500">Pilih siswa, isi jenis tagihan, nominal tagihan, dan jumlah yang sudah dibayar. Kekurangan dihitung otomatis dan tampil di akun siswa.</p>
+  ${sel("py")}
+  ${lbl("Jenis pembayaran",`<input id="pyJ" class="inp" list="pyJL" placeholder="mis. SPP Januari"><datalist id="pyJL">${["SPP","Uang Gedung","Seragam","Buku","Kegiatan","Ujian"].map(k=>`<option value="${k}">`).join("")}</datalist>`)}
+  <div class="grid grid-cols-2 gap-2"><div>${lbl("Tagihan (Rp)",`<input id="pyTg" type="number" min="0" inputmode="numeric" class="inp" placeholder="0">`)}</div><div>${lbl("Sudah dibayar (Rp)",`<input id="pyBy" type="number" min="0" inputmode="numeric" class="inp" placeholder="0">`)}</div></div>
+  ${lbl("Tanggal bayar (opsional)",`<input id="pyTl" type="date" class="inp" value="${today()}">`)}
+  ${lbl("Keterangan (opsional)",`<input id="pyKt" class="inp" placeholder="mis. cicilan ke-1, via transfer">`)}
+  <button id="pyBtn" class="btn w-full" onclick="pySimpan()">Simpan</button></div>
+  <div class="card space-y-2 mb-4"><h3 class="font-extrabold text-sm">Daftar pembayaran siswa</h3>
+  <input id="pyQ" class="inp" placeholder="🔍 Cari nama / NISN / jenis" oninput="pyRender()">
+  <div class="grid grid-cols-2 gap-2"><select id="pyKl" class="inp" onchange="pyRender()"><option value="">Semua kelas</option>${kl.map(k=>`<option>${esc(k)}</option>`).join("")}</select><select id="pySt" class="inp" onchange="pyRender()"><option value="">Semua status</option><option>Lunas</option><option>Kurang</option><option>Belum bayar</option></select></div></div>
+  <div id="pyOut" class="mb-4">${pyList()}</div>`};
+const pyList=()=>{const kl=$("pyKl")?$("pyKl").value:"",st=$("pySt")?$("pySt").value:"",q=key($("pyQ")?$("pyQ").value:"");
+  const a=PYR.filter(x=>(!kl||x.kelas===kl)&&(!st||pyStat(x)[0]===st)&&(!q||key(x.nama+x.nisn+x.jenis).includes(q))).sort((x,y)=>String(x.kelas).localeCompare(String(y.kelas),"id",{numeric:true})||String(x.nama).localeCompare(String(y.nama),"id")||String(x.jenis).localeCompare(String(y.jenis),"id"));
+  if(!a.length)return empty(PYR.length?"Tidak ditemukan.":"Belum ada catatan pembayaran siswa.");
+  const T=a.reduce((n,x)=>n+(+x.tagihan||0),0),B=a.reduce((n,x)=>n+(+x.dibayar||0),0),K=a.reduce((n,x)=>n+pyKurang(x),0),ns=new Set(a.map(x=>x.nisn)).size;
+  return `<p class="text-xs text-slate-500 mb-2">${ns} siswa · ${a.length} catatan · Tagihan ${rp(T)} · Dibayar ${rp(B)} · <b class="${K?"text-rose-600":"text-emerald-700"}">Kurang ${rp(K)}</b></p>
+  <div class="card overflow-x-auto p-0"><table class="w-full text-sm whitespace-nowrap"><thead style="background:var(--g);color:#fff"><tr><th class="text-left p-3">Nama</th><th class="text-left p-3">Kelas</th><th class="text-left p-3">Jenis</th><th class="text-right p-3">Tagihan</th><th class="text-right p-3">Dibayar</th><th class="text-right p-3">Kurang</th><th class="p-3">Status</th><th class="text-left p-3">Tgl bayar</th><th class="p-3">Aksi</th></tr></thead><tbody>
+  ${a.map(x=>{const [t,c]=pyStat(x);return `<tr class="border-t"><td class="p-3 font-semibold">${esc(x.nama)}<div class="text-xs font-mono text-slate-500">${esc(x.nisn)}</div></td><td class="p-3">${esc(x.kelas)}</td><td class="p-3">${esc(x.jenis)}${x.ket?`<div class="text-xs text-slate-500">${esc(x.ket)}</div>`:""}</td><td class="p-3 text-right">${rp(x.tagihan)}</td><td class="p-3 text-right">${rp(x.dibayar)}</td><td class="p-3 text-right ${pyKurang(x)?"text-rose-600 font-bold":""}">${rp(pyKurang(x))}</td><td class="p-3 text-center"><span class="pill ${c}">${t}</span></td><td class="p-3">${x.tgl?fmtTgl(x.tgl):"-"}</td><td class="p-3"><div class="flex gap-1">${t!=="Lunas"?`<button class="btn2" onclick="pyLunas('${x.id}')">Lunasi</button>`:""}<button class="btn2" onclick="pyEdit('${x.id}')">Edit</button><button class="btn2" style="color:#be123c" onclick="pyHapus('${x.id}')">Hapus</button></div></td></tr>`}).join("")}</tbody></table></div>`};
+window.pyRender=()=>{if($("pyOut"))$("pyOut").innerHTML=pyList()};
+window.pySimpan=async()=>{const s=sw($("py").value);if(!s.nisn)return alert("Pilih siswa dulu.");
+  const jenis=$("pyJ").value.trim(),t=Number($("pyTg").value)||0,b=Number($("pyBy").value)||0;
+  if(!jenis)return alert("Isi jenis pembayaran (mis. SPP Januari).");
+  if(t<=0&&b<=0)return alert("Isi nominal tagihan atau jumlah yang sudah dibayar.");
+  if(b>t&&!confirm("Jumlah dibayar lebih besar dari tagihan. Lanjutkan?"))return;
+  const d={nisn:s.nisn,nama:s.nama,kelas:s.kelas,jenis,tagihan:t,dibayar:b,tgl:$("pyTl").value,ket:$("pyKt").value.trim(),updated:new Date().toISOString()};
+  try{if(PYE)await updateDoc(doc(db,"pembayaranCatatan",PYE),d);else await addDoc(collection(db,"pembayaranCatatan"),d)}catch(e){return alert("Gagal menyimpan ("+(e.code||e.message)+")")}
+  PYE=null;go("Pembayaran")};
+window.pyEdit=id=>{const x=PYR.find(v=>v.id===id);if(!x)return;
+  $("pyq").value="";cariSiswa("py");$("py").value=x.nisn;if($("py").value!==x.nisn)return alert("Siswa ini sudah tidak ada di data siswa.");
+  $("pyJ").value=x.jenis||"";$("pyTg").value=x.tagihan||"";$("pyBy").value=x.dibayar||"";$("pyTl").value=x.tgl||"";$("pyKt").value=x.ket||"";
+  PYE=id;$("pyT").textContent="✏️ Edit pembayaran";$("pyBtn").textContent="Simpan perubahan";$("pyCb").classList.remove("hidden");window.scrollTo({top:0,behavior:"smooth"})};
+window.pyBatal=()=>{PYE=null;go("Pembayaran")};
+window.pyLunas=async id=>{const x=PYR.find(v=>v.id===id);if(!x||!confirm("Tandai lunas untuk "+x.nama+" - "+x.jenis+" ("+rp(x.tagihan)+")?"))return;
+  try{await updateDoc(doc(db,"pembayaranCatatan",id),{dibayar:+x.tagihan||0,tgl:x.tgl||today(),updated:new Date().toISOString()})}catch(e){return alert("Gagal memperbarui ("+(e.code||e.message)+")")}
+  go("Pembayaran")};
+window.pyHapus=async id=>{const x=PYR.find(v=>v.id===id);if(!x||!confirm("Hapus catatan "+x.jenis+" milik "+x.nama+"? Tindakan ini tidak bisa dibatalkan."))return;
+  try{await deleteDoc(doc(db,"pembayaranCatatan",id))}catch(e){return alert("Gagal menghapus ("+(e.code||e.message)+")")}
+  go("Pembayaran")};
 const bayarTable=()=>{const q=key($("bq")?$("bq").value:"");const a=PBV.filter(x=>!q||key(x.nama+x.nisn+x.kelas).includes(q));
   const rows=a.flatMap(x=>x.baris.map(r=>({x,r}))),lim=300;
   if(!rows.length)return empty(PBV.length?"Tidak ditemukan.":"Belum ada data pembayaran. Upload file Excel di atas.");
@@ -858,7 +910,7 @@ const MENU=[
  ["Data Madrasah",[["Siswa","🎓","Upload & kelola data siswa","#e0e7ff"],["Guru","👩‍🏫","Akun & sandi guru","#ccfbf1"]]],
  ["Kesiswaan",[["Pelanggaran","⚠️","Catatan kedisiplinan","#ffe4e6"],["Prestasi","🏆","Capaian & penghargaan siswa","#fef9c3"]]],
  ["PPDB",[["PPDB","📋","Data pendaftar & unduh berkas PDF","#fef3c7","Data PPDB"],["VerifPPDB","🔍","Scan QR cek keaslian berkas","#dcfce7","Verifikasi QR"]]],
- ["Layanan",[["Pengumuman","📢","Kirim info ke semua siswa","#ffedd5"],["Pembayaran","💳","Upload Excel pembayaran siswa","#d1fae5"],["LayananMandiri","🙋","Aduan guru, konseling & bullying","#fde68a","Layanan Mandiri"],["Bantuan","🎧","Balas pesan dari siswa","#cffafe"],["Chat","💬","Grup chat guru & siswa","#dbeafe","Grup Chat"]]],
+ ["Layanan",[["Pengumuman","📢","Kirim info ke semua siswa","#ffedd5"],["Pembayaran","💳","Catat, edit & upload pembayaran siswa","#d1fae5"],["LayananMandiri","🙋","Aduan guru, konseling & bullying","#fde68a","Layanan Mandiri"],["Bantuan","🎧","Balas pesan dari siswa","#cffafe"],["Chat","💬","Grup chat guru & siswa","#dbeafe","Grup Chat"]]],
  ["Kegiatan Madrasah",[["Kegiatan","🎯","Buat kegiatan & scan QR siswa untuk absen","#fae8ff","Absen Kegiatan"],["RekapKegiatan","📊","Rekap absen kegiatan & ekspor Excel","#e0f2fe","Rekap Kegiatan"]]]
 ];
 A.Menu=async()=>{
@@ -876,7 +928,7 @@ A.Menu=async()=>{
 let JN=[],JNV=[];
 const isOwner=x=>!isGuruRole()||x.guruId===key(me.idGuru);
 const jnCards=r=>list(r,x=>`<div class="card mb-2"><div class="flex justify-between gap-2"><div><b>${esc(x.mapel)}</b> <span class="pill bg-emerald-100 text-emerald-700">${esc(x.kelas)}</span><div class="text-xs text-slate-500 mt-0.5">${esc(x.tgl)}${x.jam?" - "+esc(x.jam):""} - ${esc(x.guru)}</div></div>${isOwner(x)?`<button class="btn2 h-fit" onclick="hapus('jurnal','${x.id}','Jurnal')">Hapus</button>`:""}</div>
- <div class="text-sm mt-2 whitespace-pre-line"><b>Materi:</b> ${esc(x.materi)}</div>${x.kegiatan?`<div class="text-sm mt-1 whitespace-pre-line"><b>Kegiatan:</b> ${esc(x.kegiatan)}</div>`:""}${x.absen?`<div class="text-sm mt-1"><b>Siswa tidak hadir:</b> ${esc(x.absen)}</div>`:""}${x.catatan?`<div class="text-sm mt-1 whitespace-pre-line"><b>Catatan/kendala:</b> ${esc(x.catatan)}</div>`:""}</div>`,"Belum ada jurnal.");
+ <div class="text-sm mt-2 whitespace-pre-line"><b>Materi:</b> ${esc(x.materi)}</div>${(x.tujuan||x.kegiatan)?`<div class="text-sm mt-1 whitespace-pre-line"><b>Tujuan pembelajaran:</b> ${esc(x.tujuan||x.kegiatan)}</div>`:""}${x.catatan?`<div class="text-sm mt-1 whitespace-pre-line"><b>Catatan/kendala:</b> ${esc(x.catatan)}</div>`:""}</div>`,"Belum ada jurnal.");
 // ---------- util: jadwal <-> akun guru ----------
 const kelasNorm=k=>{const t=String(k??"").toUpperCase().replace(/\s/g,""),m=t.match(/^(10|11|12)-?([A-Z])/);return m?m[1]+"-"+m[2]:(kelasId(t)||t)};
 const guruMap=gs=>{const m=new Map();gs.forEach(g=>[g.nama,g.idGuru,g.id].forEach(v=>{const k=key(v);if(k&&!m.has(k))m.set(k,g.id)}));return m};
@@ -905,8 +957,7 @@ A.Jurnal=async()=>{
   <div><label class="text-xs text-slate-500">Sesi mengajar (sesuai jadwal pelajaran)</label><select id="jnSesi" class="inp" onchange="pilihSesi()">${sesiHTML(mine?mine.id:"",tg)}</select></div>
   <div class="grid grid-cols-3 gap-2"><div><label class="text-xs text-slate-500">Jam</label><input id="jnJam" class="inp" placeholder="07.00 - 08.15"></div><div><label class="text-xs text-slate-500">Kelas</label><input id="jnKls" class="inp" list="jnKlsL" placeholder="Kelas"><datalist id="jnKlsL">${kl.map(k=>`<option value="${esc(k)}">`).join("")}</datalist></div><div><label class="text-xs text-slate-500">Mata pelajaran</label><input id="jnMp" class="inp" list="jnMpL" placeholder="Mapel"><datalist id="jnMpL">${mp.map(k=>`<option value="${esc(k)}">`).join("")}</datalist></div></div>
   <textarea id="jnMateri" class="inp" rows="2" placeholder="Materi / topik yang diajarkan"></textarea>
-  <textarea id="jnKeg" class="inp" rows="3" placeholder="Kegiatan pembelajaran (opsional)"></textarea>
-  <input id="jnAbsen" class="inp" placeholder="Siswa tidak hadir (opsional, tulis nama)">
+  <textarea id="jnTujuan" class="inp" rows="3" placeholder="Tujuan pembelajaran (opsional)"></textarea>
   <textarea id="jnCat" class="inp" rows="2" placeholder="Catatan / kendala (opsional)"></textarea>
   <button class="btn" onclick="saveJurnal()">Simpan jurnal</button></div>
   <div class="card mb-4 space-y-2"><div class="grid grid-cols-2 gap-2"><select id="jnFilter" class="inp" onchange="renderJurnal()"><option value="">Semua guru</option>${gu.map(x=>`<option>${esc(x)}</option>`).join("")}</select><input id="jnBulan" type="month" class="inp" onchange="renderJurnal()"></div>${isGuruRole()?"":`<button class="btn2" onclick="exportJurnal()">⬇ Ekspor ke Excel</button>`}</div>
@@ -921,7 +972,7 @@ window.saveJurnal=async()=>{
   const v=id=>$(id).value.trim(),gid=v("jnGid"),g=GURUV.find(x=>x.id===gid);
   if(!g)return alert("Pilih nama guru.");
   const i=$("jnSesi").value,s=i!==""?JSS[+i]:null;
-  const d={tgl:v("jnTgl"),jam:v("jnJam"),kelas:v("jnKls"),mapel:v("jnMp"),guru:g.nama||g.idGuru,materi:v("jnMateri"),kegiatan:v("jnKeg"),absen:v("jnAbsen"),catatan:v("jnCat"),sesi:s?s.key:""};
+  const d={tgl:v("jnTgl"),jam:v("jnJam"),kelas:v("jnKls"),mapel:v("jnMp"),guru:g.nama||g.idGuru,materi:v("jnMateri"),tujuan:v("jnTujuan"),catatan:v("jnCat"),sesi:s?s.key:""};
   if(!d.tgl||!d.kelas||!d.mapel||!d.materi)return alert("Isi tanggal, kelas, mata pelajaran, dan materi.");
   if(s&&JN.some(j=>jurCocok(j,gid,d.tgl,s)))return alert("Jurnal untuk sesi ini sudah pernah diisi.");
   try{await addDoc(collection(db,"jurnal"),{...d,guruId:gid,dibuat:new Date().toISOString()})}catch(e){return alert("Jurnal gagal tersimpan ("+(e.code||e.message)+").")}
@@ -929,8 +980,8 @@ window.saveJurnal=async()=>{
 };
 window.exportJurnal=()=>{if(isGuruRole())return alert("Fitur download rekapitulasi hanya untuk admin.");
   if(!JNV.length)return alert("Tidak ada jurnal untuk diekspor.");
-  const ws=XLSX.utils.aoa_to_sheet([["JURNAL GURU"],[],["No","Tanggal","Jam","Kelas","Mata Pelajaran","Guru","Materi","Kegiatan","Siswa Tidak Hadir","Catatan/Kendala"],...[...JNV].sort((a,b)=>a.tgl>b.tgl?1:-1).map((x,i)=>[i+1,x.tgl,x.jam,x.kelas,x.mapel,x.guru,x.materi,x.kegiatan,x.absen,x.catatan])]);
-  ws["!cols"]=[{wch:5},{wch:12},{wch:14},{wch:10},{wch:22},{wch:24},{wch:32},{wch:36},{wch:22},{wch:28}];
+  const ws=XLSX.utils.aoa_to_sheet([["JURNAL GURU"],[],["No","Tanggal","Jam","Kelas","Mata Pelajaran","Guru","Materi","Tujuan Pembelajaran","Catatan/Kendala"],...[...JNV].sort((a,b)=>a.tgl>b.tgl?1:-1).map((x,i)=>[i+1,x.tgl,x.jam,x.kelas,x.mapel,x.guru,x.materi,x.tujuan||x.kegiatan||"",x.catatan])]);
+  ws["!cols"]=[{wch:5},{wch:12},{wch:14},{wch:10},{wch:22},{wch:24},{wch:32},{wch:36},{wch:28}];
   const wb=XLSX.utils.book_new();XLSX.utils.book_append_sheet(wb,ws,"Jurnal");XLSX.writeFile(wb,"Jurnal_Guru_"+today()+".xlsx");
 };
 
@@ -1022,9 +1073,9 @@ const parseKoord=s=>{s=String(s||"").trim();const pp=parsePlus(s);if(pp)return p
   if(!m)return null;const lat=+m[1],lng=+m[2];return Math.abs(lat)<=90&&Math.abs(lng)<=180?{lat,lng}:null};
 const OLC="23456789CFGHJMPQRVWX";
 const parsePlus=s=>{const m=String(s||"").toUpperCase().match(/([23456789CFGHJMPQRVWX]{8}\+[23456789CFGHJMPQRVWX]{2})/);if(!m)return null;const c=m[1].replace("+","");let la=-90,ln=-180,r=20;for(let i=0;i<10;i+=2){la+=OLC.indexOf(c[i])*r;ln+=OLC.indexOf(c[i+1])*r;if(i<8)r/=20}return{lat:+(la+r/2).toFixed(7),lng:+(ln+r/2).toFixed(7)}};
-// Lokasi absen guru TETAP: MA Insan Generasi Islami, Plus Code 6P5M3G5Q+2Q7 (Waru, Pamekasan). Radius 300 m.
+// Lokasi absen guru TETAP: MA Insan Generasi Islami, Plus Code 6P5M3G5Q+2Q7 (Waru, Pamekasan). Radius 200 m.
 const PG_LAT=-6.9424625,PG_LNG=113.5394219;
-let PGL=Object.freeze({lat:PG_LAT,lng:PG_LNG,radius:300,nama:"Lokasi madrasah"}),pgJ="masuk",PGT=[],PGV=[],PGG=[],pgStream=null,pgPos=null,pgFoto="";
+let PGL=Object.freeze({lat:PG_LAT,lng:PG_LNG,radius:200,nama:"Lokasi madrasah"}),pgJ="masuk",PGT=[],PGV=[],PGG=[],pgStream=null,pgPos=null,pgFoto="";
 const getLokasi=async()=>PGL;
 window.pgStop=()=>{if(pgStream){pgStream.getTracks().forEach(t=>t.stop());pgStream=null}};
 const pgMsg=(t,c)=>{const e=$("pgMsg");if(e){e.textContent=t;e.className="text-sm "+(c||"text-slate-600")}};
@@ -1228,7 +1279,11 @@ window.delChat=async id=>{if(confirm("Hapus pesan ini?"))await deleteDoc(doc(db,
 
 // ============ QR SISWA & KARTU ID ============
 try{if(window.qrcode&&qrcode.stringToBytesFuncs&&qrcode.stringToBytesFuncs["UTF-8"])qrcode.stringToBytes=qrcode.stringToBytesFuncs["UTF-8"]}catch(e){}
-const qrTeks=s=>"Nama: "+s.nama+"\nKelas: "+s.kelas+"\nNISN: "+s.nisn;
+// QR berisi tautan verifikasi: bila discan lewat Google Lens/kamera HP akan membuka halaman info siswa + status terverifikasi.
+// Jika aplikasi dibuka dari file lokal (bukan http/https), isi alamat web resmi aplikasi di QR_URL_PUBLIK, mis. "https://myigi.example.com/"
+const QR_URL_PUBLIK="";
+const QR_BASE=QR_URL_PUBLIK||((location.protocol==="http:"||location.protocol==="https:")?location.origin+location.pathname:"");
+const qrTeks=s=>QR_BASE?QR_BASE+"?cek="+encodeURIComponent(s.nisn):"Nama: "+s.nama+"\nKelas: "+s.kelas+"\nNISN: "+s.nisn;
 const drawQR=(x,cx,cy,size,t)=>{
   const q=qrcode(0,"M");q.addData(t);q.make();
   const n=q.getModuleCount(),c=Math.max(1,Math.floor(size/n)),o=Math.floor((size-c*n)/2);
@@ -1259,7 +1314,7 @@ const makeID=async s=>{
   x.fillStyle="#0f5132";x.font="800 36px "+F;x.fillText("Kelas: "+s.kelas,W/2,985);
   x.fillStyle="#64748b";x.font="600 30px "+F;x.fillText("NISN: "+s.nisn,W/2,1040);
   x.fillStyle="#0f5132";x.fillRect(0,H-56,W,56);
-  x.fillStyle="#fff";x.font="600 22px "+F;x.fillText("Scan QR untuk absensi kegiatan",W/2,H-20);
+  x.fillStyle="#fff";x.font="600 22px "+F;x.fillText("Scan QR untuk absensi & verifikasi",W/2,H-20);
   x.restore();
   return c;
 };
@@ -1268,7 +1323,7 @@ S.KartuID=async()=>`<div class="card text-center space-y-3"><h2 class="font-extr
  <p id="idMsg" class="text-sm text-slate-500">Membuat kartu…</p>
  <img id="idPrev" class="mx-auto rounded-2xl border hidden" style="max-width:320px;width:100%" alt="Kartu ID">
  <div><button class="btn" onclick="dlID()">⬇ Download ID Card</button></div>
- <p class="text-xs text-slate-500">QR code pada kartu ini unik untuk Anda dan dipakai untuk absen kegiatan. Jangan dibagikan ke orang lain.</p></div>`;
+ <p class="text-xs text-slate-500">QR code pada kartu ini unik untuk Anda dan dipakai untuk absen kegiatan. Jika discan lewat Google/kamera HP, QR menampilkan data diri Anda dan status terverifikasi.</p></div>`;
 window.renderID=async()=>{
   try{
     if(typeof qrcode==="undefined")throw 0;
@@ -1340,7 +1395,7 @@ const kgDraw=()=>{
 };
 const kgProses=async txt=>{
   if(!kgCur||kgLock)return;
-  const m=String(txt).match(/NISN:\s*(\S+)/i),nisn=m?m[1]:String(txt).trim();
+  const m=String(txt).match(/[?&]cek=(\d+)/)||String(txt).match(/NISN:\s*(\S+)/i),nisn=m?m[1]:String(txt).trim();
   const now=Date.now();
   if(nisn===kgLastN&&now-kgLastT<3000)return;
   kgLastN=nisn;kgLastT=now;
@@ -1745,8 +1800,28 @@ window.vpCek=async txt=>{
 window.vpOk=async id=>{await updateDoc(doc(db,"ppdb",id),{status:"Terverifikasi"});const k=await getDoc(doc(db,"ppdb",id));vpCek("No: "+id+"\nKode: "+k.data().kode)};
 
 
+
+// ============ HALAMAN VERIFIKASI QR SISWA (publik, dibuka dari scan Google/kamera) ============
+const CEK=new URLSearchParams(location.search).get("cek");
+if(CEK){(async()=>{
+  const o=document.createElement("div");o.id="vrfSiswa";o.style.cssText="position:fixed;inset:0;z-index:200;background:#f6f4ee;overflow:auto;padding:1rem";
+  o.innerHTML=`<div style="max-width:26rem;margin:2rem auto"><div class="text-center mb-4"><div class="text-3xl font-extrabold" style="color:var(--g)">MyIgi</div><div class="text-sm text-slate-500">MA Insan Generasi Islami</div></div><div id="vrfBox" class="card text-center text-slate-500">Memeriksa data…</div><div class="text-center mt-4"><a class="btn2" href="${esc(location.pathname)}">Buka MyIgi</a></div></div>`;
+  document.body.appendChild(o);
+  try{
+    const nis=String(CEK).replace(/\D/g,"");let sd=nis?await getDoc(doc(db,"siswa",nis)):null;
+    if((!sd||!sd.exists())&&/^\d{1,9}$/.test(nis))sd=await getDoc(doc(db,"siswa",nis.padStart(10,"0")));
+    if(!sd||!sd.exists())throw 0;
+    const x=sd.data();
+    $("vrfBox").innerHTML=`<div style="border:2px solid #16a34a;background:#f0fdf4;border-radius:1rem;padding:1.2rem"><div style="font-size:3rem;line-height:1">✅</div><div class="text-2xl font-extrabold text-emerald-700 mt-1">TERVERIFIKASI</div><p class="text-xs text-slate-500 mt-1">Siswa terdaftar resmi di MA Insan Generasi Islami</p>
+    <div class="text-left mt-4 text-sm space-y-2"><div><div class="text-xs text-slate-500">Nama</div><b class="text-base">${esc(x.nama)}</b></div><div><div class="text-xs text-slate-500">Kelas</div><b>${esc(x.kelas)}</b></div><div><div class="text-xs text-slate-500">NISN</div><b class="font-mono">${esc(x.nisn||nis)}</b></div><div><div class="text-xs text-slate-500">Status</div><span class="pill bg-emerald-100 text-emerald-700">Siswa aktif</span></div></div>
+    <p class="text-[11px] text-slate-400 mt-4">Diperiksa ${fmtWaktu(new Date().toISOString())}</p></div>`;
+  }catch(e){
+    $("vrfBox").innerHTML=`<div style="border:2px solid #e11d48;background:#fff1f2;border-radius:1rem;padding:1.2rem"><div style="font-size:3rem;line-height:1">❌</div><div class="text-xl font-extrabold text-rose-600 mt-1">TIDAK TERVERIFIKASI</div><p class="text-sm text-slate-600 mt-1">Data siswa dengan NISN ini tidak ditemukan di database madrasah, atau koneksi gagal. Coba lagi.</p></div>`;
+  }
+})()}
+
 // Login otomatis dari sesi tersimpan: HARUS paling akhir agar semua fungsi/const sudah siap
-if(saved){try{const s=JSON.parse(saved);$("u").value=s.u;$("p").value=s.p;doLogin()}catch(e){sessionStorage.removeItem("me")}}
+if(saved&&!CEK){try{const s=JSON.parse(saved);$("u").value=s.u;$("p").value=s.p;doLogin()}catch(e){sessionStorage.removeItem("me")}}
 </script>
 </body>
 </html>
