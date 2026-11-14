@@ -938,7 +938,7 @@ A.Menu=async()=>{
 // ============ JURNAL GURU ============
 let JN=[],JNV=[];
 const isOwner=x=>!isGuruRole()||x.guruId===key(me.idGuru);
-const jnCards=r=>list(r,x=>`<div class="card mb-2"><div class="flex justify-between gap-2"><div><b>${esc(x.mapel)}</b> <span class="pill bg-emerald-100 text-emerald-700">${esc(x.kelas)}</span><div class="text-xs text-slate-500 mt-0.5">${esc(x.tgl)}${x.jam?" - "+esc(x.jam):""} - ${esc(x.guru)}</div></div>${isOwner(x)?`<button class="btn2 h-fit" onclick="hapus('jurnal','${x.id}','Jurnal')">Hapus</button>`:""}</div>
+const jnCards=r=>list(r,x=>`<div class="card mb-2"><div class="flex justify-between gap-2"><div><b>${esc(x.mapel)}</b> <span class="pill bg-emerald-100 text-emerald-700">${esc(x.kelas)}</span>${x.pengganti?' <span class="pill bg-sky-100 text-sky-700">Guru pengganti</span>':""}<div class="text-xs text-slate-500 mt-0.5">${esc(x.tgl)}${x.jam?" - "+esc(x.jam):""} - ${esc(x.guru)}</div></div>${isOwner(x)?`<button class="btn2 h-fit" onclick="hapus('jurnal','${x.id}','Jurnal')">Hapus</button>`:""}</div>
  <div class="text-sm mt-2 whitespace-pre-line"><b>Materi:</b> ${esc(x.materi)}</div>${(x.tujuan||x.kegiatan)?`<div class="text-sm mt-1 whitespace-pre-line"><b>Tujuan pembelajaran:</b> ${esc(x.tujuan||x.kegiatan)}</div>`:""}${x.catatan?`<div class="text-sm mt-1 whitespace-pre-line"><b>Catatan/kendala:</b> ${esc(x.catatan)}</div>`:""}</div>`,"Belum ada jurnal.");
 // ---------- util: jadwal <-> akun guru ----------
 const kelasNorm=k=>{const t=String(k??"").toUpperCase().replace(/\s/g,""),m=t.match(/^(10|11|12)-?([A-Z])/);return m?m[1]+"-"+m[2]:(kelasId(t)||t)};
@@ -1865,12 +1865,33 @@ const hitungGaji=async b=>{
   return{rows,wajib,meta,unmatched:L.unmatched};
 };
 
+// ---------- tabel tarif guru (isi manual) ----------
+const GT_COLS=[["tarifHadir","Tarif hadir"],["tarifJam","Tarif jam mengajar"],["pkm","PKM"],["waliKelas","Wali kelas"],["tarifPengganti","Tarif pengganti jam kosong"],["tambahanHR","Tambahan HR"],["pulsaAdmin","Sosmed & operator"]];
+const tarifTabel=(gs,tr)=>{const T=new Map(tr.map(x=>[x.id,x])),th='style="position:sticky;top:0;background:var(--g)"';
+  return `<div class="space-y-2"><div class="flex flex-wrap items-center justify-between gap-2"><h3 class="font-extrabold text-sm">Tabel tarif guru (isi manual)</h3><span id="gtInfo" class="text-xs text-slate-500">Belum ada perubahan</span></div>
+  <p class="text-xs text-slate-500">Isi nominal langsung di tabel (Rupiah, angka saja). Baris yang diubah ditandai kuning dan baru tersimpan setelah menekan <b>Simpan perubahan</b>. Kolom yang dikosongkan dihitung Rp 0.</p>
+  <div class="grid grid-cols-2 gap-2"><input id="gtQ" class="inp" placeholder="🔍 Cari ID / nama guru" oninput="gtFilter()"><button id="gtSave" class="btn" disabled onclick="gtSimpan()">Simpan perubahan</button></div>
+  <div class="card overflow-auto p-0" style="max-height:70vh"><table class="w-full text-sm whitespace-nowrap"><thead style="background:var(--g);color:#fff"><tr><th class="text-left p-2" ${th}>ID Guru</th><th class="text-left p-2" ${th}>Nama</th>${GT_COLS.map(([f,l])=>`<th class="text-left p-2" ${th}>${l}</th>`).join("")}</tr></thead><tbody>
+  ${gs.map(g=>{const t=T.get(g.id)||{};return `<tr class="border-t gtRow" data-g="${esc(g.id)}" data-q="${esc(key((g.nama||"")+(g.idGuru||g.id)))}"><td class="p-2 text-xs font-mono">${esc(g.idGuru||g.id)}</td><td class="p-2 font-semibold">${esc(g.nama||"-")}</td>${GT_COLS.map(([f])=>`<td class="p-1"><input type="number" min="0" inputmode="numeric" class="inp gtIn" data-f="${f}" value="${num(t[f])||""}" placeholder="0" style="width:7.5rem;padding:.4rem .5rem" oninput="gtDirty(this)"></td>`).join("")}</tr>`}).join("")||`<tr><td colspan="9" class="p-4 text-slate-500">Belum ada akun guru. Tambahkan dulu di menu Guru.</td></tr>`}
+  </tbody></table></div></div>`};
+const gtCount=()=>{const n=document.querySelectorAll(".gtRow[data-d='1']").length,e=$("gtInfo"),b=$("gtSave");if(e)e.textContent=n?n+" baris belum disimpan":"Belum ada perubahan";if(b)b.disabled=!n};
+window.gtFilter=()=>{const q=key($("gtQ").value);document.querySelectorAll(".gtRow").forEach(r=>{r.style.display=!q||r.dataset.q.includes(q)?"":"none"})};
+window.gtDirty=el=>{const r=el.closest("tr");r.dataset.d="1";r.style.background="#fffbeb";gtCount()};
+window.gtSimpan=async()=>{const rows=[...document.querySelectorAll(".gtRow[data-d='1']")];if(!rows.length)return alert("Belum ada perubahan.");
+  const now=new Date().toISOString();let b=writeBatch(db),n=0;
+  try{for(const r of rows){const gid=r.dataset.g,d={guruId:gid,updated:now};r.querySelectorAll(".gtIn").forEach(i=>{d[i.dataset.f]=num(i.value)});
+      b.set(doc(db,"tarifGuru",gid),d,{merge:true});if(++n%400===0){await b.commit();b=writeBatch(db)}}
+    await b.commit()}
+  catch(e){return alert("Gagal menyimpan ("+(e.code||e.message)+")")}
+  rows.forEach(r=>{delete r.dataset.d;r.style.background=""});gtCount();alert(rows.length+" guru berhasil disimpan.");loadGaji()};
+
 A.GajiGuru=async()=>{
   if(isGuruRole())return empty("Halaman ini hanya dapat diakses admin.");
   const [tr,gs,st]=await Promise.all([all("tarifGuru"),all("guru"),getDoc(doc(db,"pengaturan","gajiSetting"))]);
   const wj=st.exists()?st.data().wajibJurnal!==false:true;
   return `<div class="card space-y-2 mb-4"><h2 class="font-extrabold">💰 Pembayaran Guru</h2>
-  <p class="text-xs text-slate-500">Pembayaran dihitung otomatis per bulan dari presensi (Clock In), jadwal &amp; jurnal mengajar, serta data guru pengganti. Tarif tiap guru berbeda dan diambil dari file Excel di bawah.</p>
+  <p class="text-xs text-slate-500">Pembayaran dihitung otomatis per bulan dari presensi (Clock In), jadwal &amp; jurnal mengajar, serta data guru pengganti. Tarif tiap guru berbeda dan diisi manual pada tabel tarif di bawah (atau lewat upload Excel).</p>
+  ${tarifTabel([...gs].sort((a,b)=>(a.nama||"")>(b.nama||"")?1:-1),tr)}
   <details class="card"><summary class="font-bold cursor-pointer text-sm">Upload data tarif guru dari Excel (${tr.length} dari ${gs.length} guru sudah punya tarif)</summary><div class="space-y-2 mt-3">
   <p class="text-xs text-slate-500">Upload file Excel pembayaran guru apa adanya. Kolom yang dibaca: <b>NAMA GURU</b>, NOMINAL DATANG (per hari hadir), NOMINAL JAM (per jam mengajar), WALI KELAS, PKM, NOMINAL PENGGANTI GURU JAM KOSONG (per jam), KETERANGAN (SERTIFIKASI / NON SERTIFIKASI / INPASSING), TAMBAHAN HR, PULSA ADMIN SOSMED &amp; OPERATOR. Kolom KEHADIRAN dan JUMLAH JAM diabaikan karena dihitung otomatis. Sebelum disimpan, Anda bisa memeriksa dan memperbaiki pencocokan nama guru.</p>
   <button class="btn2" onclick="unduhTemplateTarif()">⬇ Unduh template (daftar guru)</button>
@@ -1908,6 +1929,7 @@ window.gjSimpanAtur=async gid=>{const d={guruId:gid,updated:new Date().toISOStri
   try{await setDoc(doc(db,"tarifGuru",gid),d,{merge:true});
     await setDoc(doc(db,"gajiBulan",gid+"_"+GJ.bulan),{guruId:gid,bulan:GJ.bulan,tambahanHR:hr===""?null:num(hr),potongan:num($("ga_pot").value),catatan:$("ga_cat").value.trim()})}
   catch(e){return alert("Gagal menyimpan ("+(e.code||e.message)+")")}
+  GJ_F.forEach(f=>{const i=document.querySelector('.gtIn[data-g="'+gid+'"][data-f="'+f+'"]');if(i&&!i.closest("tr").dataset.d)i.value=d[f]||""});
   closeModal();loadGaji()};
 window.unduhTemplateTarif=async()=>{const gs=(await all("guru")).sort((a,b)=>(a.nama||"")>(b.nama||"")?1:-1),T=new Map((await all("tarifGuru")).map(x=>[x.id,x]));
   const F=["tarifHadir","tarifJam","waliKelas","pkm","tarifPengganti"],F2=["tambahanHR","pulsaAdmin"];
@@ -2031,19 +2053,34 @@ window.pnSimpan=async()=>{const asal=GURUV.find(x=>x.id===$("pnAsal").value),pen
   catch(e){return alert("Gagal menyimpan ("+(e.code||e.message)+")")}
   alert(status==="Menunggu"?"Pengajuan terkirim, menunggu persetujuan admin.":"Guru pengganti tersimpan.");go("Pengganti")};
 window.pnRender=async()=>{const out=$("pnOut");if(!out)return;const b=$("pnBulan").value,st=$("pnSt").value;
-  let jur=[];try{if(b)jur=(await getDocs(query(collection(db,"jurnal"),where("tgl",">=",b+"-01"),where("tgl","<=",b+"-31")))).docs.map(d=>d.data())}catch(e){}
+  let jur=[];try{if(b)jur=(await getDocs(query(collection(db,"jurnal"),where("tgl",">=",b+"-01"),where("tgl","<=",b+"-31")))).docs.map(d=>({id:d.id,...d.data()}))}catch(e){}
   PGN=await all("guruPengganti");const gid=key(me.idGuru||"");
   let a=PGN.filter(x=>(!b||(x.tgl||"").startsWith(b))&&(!st||x.status===st));
   if(isGuruRole())a=a.filter(x=>x.guruAsalId===gid||x.penggantiId===gid);
   a.sort((x,y)=>(y.tgl+y.jam)>(x.tgl+x.jam)?1:-1);
   if(!$("pnOut"))return;
-  out.innerHTML=`<p class="text-sm mb-2">${a.length} catatan</p>`+list(a,x=>{const isi=jur.some(j=>j.guruId===x.penggantiId&&j.tgl===x.tgl&&(j.sesi===x.sesiKey||kelasNorm(j.kelas)===x.kelasId));
+  out.innerHTML=`<p class="text-sm mb-2">${a.length} catatan</p>`+list(a,x=>{const jr=jur.find(j=>j.guruId===x.penggantiId&&j.tgl===x.tgl&&(j.sesi===x.sesiKey||kelasNorm(j.kelas)===x.kelasId)),isi=!!jr,canJ=!isGuruRole()||x.penggantiId===gid;
     const can=!isGuruRole()||(x.status==="Menunggu"&&x.guruAsalId===gid);
     return `<div class="card mb-2"><div class="flex justify-between gap-2"><div><b>${esc(x.mapel)}</b> <span class="pill bg-emerald-100 text-emerald-700">${esc(x.kelas)}</span><div class="text-xs text-slate-500">${fmtTgl(x.tgl)} · ${esc(x.jam)}</div></div><span class="pill h-fit ${pnStat[x.status]||"bg-slate-100"}">${esc(x.status)}</span></div>
     <div class="text-sm mt-1"><b>${esc(x.guruAsal)}</b> → diganti <b>${esc(x.pengganti)}</b></div><div class="text-xs text-slate-500">${esc(x.alasan||"")}${x.ket?" · "+esc(x.ket):""}</div>
     ${x.status==="Disetujui"?`<div class="text-xs mt-1 ${isi?"text-emerald-700":"text-rose-600"}">${isi?"✓ Jurnal pengganti sudah diisi":"⚠ Guru pengganti belum mengisi jurnal (belum dibayar)"}</div>`:""}
-    <div class="flex flex-wrap gap-2 mt-2">${!isGuruRole()&&x.status==="Menunggu"?`<button class="btn" onclick="pnSet('${x.id}','Disetujui')">Setujui</button><button class="btn2" onclick="pnSet('${x.id}','Ditolak')">Tolak</button>`:""}${can?`<button class="btn2" onclick="pnHapus('${x.id}')">Hapus</button>`:""}</div></div>`},"Belum ada catatan guru pengganti.")};
+    ${x.status==="Disetujui"&&isi?`<div class="mt-2 p-2 rounded-lg text-xs whitespace-pre-line" style="background:#f0fdf4"><b>Materi:</b> ${esc(jr.materi)}${jr.tujuan?"\n<b>Tujuan:</b> "+esc(jr.tujuan):""}${jr.catatan?"\n<b>Catatan:</b> "+esc(jr.catatan):""}</div>`:""}
+    <div class="flex flex-wrap gap-2 mt-2">${x.status==="Disetujui"&&canJ&&!isi?`<button class="btn" onclick="pnJurnal('${x.id}')">📓 Isi jurnal pengganti</button>`:""}${!isGuruRole()&&x.status==="Menunggu"?`<button class="btn" onclick="pnSet('${x.id}','Disetujui')">Setujui</button><button class="btn2" onclick="pnSet('${x.id}','Ditolak')">Tolak</button>`:""}${can?`<button class="btn2" onclick="pnHapus('${x.id}')">Hapus</button>`:""}</div></div>`},"Belum ada catatan guru pengganti.")};
 window.pnSet=async(id,status)=>{try{await updateDoc(doc(db,"guruPengganti",id),{status,diputuskan:me.nama})}catch(e){return alert("Gagal ("+(e.code||e.message)+")")}pnRender()};
+window.pnJurnal=id=>{const x=PGN.find(p=>p.id===id);if(!x)return;
+  modal(`<h3 class="font-extrabold">📓 Jurnal guru pengganti</h3><p class="text-xs text-slate-500 mt-1">${esc(x.mapel)} · ${esc(x.kelas)} · ${fmtTgl(x.tgl)} · ${esc(x.jam)}<br>Menggantikan ${esc(x.guruAsal)} · pengajar: ${esc(x.pengganti)}</p>`
+   +lbl("Materi / topik yang diajarkan",`<textarea id="pjMateri" class="inp" rows="2" placeholder="Wajib diisi"></textarea>`)
+   +lbl("Tujuan pembelajaran (opsional)",`<textarea id="pjTujuan" class="inp" rows="3"></textarea>`)
+   +lbl("Catatan / kendala (opsional)",`<textarea id="pjCat" class="inp" rows="2"></textarea>`)
+   +`<div class="flex gap-2 mt-4"><button class="btn flex-1" onclick="pnSimpanJurnal('${x.id}')">Simpan jurnal</button><button class="btn2" onclick="closeModal()">Batal</button></div>`)};
+window.pnSimpanJurnal=async id=>{const x=PGN.find(p=>p.id===id);if(!x)return;const v=i=>$(i).value.trim(),materi=v("pjMateri");
+  if(!materi)return alert("Isi materi yang diajarkan.");
+  if(isGuruRole()&&x.penggantiId!==key(me.idGuru||""))return alert("Jurnal ini hanya bisa diisi oleh guru pengganti.");
+  try{const dup=await getDocs(query(collection(db,"jurnal"),where("tgl","==",x.tgl)));
+    if(dup.docs.some(d=>{const j=d.data();return j.guruId===x.penggantiId&&(j.sesi===x.sesiKey||kelasNorm(j.kelas)===x.kelasId)}))return alert("Jurnal untuk sesi ini sudah pernah diisi.");
+    await addDoc(collection(db,"jurnal"),{tgl:x.tgl,jam:x.jam,kelas:x.kelasId,mapel:x.mapel,guru:x.pengganti,guruId:x.penggantiId,materi,tujuan:v("pjTujuan"),catatan:v("pjCat"),sesi:x.sesiKey,pengganti:true,menggantikan:x.guruAsal,dibuat:new Date().toISOString()})}
+  catch(e){return alert("Jurnal gagal tersimpan ("+(e.code||e.message)+").")}
+  closeModal();pnRender()};
 window.pnHapus=async id=>{if(!confirm("Hapus catatan guru pengganti ini?"))return;try{await deleteDoc(doc(db,"guruPengganti",id))}catch(e){return alert("Gagal menghapus ("+(e.code||e.message)+")")}pnRender()};
 
 
