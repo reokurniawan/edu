@@ -230,7 +230,12 @@ const all=async n=>(await getDocs(collection(db,n))).docs.map(d=>({id:d.id,...d.
 const today=()=>{const d=new Date(),p=n=>String(n).padStart(2,"0");return d.getFullYear()+"-"+p(d.getMonth()+1)+"-"+p(d.getDate())};
 let me=null,isAdmin=false,tab="",siswa=[];
 // Role (field "role" di koleksi guru): "admin" = semua fitur. "guru" (default) = hanya Akademik, Kegiatan Madrasah, Grup Chat.
-const isGuruRole=()=>isAdmin&&me&&me.role==="guru";
+// Role "staf" punya hak akses yang sama dengan "guru".
+const normRole=r=>{r=String(r||"").trim().toLowerCase();return r==="admin"?"admin":(r==="staf"||r==="staff")?"staf":"guru"};
+const roleLbl=r=>({admin:"Admin",staf:"Staf",guru:"Guru"})[normRole(r)];
+const normSert=v=>{v=String(v||"").trim();return !v?"":/^(non|tidak|belum|bukan)/i.test(v)?"Non Sertifikasi":"Sertifikasi"};
+const sertPill=v=>{v=normSert(v);return v?`<span class="pill ${v==="Sertifikasi"?"bg-emerald-100 text-emerald-700":"bg-slate-100 text-slate-600"}">${v}</span>`:'<span class="text-xs text-slate-400">-</span>'};
+const isGuruRole=()=>isAdmin&&me&&me.role!=="admin";
 const GURU_OK=new Set(["Menu","Jadwal","Absensi","Rekap","Jurnal","Presensi","Kegiatan","RekapKegiatan","Chat"]);
 
 const saved=sessionStorage.getItem("me");
@@ -254,7 +259,7 @@ window.doLogin=async()=>{
       }
       if(dt){found=true;if(norm(dt.sandi)===p)g=dt}
     }
-    if(g){ isAdmin=true; me={nama:g.nama,idGuru:g.idGuru||"",role:String(g.role||"guru").toLowerCase()==="admin"?"admin":"guru"}; }
+    if(g){ isAdmin=true; me={nama:g.nama,idGuru:g.idGuru||"",role:normRole(g.role),sertifikasi:normSert(g.sertifikasi)}; }
     else if(found){return fail("Sandi salah untuk ID ini. Cek lagi sandi di menu Guru (huruf besar/kecil berpengaruh, angka nol di depan bisa hilang jika file Excel berformat angka).")}
     else{
       const nis=String(u).replace(/\s/g,"");
@@ -283,7 +288,7 @@ window.home=()=>{go(isAdmin?"Menu":"Beranda")};
 function start(){
   closeLogin();$("login").classList.add("hidden");$("app").classList.remove("hidden");
     $("tabs").style.display="none";$("tabs").innerHTML="";
-  $("menu").innerHTML=`<div class="px-3 py-2 border-b mb-1"><div class="font-bold text-sm">${esc(me.nama)}</div><div class="text-xs text-slate-500">${isAdmin?(isGuruRole()?"Guru":"Admin"):esc(me.kelas)}</div></div>`
+  $("menu").innerHTML=`<div class="px-3 py-2 border-b mb-1"><div class="font-bold text-sm">${esc(me.nama)}</div><div class="text-xs text-slate-500">${isAdmin?(esc(roleLbl(me.role))+(me.role!=="admin"&&me.sertifikasi?" · "+esc(me.sertifikasi):"")):esc(me.kelas)}</div></div>`
    +(isAdmin?"":`<button class="mi" onclick="go('Notifikasi')">${IC.bell}<span>Notifikasi</span><span id="bdg" class="ml-auto"></span></button><button class="mi" onclick="go('KartuID')"><span style="font-size:1.2rem">🪪</span><span>Kartu ID &amp; QR</span></button><button class="mi" onclick="go('LayananMandiri')"><span style="font-size:1.2rem">🙋</span><span>Layanan Mandiri</span></button><button class="mi" onclick="go('Bantuan')">${IC.help}<span>Bantuan (CS)</span></button><button class="mi" onclick="go('Chat')">${IC.chat}<span>Grup Chat</span></button>`)
    +`<button class="mi" style="color:#be123c" onclick="logout()">${IC.out}<span>Keluar</span></button>`;
   $("acc").innerHTML=IC.user+'<span id="bdg2" class="bdg2" style="display:none"></span>';
@@ -488,35 +493,36 @@ window.saveSiswa=async id=>{const nama=$("esn").value.trim(),kelas=$("esk").valu
   closeModal();go("Siswa")};
 
 // ----- tabel guru -----
-let GQ={role:"",q:"",by:"nama",dir:1};
-const guruTable=()=>{const q=key(GQ.q),a=GURUV.filter(x=>(!GQ.role||(x.role==="admin"?"admin":"guru")===GQ.role)&&(!q||key((x.nama||"")+(x.idGuru||"")).includes(q))).sort((x,y)=>cmp(x,y,GQ.by,GQ.dir));
+let GQ={role:"",sert:"",q:"",by:"nama",dir:1};
+const guruTable=()=>{const q=key(GQ.q),a=GURUV.filter(x=>(!GQ.role||normRole(x.role)===GQ.role)&&(!GQ.sert||normSert(x.sertifikasi)===GQ.sert)&&(!q||key((x.nama||"")+(x.idGuru||"")).includes(q))).sort((x,y)=>cmp(x,y,GQ.by,GQ.dir));
   const h=(by,l)=>`<th class="text-left p-3 cursor-pointer select-none" onclick="sortGuru('${by}')">${l}${arrow(GQ,by)}</th>`;
-  return TBL(`<th class="text-left p-3">No</th>${h("nama","Nama")}${h("idGuru","ID")}${h("role","Role")}${h("tglLahir","Tgl Lahir")}<th class="text-left p-3">Sandi</th><th class="p-3">Aksi</th>`,
-   a.length?a.map((x,i)=>`<tr class="border-t"><td class="p-3">${i+1}</td><td class="p-3 font-semibold">${esc(x.nama||x.idGuru)}</td><td class="p-3 font-mono">${esc(x.idGuru||x.id)}</td><td class="p-3"><span class="pill ${x.role==="admin"?"bg-amber-100 text-amber-700":"bg-emerald-100 text-emerald-700"}">${x.role==="admin"?"Admin":"Guru"}</span></td><td class="p-3">${fmtTgl(x.tglLahir)}</td><td class="p-3">${sandiBtn("guru",x.id,x.sandi)}</td><td class="p-3"><button class="btn2" onclick="editGuru('${x.id}')">Edit</button>${key(me.idGuru)===x.id?"":` <button class="btn2" onclick="hapus('guru','${x.id}','Guru')">Hapus</button>`}</td></tr>`).join(""):`<tr><td colspan="7" class="p-4 text-slate-500">Belum ada data guru.</td></tr>`,
+  return TBL(`<th class="text-left p-3">No</th>${h("nama","Nama")}${h("idGuru","ID")}${h("role","Role")}${h("sertifikasi","Sertifikasi")}${h("tglLahir","Tgl Lahir")}<th class="text-left p-3">Sandi</th><th class="p-3">Aksi</th>`,
+   a.length?a.map((x,i)=>`<tr class="border-t"><td class="p-3">${i+1}</td><td class="p-3 font-semibold">${esc(x.nama||x.idGuru)}</td><td class="p-3 font-mono">${esc(x.idGuru||x.id)}</td><td class="p-3"><span class="pill ${({admin:"bg-amber-100 text-amber-700",staf:"bg-sky-100 text-sky-700",guru:"bg-emerald-100 text-emerald-700"})[normRole(x.role)]}">${roleLbl(x.role)}</span></td><td class="p-3">${sertPill(x.sertifikasi)}</td><td class="p-3">${fmtTgl(x.tglLahir)}</td><td class="p-3">${sandiBtn("guru",x.id,x.sandi)}</td><td class="p-3"><button class="btn2" onclick="editGuru('${x.id}')">Edit</button>${key(me.idGuru)===x.id?"":` <button class="btn2" onclick="hapus('guru','${x.id}','Guru')">Hapus</button>`}</td></tr>`).join(""):`<tr><td colspan="8" class="p-4 text-slate-500">Belum ada data guru.</td></tr>`,
    `${a.length} dari ${GURUV.length} akun guru. Klik judul kolom untuk mengurutkan.`)};
-window.filterGuru=()=>{GQ.q=$("gq").value;GQ.role=$("gr").value;$("gtbl").innerHTML=guruTable()};
+window.filterGuru=()=>{GQ.q=$("gq").value;GQ.role=$("gr").value;GQ.sert=$("gs").value;$("gtbl").innerHTML=guruTable()};
 window.sortGuru=by=>{GQ.dir=GQ.by===by?-GQ.dir:1;GQ.by=by;$("gtbl").innerHTML=guruTable()};
 const nextGuruId=ex=>{const used=new Set(ex.map(x=>key(x.id)));let n=ex.reduce((m,x)=>{const r=/^gr(\d+)$/.exec(key(x.idGuru||x.id));return r?Math.max(m,+r[1]):m},0)+1,id;do{id="GR"+String(n++).padStart(3,"0")}while(used.has(key(id)));return id};
-window.addGuru=async()=>{const nm=$("gnm").value.trim(),tg=$("gtl").value,role=$("grl").value;
+window.addGuru=async()=>{const nm=$("gnm").value.trim(),tg=$("gtl").value,role=$("grl").value,sertifikasi=$("gsr").value;
   if(!nm||!tg)return alert("Isi nama dan tanggal lahir.");
   try{const idGuru=nextGuruId(await all("guru")),sandi=ddmmyyyy(tg);
-    await setDoc(doc(db,"guru",key(idGuru)),{idGuru,nama:nm,sandi,role,tglLahir:tg,tgl:sandi});
-    alert("Akun guru dibuat.\n\nNama: "+nm+"\nID: "+idGuru+"\nSandi: "+sandi+"\nRole: "+(role==="admin"?"Admin":"Guru")+"\n\nCatat dan berikan ke guru yang bersangkutan.");
+    await setDoc(doc(db,"guru",key(idGuru)),{idGuru,nama:nm,sandi,role,sertifikasi,tglLahir:tg,tgl:sandi});
+    alert("Akun guru dibuat.\n\nNama: "+nm+"\nID: "+idGuru+"\nSandi: "+sandi+"\nRole: "+roleLbl(role)+"\nStatus: "+sertifikasi+"\n\nCatat dan berikan ke guru yang bersangkutan.");
   }catch(e){return alert("Gagal membuat akun ("+(e.code||e.message)+")")}
   go("Guru")};
 window.gSync=()=>{const t=$("egt"),s2=$("egs");if(t.value&&(!s2.value||s2.value===ddmmyyyy(t.dataset.prev)))s2.value=ddmmyyyy(t.value);t.dataset.prev=t.value};
 window.editGuru=id=>{const x=GURUV.find(v=>v.id===id);if(!x)return;
-  modal(`<h3 class="font-extrabold">Edit akun guru</h3>`
+  modal(`<h3 class="font-extrabold">Edit akun guru / staf</h3>`
    +lbl("ID Guru (tidak dapat diubah)",`<input class="inp" value="${esc(x.idGuru||x.id)}" disabled>`)
    +lbl("Nama",`<input id="egn" class="inp" value="${esc(x.nama||"")}">`)
-   +lbl("Role",`<select id="egr" class="inp"><option value="guru" ${x.role!=="admin"?"selected":""}>Guru (Akademik, Kegiatan, Chat)</option><option value="admin" ${x.role==="admin"?"selected":""}>Admin (semua fitur)</option></select>`)
+   +lbl("Role",`<select id="egr" class="inp"><option value="guru" ${normRole(x.role)==="guru"?"selected":""}>Guru (Akademik, Kegiatan, Chat)</option><option value="staf" ${normRole(x.role)==="staf"?"selected":""}>Staf (fitur sama seperti Guru)</option><option value="admin" ${normRole(x.role)==="admin"?"selected":""}>Admin (semua fitur)</option></select>`)
+   +lbl("Status sertifikasi",`<select id="egs2" class="inp"><option value="" ${!normSert(x.sertifikasi)?"selected":""}>Belum diisi</option><option ${normSert(x.sertifikasi)==="Sertifikasi"?"selected":""}>Sertifikasi</option><option ${normSert(x.sertifikasi)==="Non Sertifikasi"?"selected":""}>Non Sertifikasi</option></select>`)
    +lbl("Tanggal lahir",`<input id="egt" type="date" class="inp" value="${esc(x.tglLahir||"")}" data-prev="${esc(x.tglLahir||"")}" oninput="gSync()">`)
    +lbl("Sandi login (otomatis ikut tanggal lahir ddmmyyyy, boleh diubah)",`<input id="egs" class="inp font-mono" value="${esc(x.sandi||"")}">`)
    +`<div class="flex gap-2 mt-4"><button class="btn flex-1" onclick="saveGuru('${x.id}')">Simpan</button><button class="btn2" onclick="closeModal()">Batal</button></div>`)};
-window.saveGuru=async id=>{const nama=$("egn").value.trim(),role=$("egr").value,sandi=$("egs").value.trim(),tg=$("egt").value;
+window.saveGuru=async id=>{const nama=$("egn").value.trim(),role=$("egr").value,sertifikasi=$("egs2").value,sandi=$("egs").value.trim(),tg=$("egt").value;
   if(!nama||!sandi)return alert("Nama dan sandi wajib diisi.");
-  if(role==="guru"&&key(me.idGuru)===id)return alert("Anda tidak bisa menurunkan role akun yang sedang dipakai.");
-  try{await updateDoc(doc(db,"guru",id),{nama,role,sandi,tglLahir:tg||"",tgl:ddmmyyyy(tg)})}catch(e){return alert("Gagal menyimpan ("+(e.code||e.message)+")")}
+  if(role!=="admin"&&key(me.idGuru)===id&&me.role==="admin")return alert("Anda tidak bisa menurunkan role akun yang sedang dipakai.");
+  try{await updateDoc(doc(db,"guru",id),{nama,role,sertifikasi,sandi,tglLahir:tg||"",tgl:ddmmyyyy(tg)})}catch(e){return alert("Gagal menyimpan ("+(e.code||e.message)+")")}
   closeModal();go("Guru")};
 
 const A={
@@ -525,12 +531,13 @@ Rekap:async()=>{const k=[...new Set(siswa.map(x=>x.kelas))].sort(),t=today();
  <select id="rkk" class="inp" onchange="loadRekap()"><option value="">Semua kelas</option>${k.map(x=>`<option>${esc(x)}</option>`).join("")}</select>
  <div class="grid grid-cols-2 gap-2"><div><label class="text-xs text-slate-500">Dari tanggal</label><input id="rka" type="date" class="inp" value="${t.slice(0,8)}01" onchange="loadRekap()"></div><div><label class="text-xs text-slate-500">Sampai tanggal</label><input id="rkb" type="date" class="inp" value="${t}" onchange="loadRekap()"></div></div>
  ${isGuruRole()?"":`<button class="btn" onclick="exportRekap()">⬇ Ekspor ke Excel</button>`}</div><div id="rks"></div>`},
-Guru:async()=>{GURUV=await all("guru");GQ={role:"",q:"",by:"nama",dir:1};
- return `<div class="card space-y-2 mb-4"><h2 class="font-extrabold">Tambah akun guru</h2><p class="text-xs text-slate-500">ID guru dibuat otomatis (GR001, GR002, dst). Sandi awal = tanggal lahir format ddmmyyyy, dan bisa diubah lewat tombol Edit.</p>
-  <input id="gnm" class="inp" placeholder="Nama guru"><div class="grid grid-cols-2 gap-2"><div><label class="text-xs text-slate-500">Tanggal lahir</label><input id="gtl" type="date" class="inp"></div><div><label class="text-xs text-slate-500">Role</label><select id="grl" class="inp"><option value="guru">Guru</option><option value="admin">Admin</option></select></div></div>
+Guru:async()=>{GURUV=await all("guru");GQ={role:"",sert:"",q:"",by:"nama",dir:1};
+ return `<div class="card space-y-2 mb-4"><h2 class="font-extrabold">Tambah akun guru / staf</h2><p class="text-xs text-slate-500">ID guru dibuat otomatis (GR001, GR002, dst). Sandi awal = tanggal lahir format ddmmyyyy, dan bisa diubah lewat tombol Edit.</p>
+  <input id="gnm" class="inp" placeholder="Nama guru / staf"><div class="grid grid-cols-2 gap-2"><div><label class="text-xs text-slate-500">Tanggal lahir</label><input id="gtl" type="date" class="inp"></div><div><label class="text-xs text-slate-500">Role</label><select id="grl" class="inp"><option value="guru">Guru</option><option value="staf">Staf</option><option value="admin">Admin</option></select></div></div>
+  <div><label class="text-xs text-slate-500">Status sertifikasi</label><select id="gsr" class="inp"><option>Sertifikasi</option><option selected>Non Sertifikasi</option></select></div>
   <button class="btn" onclick="addGuru()">Buat akun</button></div>
- <details class="card mb-4"><summary class="font-bold cursor-pointer text-sm">Upload data guru dari Excel</summary><div class="space-y-2 mt-3"><p class="text-xs text-slate-500">File .xlsx atau .csv dengan kolom: ID GURU, SANDI, NAMA GURU, dan ROLE (opsional: guru / admin, kosong = guru). Akun dengan ID yang sama akan diperbarui.</p><input id="gf" type="file" accept=".xlsx,.xls,.csv" class="inp"><button class="btn" onclick="importGuru()">Upload</button></div></details>
- <div class="grid grid-cols-2 gap-2 mb-3"><input id="gq" class="inp" placeholder="🔍 Cari nama / ID" oninput="filterGuru()"><select id="gr" class="inp" onchange="filterGuru()"><option value="">Semua role</option><option value="guru">Guru</option><option value="admin">Admin</option></select></div>
+ <details class="card mb-4"><summary class="font-bold cursor-pointer text-sm">Upload data guru dari Excel</summary><div class="space-y-2 mt-3"><p class="text-xs text-slate-500">File .xlsx atau .csv dengan kolom: ID GURU, SANDI, NAMA GURU, ROLE (opsional: guru / staf / admin, kosong = guru), dan SERTIFIKASI (opsional: Sertifikasi / Non Sertifikasi). Akun dengan ID yang sama akan diperbarui.</p><input id="gf" type="file" accept=".xlsx,.xls,.csv" class="inp"><button class="btn" onclick="importGuru()">Upload</button></div></details>
+ <div class="grid grid-cols-3 gap-2 mb-3"><input id="gq" class="inp" placeholder="🔍 Cari nama / ID" oninput="filterGuru()"><select id="gr" class="inp" onchange="filterGuru()"><option value="">Semua role</option><option value="guru">Guru</option><option value="staf">Staf</option><option value="admin">Admin</option></select><select id="gs" class="inp" onchange="filterGuru()"><option value="">Semua status</option><option>Sertifikasi</option><option>Non Sertifikasi</option></select></div>
  <div id="gtbl">${guruTable()}</div>`},
 Jadwal:async()=>{JD=await getJD();try{GURUV=await all("guru")}catch(e){GURUV=[]}JH=todayHari(JD);const can=!isGuruRole();
  return `<div id="jmx">${adminJ()}</div>`+(can?`<details class="card mt-5"><summary class="font-bold cursor-pointer text-sm">Upload jadwal dari Excel</summary><div class="space-y-2 mt-3"><p class="text-xs text-slate-500">Gunakan format file Jadwal_Pelajaran.xlsx: kolom HARI dan JAM, lalu pasangan kolom Mata Pelajaran + KG untuk tiap kelas (X-A, X-B, XI-A, XI-B, XII-A, XII-B). <b class="text-rose-600">Upload akan mengganti seluruh jadwal.</b></p><input id="jf" type="file" accept=".xlsx,.xls,.csv" class="inp"><button class="btn" onclick="importJadwal()">Upload jadwal</button></div></details>`:"")},
@@ -857,15 +864,15 @@ const readSheet=async id=>{const f=$(id).files[0];if(!f){alert("Pilih file.");re
 const gv=(r,k)=>r[Object.keys(r).find(h=>h.toLowerCase().includes(k))]??"";
 window.setRole=async(id,role)=>{
   if(isGuruRole())return;
-  if(role==="guru"&&key(me.idGuru)===id)return alert("Anda tidak bisa menurunkan role akun yang sedang dipakai.");
-  if(!confirm("Ubah role akun ini menjadi "+(role==="admin"?"Admin (akses semua fitur)":"Guru (hanya Akademik, Kegiatan Madrasah, Grup Chat)")+"?"))return;
+  if(role!=="admin"&&key(me.idGuru)===id)return alert("Anda tidak bisa menurunkan role akun yang sedang dipakai.");
+  if(!confirm("Ubah role akun ini menjadi "+(role==="admin"?"Admin (akses semua fitur)":roleLbl(role)+" (hanya Akademik, Kegiatan Madrasah, Grup Chat)")+"?"))return;
   await updateDoc(doc(db,"guru",id),{role});go("Guru");
 };
 window.importGuru=async()=>{
   const rows=await readSheet("gf");if(!rows)return;
   let n=0,nn=0,b=writeBatch(db);
-  for(const r of rows){const hk=Object.keys(r).find(h=>/(^|[^a-z])id([^a-z]|$)/i.test(h)),idGuru=String(hk?r[hk]:"").trim(),nm=String(gv(r,"nama")).trim(),sandi=String(gv(r,"sandi")).trim(),id=key(idGuru),rk=Object.keys(r).find(h=>/role|peran/i.test(h)),rl=rk?String(r[rk]).trim().toLowerCase():"";if(!id||!sandi)continue;
-   if(!nm)nn++;b.set(doc(db,"guru",id),{idGuru,nama:nm||idGuru,sandi,...(rl?{role:rl==="admin"?"admin":"guru"}:{})},{merge:true});if(++n%400===0){await b.commit();b=writeBatch(db)}}
+  for(const r of rows){const hk=Object.keys(r).find(h=>/(^|[^a-z])id([^a-z]|$)/i.test(h)),idGuru=String(hk?r[hk]:"").trim(),nm=String(gv(r,"nama")).trim(),sandi=String(gv(r,"sandi")).trim(),id=key(idGuru),rk=Object.keys(r).find(h=>/role|peran/i.test(h)),rl=rk?String(r[rk]).trim().toLowerCase():"",sk=Object.keys(r).find(h=>/sertif/i.test(h)),sv=sk?normSert(r[sk]):"";if(!id||!sandi)continue;
+   if(!nm)nn++;b.set(doc(db,"guru",id),{idGuru,nama:nm||idGuru,sandi,...(rl?{role:normRole(rl)}:{}),...(sv?{sertifikasi:sv}:{})},{merge:true});if(++n%400===0){await b.commit();b=writeBatch(db)}}
   await b.commit();alert(n+" akun guru berhasil diupload."+(nn?"\n"+nn+" baris tidak punya NAMA GURU, jadi namanya memakai ID Guru. Cek nama kolomnya.":""));go("Guru");
 };
 window.addInfo=async()=>{
@@ -1272,7 +1279,7 @@ const drawChat=()=>{
 };
 window.sendChat=async()=>{
   const i=$("cin");if(!i)return;const t=i.value.trim();if(!t)return;i.value="";i.focus();
-  try{await addDoc(collection(db,"chat"),{room:chatRoom,uid:chatUid(),nama:me.nama,role:isAdmin?(isGuruRole()?"Guru":"Admin"):"Siswa",kelas:isAdmin?"":(me.kelas||""),teks:t,waktu:new Date().toISOString()})}
+  try{await addDoc(collection(db,"chat"),{room:chatRoom,uid:chatUid(),nama:me.nama,role:isAdmin?roleLbl(me.role):"Siswa",kelas:isAdmin?"":(me.kelas||""),teks:t,waktu:new Date().toISOString()})}
   catch(e){alert("Pesan gagal terkirim.");i.value=t}
 };
 window.delChat=async id=>{if(confirm("Hapus pesan ini?"))await deleteDoc(doc(db,"chat",id))};
