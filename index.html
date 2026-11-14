@@ -1890,13 +1890,9 @@ A.GajiGuru=async()=>{
   const [tr,gs,st]=await Promise.all([all("tarifGuru"),all("guru"),getDoc(doc(db,"pengaturan","gajiSetting"))]);
   const wj=st.exists()?st.data().wajibJurnal!==false:true;
   return `<div class="card space-y-2 mb-4"><h2 class="font-extrabold">💰 Pembayaran Guru</h2>
-  <p class="text-xs text-slate-500">Pembayaran dihitung otomatis per bulan dari presensi (Clock In), jadwal &amp; jurnal mengajar, serta data guru pengganti. Tarif tiap guru berbeda dan diisi manual pada tabel tarif di bawah (atau lewat upload Excel).</p>
+  <p class="text-xs text-slate-500">Pembayaran dihitung otomatis per bulan dari presensi (Clock In), jadwal &amp; jurnal mengajar, serta data guru pengganti. Tarif tiap guru berbeda dan diisi manual pada tabel tarif di bawah.</p>
   ${tarifTabel([...gs].sort((a,b)=>(a.nama||"")>(b.nama||"")?1:-1),tr)}
-  <details class="card"><summary class="font-bold cursor-pointer text-sm">Upload data tarif guru dari Excel (${tr.length} dari ${gs.length} guru sudah punya tarif)</summary><div class="space-y-2 mt-3">
-  <p class="text-xs text-slate-500">Upload file Excel pembayaran guru apa adanya. Kolom yang dibaca: <b>NAMA GURU</b>, NOMINAL DATANG (per hari hadir), NOMINAL JAM (per jam mengajar), WALI KELAS, PKM, NOMINAL PENGGANTI GURU JAM KOSONG (per jam), KETERANGAN (SERTIFIKASI / NON SERTIFIKASI / INPASSING), TAMBAHAN HR, PULSA ADMIN SOSMED &amp; OPERATOR. Kolom KEHADIRAN dan JUMLAH JAM diabaikan karena dihitung otomatis. Sebelum disimpan, Anda bisa memeriksa dan memperbaiki pencocokan nama guru.</p>
-  <button class="btn2" onclick="unduhTemplateTarif()">⬇ Unduh template (daftar guru)</button>
-  <input id="gjf" type="file" accept=".xlsx,.xls,.csv" class="inp"><button class="btn" onclick="importTarif()">Upload tarif</button></div></details>
-  <label class="flex items-start gap-2 text-sm"><input id="gjWj" type="checkbox" class="mt-1" ${wj?"checked":""} onchange="gjSetWajib()"><span><b>Wajib mengisi jurnal agar dibayar.</b> Sesi mengajar (dan sesi pengganti) yang jurnalnya kosong tidak dihitung dan diberi keterangan di slip.</span></label>
+<label class="flex items-start gap-2 text-sm"><input id="gjWj" type="checkbox" class="mt-1" ${wj?"checked":""} onchange="gjSetWajib()"><span><b>Wajib mengisi jurnal agar dibayar.</b> Sesi mengajar (dan sesi pengganti) yang jurnalnya kosong tidak dihitung dan diberi keterangan di slip.</span></label>
   <div class="grid grid-cols-2 gap-2"><input id="gjBulan" type="month" class="inp" value="${today().slice(0,7)}" onchange="loadGaji()"><input id="gjQ" class="inp" placeholder="🔍 Cari nama guru" oninput="renderGaji()"></div>
   <div class="flex flex-wrap gap-2"><button class="btn" onclick="gjTerbitSemua()">📤 Terbitkan semua slip</button><button class="btn2" onclick="exportGaji()">⬇ Ekspor ke Excel</button></div></div><div id="gjOut">${empty("Memuat…")}</div>`;
 };
