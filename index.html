@@ -81,6 +81,7 @@ input[type=month]{display:block;box-sizing:border-box;width:100%;min-width:0;-we
 .ppov{position:fixed;inset:0;z-index:90;background:var(--bg);overflow-y:auto}
 canvas.sigpad{touch-action:none;width:100%;height:auto;border:1.5px dashed #94a3b8;border-radius:.75rem;background:#fff;cursor:crosshair;display:block}
 .ppband{background:linear-gradient(135deg,#fff8e6,#fdf1cf);border:1px solid #ecd9a0;border-radius:1.25rem}
+@media print{body.print-slip>*:not(#md){display:none!important}body.print-slip #md{position:static!important;background:#fff!important;padding:0!important;display:block!important}body.print-slip #md>.card{border:none!important;box-shadow:none!important;max-width:none!important}.noprint{display:none!important}}
 </style>
 <script>
 if('serviceWorker' in navigator){window.addEventListener('load',()=>navigator.serviceWorker.register('sw.js').catch(()=>{}));}
@@ -236,7 +237,7 @@ const roleLbl=r=>({admin:"Admin",staf:"Staf",guru:"Guru"})[normRole(r)];
 const normSert=v=>{v=String(v||"").trim();return !v?"":/^inpass/i.test(v)?"Inpassing":/^(non|tidak|belum|bukan)/i.test(v)?"Non Sertifikasi":"Sertifikasi"};
 const sertPill=v=>{v=normSert(v);return v?`<span class="pill ${v==="Sertifikasi"?"bg-emerald-100 text-emerald-700":v==="Inpassing"?"bg-sky-100 text-sky-700":"bg-slate-100 text-slate-600"}">${v}</span>`:'<span class="text-xs text-slate-400">-</span>'};
 const isGuruRole=()=>isAdmin&&me&&me.role!=="admin";
-const GURU_OK=new Set(["Menu","Jadwal","Absensi","Rekap","Jurnal","Presensi","Kegiatan","RekapKegiatan","Chat"]);
+const GURU_OK=new Set(["Menu","Jadwal","Absensi","Rekap","Jurnal","Presensi","Kegiatan","RekapKegiatan","Chat","SlipGaji","Pengganti"]);
 
 const saved=sessionStorage.getItem("me");
 window.openLogin=()=>{$("loginModal").classList.remove("hidden");setTimeout(()=>$("u").focus(),50)};
@@ -318,6 +319,8 @@ window.go=async n=>{
   if(n==="Chat")initChat();
   if(n==="KartuID")renderID();
   if(isAdmin&&n==="RekapKegiatan")loadRkg();
+  if(isAdmin&&n==="GajiGuru")loadGaji();
+  if(isAdmin&&n==="Pengganti"){pnRefresh();pnRender()}
   window.scrollTo(0,0);
 };
 const opts=(a,sel)=>a.map(s=>`<option value="${s.nisn}">${esc(s.nama)} - ${esc(s.kelas)}</option>`).join("");
@@ -914,6 +917,7 @@ window.exportRekap=()=>{if(isGuruRole())return alert("Fitur download rekapitulas
 IC.chat=svg('<path d="M21 15a2 2 0 0 1-2 2H7l-4 4V5a2 2 0 0 1 2-2h14a2 2 0 0 1 2 2z"/>');
 const MENU=[
  ["Akademik",[["Jadwal","📅","Jadwal pelajaran semua kelas","#e0f2fe"],["Absensi","✅","Catat kehadiran harian","#dcfce7"],["Rekap","🗓️","Rekap kehadiran & ekspor Excel","#ede9fe","Rekap Kehadiran"],["Jurnal","📓","Isi jurnal mengajar guru","#fce7f3","Jurnal Guru"],["Presensi","📸","Absen guru dengan kamera & lokasi","#fee2e2","Presensi Guru"],["LaporanGuru","📊","Laporan bulanan guru (khusus admin)","#fef3c7","Laporan Bulanan Guru"]]],
+ ["Keuangan Guru",[["GajiGuru","💰","Hitung & kelola pembayaran guru","#d1fae5","Pembayaran Guru"],["SlipGaji","🧾","Slip gaji guru","#fef3c7","Slip Gaji"],["Pengganti","🔁","Guru pengganti jam kosong","#e0f2fe","Guru Pengganti"]]],
  ["Data Madrasah",[["Siswa","🎓","Upload & kelola data siswa","#e0e7ff"],["Guru","👩‍🏫","Akun & sandi guru","#ccfbf1"]]],
  ["Kesiswaan",[["Pelanggaran","⚠️","Catatan kedisiplinan","#ffe4e6"],["Prestasi","🏆","Capaian & penghargaan siswa","#fef9c3"]]],
  ["PPDB",[["PPDB","📋","Data pendaftar & unduh berkas PDF","#fef3c7","Data PPDB"],["VerifPPDB","🔍","Scan QR cek keaslian berkas","#dcfce7","Verifikasi QR"]]],
@@ -948,12 +952,13 @@ const jurCocok=(j,gid,tgl,s)=>j.guruId===gid&&j.tgl===tgl&&(j.sesi===s.key||(kel
 // ---------- form jurnal: nama guru berupa pilihan + sesi sesuai jadwal ----------
 let JSS=[];
 const sesiHTML=(gid,tgl)=>{JSS=gid&&tgl?sesiGuru(JD,gid,tgl,guruMap(GURUV)):[];
-  return `<option value="">${JSS.length?"Pilih sesi mengajar sesuai jadwal":"Tidak ada jadwal mengajar di tanggal ini (isi manual)"}</option>`+JSS.map((s,i)=>{const ok=JN.some(j=>jurCocok(j,gid,tgl,s));return `<option value="${i}">${ok?"✓ ":""}${esc(s.jam)} · ${esc(s.kelas)} · ${esc(s.mapel)}${ok?" (sudah diisi)":""}</option>`}).join("")};
+  if(gid&&tgl)PGNV.filter(p=>p.status==="Disetujui"&&p.penggantiId===gid&&p.tgl===tgl).forEach(p=>JSS.push({hari:HARI_ID[new Date(tgl+"T00:00:00").getDay()],jam:p.jam,kelasId:p.kelasId,kelas:p.kelas,mapel:p.mapel,key:p.sesiKey,pengganti:true}));
+  return `<option value="">${JSS.length?"Pilih sesi mengajar sesuai jadwal":"Tidak ada jadwal mengajar di tanggal ini (isi manual)"}</option>`+JSS.map((s,i)=>{const ok=JN.some(j=>jurCocok(j,gid,tgl,s));return `<option value="${i}">${ok?"✓ ":""}${esc(s.jam)} · ${esc(s.kelas)} · ${esc(s.mapel)}${s.pengganti?" (guru pengganti)":""}${ok?" (sudah diisi)":""}</option>`}).join("")};
 window.refreshSesi=()=>{$("jnSesi").innerHTML=sesiHTML($("jnGid").value,$("jnTgl").value);pilihSesi()};
 window.pilihSesi=()=>{const i=$("jnSesi").value,s=i!==""?JSS[+i]:null;if(s){$("jnJam").value=s.jam;$("jnKls").value=s.kelasId;$("jnMp").value=s.mapel}["jnJam","jnKls","jnMp"].forEach(id=>$(id).readOnly=!!s)};
 A.Jurnal=async()=>{
   JN=(await all("jurnal")).sort((a,b)=>((b.tgl||"")+(b.dibuat||""))>((a.tgl||"")+(a.dibuat||""))?1:-1);JNV=JN;
-  JD=await getJD();try{GURUV=await all("guru")}catch(e){GURUV=[]}GURUV.sort((a,b)=>(a.nama||"")>(b.nama||"")?1:-1);
+  JD=await getJD();try{PGNV=(await all("guruPengganti")).filter(x=>x.status==="Disetujui")}catch(e){PGNV=[]}try{GURUV=await all("guru")}catch(e){GURUV=[]}GURUV.sort((a,b)=>(a.nama||"")>(b.nama||"")?1:-1);
   const mine=GURUV.find(x=>x.id===key(me.idGuru||"")),locked=isGuruRole()&&!!mine,tg=today();
   const kl=[...new Set(siswa.map(x=>x.kelas))].sort(),mp=[...new Set((await getJadwal()).map(x=>x.mapel))].sort();
   const gu=[...new Set(JN.map(x=>x.guru).filter(Boolean))].sort();
@@ -1029,8 +1034,9 @@ window.loadLaporan=async()=>{
   if(isGuruRole())return;const b=$("lpBulan").value;if(!b){$("lpOut").innerHTML=empty("Pilih bulan.");return}
   $("lpOut").innerHTML=empty("Memuat laporan…");
   const rng=c=>getDocs(query(collection(db,c),where("tgl",">=",b+"-01"),where("tgl","<=",b+"-31"))).then(s=>s.docs.map(d=>({id:d.id,...d.data()})));
-  try{const [pres,jur,jd]=await Promise.all([rng("presensiGuru"),rng("jurnal"),getJD()]),n=new Date();
-    LP=hitungLaporan({bulan:b,gurus:GURUV,pres,jur,jd,td:pgYmd(n),nowMin:pgNow(n)})}
+  try{const [pres,jur,jd,pgn]=await Promise.all([rng("presensiGuru"),rng("jurnal"),getJD(),rng("guruPengganti")]),n=new Date();
+    LP=hitungLaporan({bulan:b,gurus:GURUV,pres,jur,jd,td:pgYmd(n),nowMin:pgNow(n)});
+    LP.rows=LP.rows.map(r=>{const f=tanpaDigantikan(r,pgn);return{...r,sesi:f.sesi,belum:f.belum}})}
   catch(e){console.error(e);$("lpOut").innerHTML=empty("Gagal memuat laporan ("+(e.code||e.message)+"). Periksa koneksi atau aturan Firestore.");return}
   renderLaporan();
 };
@@ -1806,6 +1812,211 @@ window.vpCek=async txt=>{
 };
 window.vpOk=async id=>{await updateDoc(doc(db,"ppdb",id),{status:"Terverifikasi"});const k=await getDoc(doc(db,"ppdb",id));vpCek("No: "+id+"\nKode: "+k.data().kode)};
 
+
+
+// ============ PEMBAYARAN GURU, GURU PENGGANTI & SLIP GAJI ============
+const GJ_F=["tarifHadir","tarifJam","tarifPengganti","pkm","tambahanHR","pulsa","adminSosmed","operator"];
+const GJ_L={tarifHadir:"Tarif kehadiran (Rp per hari hadir)",tarifJam:"Tarif jam mengajar (Rp per jam)",tarifPengganti:"Tarif pengganti jam kosong (Rp per jam)",pkm:"PKM (Rp per bulan)",tambahanHR:"Tambahan HR (Rp per bulan)",pulsa:"Pulsa (Rp per bulan)",adminSosmed:"Admin Sosmed (Rp per bulan)",operator:"Operator (Rp per bulan)"};
+const GJ_RE=[["tarifPengganti",/pengganti|kosong/i],["pkm",/pkm/i],["tambahanHR",/(^|[^a-z])hr([^a-z]|$)|hari\s*raya|thr/i],["pulsa",/pulsa/i],["adminSosmed",/sosmed|sosial/i],["operator",/operator/i],["tarifJam",/jam|jp|mengajar|ngajar/i],["tarifHadir",/hadir/i]];
+const bulanLbl=b=>{const [y,m]=String(b).split("-");return new Date(+y,+m-1,1).toLocaleDateString("id-ID",{month:"long",year:"numeric"})};
+const num=v=>{if(typeof v==="number")return v;const t=String(v??"").replace(/rp/ig,"").replace(/\s/g,"");if(!t)return 0;
+  const c=/,\d{1,2}$/.test(t)?t.replace(/\./g,"").replace(",","."):t.replace(/[.,](?=\d{3}(\D|$))/g,"");return Number(c.replace(/[^\d.-]/g,""))||0};
+const shortList=(a,f)=>a.slice(0,8).map(f).join("; ")+(a.length>8?"; dst.":"");
+const tanpaDigantikan=(r,P)=>{const dg=x=>P.some(p=>p.status==="Disetujui"&&p.guruAsalId===r.g.id&&p.tgl===x.tgl&&p.sesiKey===x.key);
+  const sesi=r.sesi.filter(x=>!dg(x));return{sesi,belum:r.belum.filter(x=>!dg(x)),digantiN:r.sesi.length-sesi.length}};
+let GJ={rows:[],bulan:"",wajib:true,meta:new Map()};
+
+const hitungGaji=async b=>{
+  const rng=c=>getDocs(query(collection(db,c),where("tgl",">=",b+"-01"),where("tgl","<=",b+"-31"))).then(s=>s.docs.map(d=>({id:d.id,...d.data()})));
+  const [gurus,pres,jur,jd,tarifs,adjs,pgn,st]=await Promise.all([all("guru"),rng("presensiGuru"),rng("jurnal"),getJD(),all("tarifGuru"),
+    getDocs(query(collection(db,"gajiBulan"),where("bulan","==",b))).then(s=>s.docs.map(d=>({id:d.id,...d.data()}))),rng("guruPengganti"),getDoc(doc(db,"pengaturan","gajiSetting"))]);
+  gurus.sort((x,y)=>(x.nama||"")>(y.nama||"")?1:-1);
+  const wajib=st.exists()?st.data().wajibJurnal!==false:true,n=new Date();
+  const L=hitungLaporan({bulan:b,gurus,pres,jur,jd,td:pgYmd(n),nowMin:pgNow(n)});
+  const T=new Map(tarifs.map(x=>[x.id,x])),AJ=new Map(adjs.map(x=>[x.guruId,x])),P=pgn.filter(x=>x.status==="Disetujui");
+  const meta=new Map();
+  const rows=L.rows.map(r=>{
+    const g=r.g,t=T.get(g.id)||null,aj=AJ.get(g.id)||{},f=tanpaDigantikan(r,P),k=x=>num(t&&t[x]);
+    const jamIsi=f.sesi.filter(x=>x.isi).length,jamBayar=wajib?jamIsi:f.sesi.length;
+    const peng=P.filter(p=>p.penggantiId===g.id).map(p=>({...p,isi:jur.some(j=>j.guruId===g.id&&j.tgl===p.tgl&&(j.sesi===p.sesiKey||kelasNorm(j.kelas)===p.kelasId))}));
+    const pengBayar=wajib?peng.filter(p=>p.isi).length:peng.length,pengBelum=peng.filter(p=>!p.isi);
+    const hr=aj.tambahanHR!=null&&aj.tambahanHR!==""?num(aj.tambahanHR):k("tambahanHR"),pot=num(aj.potongan);
+    const kom=[
+      {k:"hadir",n:"Kehadiran",qty:r.hadir.length,sat:"hari",tarif:k("tarifHadir")},
+      {k:"jam",n:"Jam mengajar",qty:jamBayar,sat:"jam",tarif:k("tarifJam")},
+      {k:"peng",n:"Pengganti jam kosong",qty:pengBayar,sat:"jam",tarif:k("tarifPengganti")},
+      {k:"pkm",n:"PKM",qty:1,sat:"",tarif:k("pkm"),tetap:1},
+      {k:"hr",n:"Tambahan HR",qty:1,sat:"",tarif:hr,tetap:1},
+      {k:"pulsa",n:"Pulsa",qty:1,sat:"",tarif:k("pulsa"),tetap:1},
+      {k:"sosmed",n:"Admin Sosmed",qty:1,sat:"",tarif:k("adminSosmed"),tetap:1},
+      {k:"op",n:"Operator",qty:1,sat:"",tarif:k("operator"),tetap:1}].map(c=>({...c,total:c.qty*c.tarif}));
+    const total=kom.reduce((a,c)=>a+c.total,0)-pot,ket=[];
+    if(!t)ket.push("Data tarif pembayaran guru ini belum diisi, sehingga total masih Rp 0.");
+    if(f.belum.length)ket.push("Tidak mengisi jurnal pada "+f.belum.length+" sesi mengajar ("+shortList(f.belum,x=>fmtTgl(x.tgl)+" "+x.jam+" "+x.kelasId)+")"+(wajib?"; sesi tersebut tidak dihitung dalam jam mengajar.":"."));
+    if(pengBelum.length)ket.push("Menggantikan guru lain pada "+pengBelum.length+" sesi tetapi belum mengisi jurnal ("+shortList(pengBelum,x=>fmtTgl(x.tgl)+" "+x.jam+" "+x.kelasId)+")"+(wajib?"; sesi tersebut tidak dibayar.":"."));
+    if(f.digantiN)ket.push(f.digantiN+" sesi mengajar digantikan guru lain, tidak dihitung.");
+    if(r.izin.length)ket.push("Izin "+r.izin.length+" hari.");
+    if(r.telat.length)ket.push("Terlambat "+r.telat.length+" kali ("+r.menit+" menit).");
+    if(r.absen.length)ket.push("Terjadwal mengajar tanpa presensi/izin pada "+r.absen.length+" hari.");
+    if(aj.catatan)ket.push(aj.catatan);
+    meta.set(g.id,{t,aj});
+    return{guruId:g.id,idGuru:g.idGuru||g.id,nama:g.nama||g.idGuru||g.id,role:normRole(g.role),sertifikasi:normSert(g.sertifikasi),bulan:b,kom,potongan:pot,catatan:aj.catatan||"",total,ket,adaTarif:!!t,
+      det:{hadir:r.hadir.length,terjadwal:f.sesi.length,jamIsi,jamBayar,peng:peng.length,pengBayar,belum:f.belum.length,pengBelum:pengBelum.length,izin:r.izin.length}}});
+  return{rows,wajib,meta,unmatched:L.unmatched};
+};
+
+A.GajiGuru=async()=>{
+  if(isGuruRole())return empty("Halaman ini hanya dapat diakses admin.");
+  const [tr,gs,st]=await Promise.all([all("tarifGuru"),all("guru"),getDoc(doc(db,"pengaturan","gajiSetting"))]);
+  const wj=st.exists()?st.data().wajibJurnal!==false:true;
+  return `<div class="card space-y-2 mb-4"><h2 class="font-extrabold">💰 Pembayaran Guru</h2>
+  <p class="text-xs text-slate-500">Pembayaran dihitung otomatis per bulan dari presensi (Clock In), jadwal &amp; jurnal mengajar, serta data guru pengganti. Tarif tiap guru berbeda dan diambil dari file Excel di bawah.</p>
+  <details class="card"><summary class="font-bold cursor-pointer text-sm">Upload data tarif guru dari Excel (${tr.length} dari ${gs.length} guru sudah punya tarif)</summary><div class="space-y-2 mt-3">
+  <p class="text-xs text-slate-500">Kolom: <b>ID GURU</b> (atau NAMA GURU), TARIF HADIR (per hari), TARIF JAM MENGAJAR (per jam), PKM, TARIF PENGGANTI JAM KOSONG (per jam), TAMBAHAN HR, PULSA, ADMIN SOSMED, OPERATOR. Kolom yang tidak ada tidak mengubah data lama. Mudahnya, unduh template yang sudah berisi daftar guru.</p>
+  <button class="btn2" onclick="unduhTemplateTarif()">⬇ Unduh template (daftar guru)</button>
+  <input id="gjf" type="file" accept=".xlsx,.xls,.csv" class="inp"><button class="btn" onclick="importTarif()">Upload tarif</button></div></details>
+  <label class="flex items-start gap-2 text-sm"><input id="gjWj" type="checkbox" class="mt-1" ${wj?"checked":""} onchange="gjSetWajib()"><span><b>Wajib mengisi jurnal agar dibayar.</b> Sesi mengajar (dan sesi pengganti) yang jurnalnya kosong tidak dihitung dan diberi keterangan di slip.</span></label>
+  <div class="grid grid-cols-2 gap-2"><input id="gjBulan" type="month" class="inp" value="${today().slice(0,7)}" onchange="loadGaji()"><input id="gjQ" class="inp" placeholder="🔍 Cari nama guru" oninput="renderGaji()"></div>
+  <div class="flex flex-wrap gap-2"><button class="btn" onclick="gjTerbitSemua()">📤 Terbitkan semua slip</button><button class="btn2" onclick="exportGaji()">⬇ Ekspor ke Excel</button></div></div><div id="gjOut">${empty("Memuat…")}</div>`;
+};
+window.gjSetWajib=async()=>{try{await setDoc(doc(db,"pengaturan","gajiSetting"),{wajibJurnal:$("gjWj").checked},{merge:true})}catch(e){return alert("Gagal menyimpan ("+(e.code||e.message)+")")}loadGaji()};
+window.loadGaji=async()=>{
+  if(isGuruRole())return;const b=$("gjBulan").value;if(!b){$("gjOut").innerHTML=empty("Pilih bulan.");return}
+  $("gjOut").innerHTML=empty("Menghitung…");
+  try{const r=await hitungGaji(b);GJ={rows:r.rows,bulan:b,wajib:r.wajib,meta:r.meta,unmatched:r.unmatched}}
+  catch(e){console.error(e);$("gjOut").innerHTML=empty("Gagal menghitung ("+(e.code||e.message)+"). Periksa koneksi atau aturan Firestore.");return}
+  renderGaji();
+};
+window.renderGaji=()=>{if(!$("gjOut")||!GJ.rows.length&&!GJ.bulan)return;
+  const q=key($("gjQ")?$("gjQ").value:""),a=GJ.rows.filter(s=>!q||key(s.nama+s.idGuru).includes(q)),T=a.reduce((n,s)=>n+s.total,0);
+  const warn=(GJ.unmatched&&GJ.unmatched.length?`<div class="card mb-3 text-sm" style="background:#fff7ed"><b>⚠ Nama guru di jadwal belum cocok dengan akun guru:</b> ${GJ.unmatched.map(esc).join(", ")}. Sesi mereka tidak ikut dihitung.</div>`:"");
+  $("gjOut").innerHTML=warn+`<p class="text-sm mb-2">${bulanLbl(GJ.bulan)} · ${a.length} guru · Total pembayaran <b>${rp(T)}</b></p>
+  <div class="card overflow-x-auto p-0"><table class="w-full text-sm whitespace-nowrap"><thead style="background:var(--g);color:#fff"><tr><th class="text-left p-3">Guru</th><th class="p-3">Hadir</th><th class="p-3">Jam</th><th class="p-3">Pengganti</th><th class="p-3">Tanpa jurnal</th><th class="text-right p-3">Total</th><th class="p-3">Aksi</th></tr></thead><tbody>
+  ${a.map(s=>`<tr class="border-t"><td class="p-3 font-semibold">${esc(s.nama)}<div class="text-xs mt-0.5"><span class="pill bg-slate-100 text-slate-600">${roleLbl(s.role)}</span> ${sertPill(s.sertifikasi)}${s.adaTarif?"":' <span class="pill bg-rose-100 text-rose-700">tarif kosong</span>'}</div></td><td class="p-3 text-center">${s.det.hadir}</td><td class="p-3 text-center">${s.det.jamBayar}/${s.det.terjadwal}</td><td class="p-3 text-center">${s.det.pengBayar}/${s.det.peng}</td><td class="p-3 text-center ${s.det.belum+s.det.pengBelum?"text-rose-600 font-bold":""}">${s.det.belum+s.det.pengBelum||"-"}</td><td class="p-3 text-right font-bold">${rp(s.total)}</td><td class="p-3"><div class="flex gap-1"><button class="btn2" onclick="gjSlip('${s.guruId}')">Slip</button><button class="btn2" onclick="gjAtur('${s.guruId}')">Atur</button></div></td></tr>`).join("")||`<tr><td colspan="7" class="p-4 text-slate-500">Tidak ada data guru.</td></tr>`}</tbody></table></div>
+  <p class="text-xs text-slate-500 mt-2">Jam = jam dibayar/terjadwal. Pengganti = jam dibayar/jam menggantikan. Slip baru terlihat oleh guru setelah diterbitkan.</p>`;
+};
+window.gjAtur=gid=>{const s=GJ.rows.find(x=>x.guruId===gid),m=GJ.meta.get(gid)||{};if(!s)return;const t=m.t||{},aj=m.aj||{};
+  modal(`<h3 class="font-extrabold">${esc(s.nama)}</h3><p class="text-xs text-slate-500">Tarif tetap (berlaku tiap bulan)</p>`
+   +GJ_F.map(f=>lbl(GJ_L[f],`<input id="gt_${f}" type="number" min="0" inputmode="numeric" class="inp" value="${t[f]??""}" placeholder="0">`)).join("")
+   +`<p class="text-xs text-slate-500 mt-4">Penyesuaian khusus ${bulanLbl(GJ.bulan)}</p>`
+   +lbl("Tambahan HR bulan ini (kosongkan = pakai tarif tetap)",`<input id="ga_hr" type="number" min="0" class="inp" value="${aj.tambahanHR??""}">`)
+   +lbl("Potongan (Rp)",`<input id="ga_pot" type="number" min="0" class="inp" value="${aj.potongan??""}" placeholder="0">`)
+   +lbl("Catatan di slip (opsional)",`<input id="ga_cat" class="inp" value="${esc(aj.catatan||"")}">`)
+   +`<div class="flex gap-2 mt-4"><button class="btn flex-1" onclick="gjSimpanAtur('${gid}')">Simpan</button><button class="btn2" onclick="closeModal()">Batal</button></div>`)};
+window.gjSimpanAtur=async gid=>{const d={guruId:gid,updated:new Date().toISOString()};GJ_F.forEach(f=>{d[f]=num($("gt_"+f).value)});
+  const hr=$("ga_hr").value.trim();
+  try{await setDoc(doc(db,"tarifGuru",gid),d,{merge:true});
+    await setDoc(doc(db,"gajiBulan",gid+"_"+GJ.bulan),{guruId:gid,bulan:GJ.bulan,tambahanHR:hr===""?null:num(hr),potongan:num($("ga_pot").value),catatan:$("ga_cat").value.trim()})}
+  catch(e){return alert("Gagal menyimpan ("+(e.code||e.message)+")")}
+  closeModal();loadGaji()};
+window.unduhTemplateTarif=async()=>{const gs=(await all("guru")).sort((a,b)=>(a.nama||"")>(b.nama||"")?1:-1),T=new Map((await all("tarifGuru")).map(x=>[x.id,x]));
+  const F=["tarifHadir","tarifJam","pkm","tarifPengganti","tambahanHR","pulsa","adminSosmed","operator"];
+  const ws=XLSX.utils.aoa_to_sheet([["ID GURU","NAMA GURU","TARIF HADIR","TARIF JAM MENGAJAR","PKM","TARIF PENGGANTI JAM KOSONG","TAMBAHAN HR","PULSA","ADMIN SOSMED","OPERATOR"],...gs.map(g=>[g.idGuru||g.id,g.nama||"",...F.map(f=>num(T.get(g.id)&&T.get(g.id)[f]))])]);
+  ws["!cols"]=[{wch:12},{wch:28},...Array(8).fill({wch:16})];const wb=XLSX.utils.book_new();XLSX.utils.book_append_sheet(wb,ws,"Tarif Guru");XLSX.writeFile(wb,"Template_Tarif_Guru.xlsx")};
+window.importTarif=async()=>{const rows=await readSheet("gjf");if(!rows)return;if(!rows.length)return alert("File kosong.");
+  const gm=guruMap(await all("guru")),hd=Object.keys(rows[0]),hk=hd.find(h=>/(^|[^a-z])id([^a-z]|$)/i.test(h)),nk=hd.find(h=>/nama/i.test(h)),col={};
+  hd.forEach(h=>{if(h===hk||h===nk)return;const m=GJ_RE.find(([f,re])=>!col[f]&&re.test(h));if(m)col[m[0]]=h});
+  if(!Object.keys(col).length)return alert("Tidak ada kolom tarif yang dikenali. Gunakan template dari tombol unduh.");
+  if(!hk&&!nk)return alert("File harus punya kolom ID GURU atau NAMA GURU.");
+  let ok=0,n=0,b=writeBatch(db);const gagal=[];
+  for(const r of rows){const idv=hk?String(r[hk]).trim():"",nm=nk?String(r[nk]).trim():"";if(!idv&&!nm)continue;
+    const gid=(idv&&gm.get(key(idv)))||(nm&&gm.get(key(nm)));if(!gid){gagal.push(idv||nm);continue}
+    const d={guruId:gid,updated:new Date().toISOString()};Object.entries(col).forEach(([f,h])=>{d[f]=num(r[h])});
+    b.set(doc(db,"tarifGuru",gid),d,{merge:true});ok++;if(++n%400===0){await b.commit();b=writeBatch(db)}}
+  try{await b.commit()}catch(e){return alert("Gagal mengunggah ("+(e.code||e.message)+")")}
+  alert(ok+" guru berhasil diperbarui tarifnya."+(gagal.length?"\n"+gagal.length+" baris tidak cocok dengan akun guru: "+gagal.slice(0,6).join(", ")+(gagal.length>6?", dst.":""):""));go("GajiGuru")};
+
+// ---------- slip ----------
+const slipHTML=s=>{const row=(a,b,c)=>`<tr><td style="padding:.3rem 0">${a}</td><td style="padding:.3rem .4rem;color:#64748b;font-size:.75rem">${b}</td><td style="padding:.3rem 0;text-align:right;white-space:nowrap">${c}</td></tr>`;
+  const items=s.kom.filter(c=>c.total>0||(!c.tetap&&c.qty>0));
+  return `<div style="font-size:.85rem"><div style="text-align:center"><div style="font-weight:800;font-size:1.1rem;color:#0f5132">MyIgi · MA Insan Generasi Islami</div><div style="font-size:.7rem;letter-spacing:.08em;color:#64748b">SLIP PEMBAYARAN GURU</div><div style="font-weight:700;margin-top:.2rem">Periode ${bulanLbl(s.bulan)}</div></div>
+  <div style="border-top:2px solid #0f5132;border-bottom:1px solid #e5e2d6;margin:.7rem 0;padding:.5rem 0;display:grid;grid-template-columns:auto 1fr;gap:.15rem .7rem"><span style="color:#64748b">Nama</span><b>${esc(s.nama)}</b><span style="color:#64748b">ID Guru</span><span>${esc(s.idGuru)}</span><span style="color:#64748b">Jabatan</span><span>${roleLbl(s.role)}</span><span style="color:#64748b">Status</span><span>${esc(s.sertifikasi||"-")}</span></div>
+  <table style="width:100%;border-collapse:collapse"><thead><tr style="border-bottom:1px solid #e5e2d6;text-align:left;font-size:.72rem;color:#64748b"><th style="padding:.3rem 0">Komponen</th><th style="padding:.3rem .4rem">Rincian</th><th style="text-align:right;padding:.3rem 0">Jumlah</th></tr></thead><tbody>
+  ${items.map(c=>row(c.n,c.tetap?"tetap":c.qty+" "+c.sat+" × "+rp(c.tarif),rp(c.total))).join("")||row("Belum ada komponen","","Rp 0")}
+  ${s.potongan?row("Potongan","",'<span style="color:#be123c">- '+rp(s.potongan)+"</span>"):""}</tbody></table>
+  <div style="display:flex;justify-content:space-between;align-items:center;margin-top:.6rem;padding:.7rem .8rem;background:#e8f3ec;border-radius:.7rem"><b>TOTAL DITERIMA</b><b style="font-size:1.15rem;color:#0f5132">${rp(s.total)}</b></div>
+  ${s.ket&&s.ket.length?`<div style="margin-top:.8rem"><b style="font-size:.8rem">Keterangan</b><ul style="margin:.25rem 0 0 1.1rem;list-style:disc;font-size:.78rem;color:#334155">${s.ket.map(k=>`<li style="margin-bottom:.2rem">${esc(k)}</li>`).join("")}</ul></div>`:""}
+  <div style="display:flex;justify-content:space-between;margin-top:1.4rem;font-size:.75rem;color:#64748b"><div>${s.terbit?"Diterbitkan "+fmtWaktu(s.terbit):"PRATINJAU (belum diterbitkan)"}</div><div style="text-align:center">Bendahara<div style="height:2.6rem"></div>______________</div></div></div>`};
+window.cetakSlip=()=>{document.body.classList.add("print-slip");window.print()};
+window.addEventListener("afterprint",()=>document.body.classList.remove("print-slip"));
+window.gjSlip=gid=>{const s=GJ.rows.find(x=>x.guruId===gid);if(!s)return;
+  modal(`<div class="noprint flex justify-between items-center mb-2"><b class="text-sm">Slip gaji</b><button class="btn2" onclick="closeModal()">Tutup</button></div>${slipHTML(s)}<div class="noprint flex flex-wrap gap-2 mt-4"><button class="btn" onclick="gjTerbit('${gid}')">📤 Terbitkan ke guru</button><button class="btn2" onclick="cetakSlip()">🖨️ Cetak / Simpan PDF</button></div>`)};
+const slipData=s=>JSON.parse(JSON.stringify({...s,terbit:new Date().toISOString(),terbitOleh:me.nama}));
+window.gjTerbit=async gid=>{const s=GJ.rows.find(x=>x.guruId===gid);if(!s)return;
+  try{await setDoc(doc(db,"slipGaji",gid+"_"+s.bulan),slipData(s))}catch(e){return alert("Gagal menerbitkan ("+(e.code||e.message)+")")}
+  alert("Slip "+s.nama+" untuk "+bulanLbl(s.bulan)+" sudah diterbitkan dan bisa dilihat guru.");closeModal()};
+window.gjTerbitSemua=async()=>{if(!GJ.rows.length)return alert("Hitung dulu (pilih bulan).");const a=GJ.rows.filter(s=>s.adaTarif),sk=GJ.rows.length-a.length;
+  if(!a.length)return alert("Belum ada guru yang punya data tarif.");
+  if(!confirm("Terbitkan "+a.length+" slip untuk "+bulanLbl(GJ.bulan)+"?"+(sk?"\n"+sk+" guru tanpa tarif dilewati.":"")+"\nSlip yang sudah terbit akan diperbarui."))return;
+  try{let b=writeBatch(db),n=0;for(const s of a){b.set(doc(db,"slipGaji",s.guruId+"_"+s.bulan),slipData(s));if(++n%400===0){await b.commit();b=writeBatch(db)}}await b.commit()}
+  catch(e){return alert("Gagal menerbitkan ("+(e.code||e.message)+")")}
+  alert(a.length+" slip berhasil diterbitkan.")};
+window.exportGaji=()=>{if(!GJ.rows.length)return alert("Hitung dulu (pilih bulan).");
+  const K=(s,k)=>s.kom.find(c=>c.k===k);
+  const ws=XLSX.utils.aoa_to_sheet([["PEMBAYARAN GURU "+bulanLbl(GJ.bulan).toUpperCase()],[],["No","Nama","ID Guru","Jabatan","Status","Hari Hadir","Tarif Hadir","Total Hadir","Jam Dibayar","Tarif Jam","Total Jam","Jam Pengganti","Tarif Pengganti","Total Pengganti","PKM","Tambahan HR","Pulsa","Admin Sosmed","Operator","Potongan","Total Diterima","Sesi Tanpa Jurnal","Keterangan"],
+   ...GJ.rows.map((s,i)=>[i+1,s.nama,s.idGuru,roleLbl(s.role),s.sertifikasi||"-",K(s,"hadir").qty,K(s,"hadir").tarif,K(s,"hadir").total,K(s,"jam").qty,K(s,"jam").tarif,K(s,"jam").total,K(s,"peng").qty,K(s,"peng").tarif,K(s,"peng").total,K(s,"pkm").total,K(s,"hr").total,K(s,"pulsa").total,K(s,"sosmed").total,K(s,"op").total,s.potongan,s.total,s.det.belum+s.det.pengBelum,s.ket.join(" | ")])]);
+  ws["!cols"]=[{wch:5},{wch:28},{wch:10},{wch:9},{wch:16},...Array(17).fill({wch:14}),{wch:60}];
+  const wb=XLSX.utils.book_new();XLSX.utils.book_append_sheet(wb,ws,"Pembayaran Guru");XLSX.writeFile(wb,"Pembayaran_Guru_"+GJ.bulan+".xlsx")};
+
+// ---------- slip gaji (daftar slip yang sudah terbit) ----------
+let SLV=[];
+A.SlipGaji=async()=>{let sl=await all("slipGaji");
+  if(isGuruRole()){const gid=key(me.idGuru||"");sl=sl.filter(x=>x.guruId===gid)}
+  SLV=sl.sort((a,b)=>a.bulan<b.bulan?1:a.bulan>b.bulan?-1:String(a.nama).localeCompare(String(b.nama),"id"));
+  return `<div class="card space-y-2 mb-4"><h2 class="font-extrabold">🧾 Slip Gaji</h2><p class="text-xs text-slate-500">${isGuruRole()?"Slip pembayaran Anda yang sudah diterbitkan admin.":"Slip yang sudah diterbitkan. Terbitkan atau perbarui slip lewat menu Pembayaran Guru."}</p>
+  ${isGuruRole()?"":`<div class="grid grid-cols-2 gap-2"><input id="slB" type="month" class="inp" onchange="slRender()"><input id="slQ" class="inp" placeholder="🔍 Cari nama guru" oninput="slRender()"></div>`}</div><div id="slOut">${slList()}</div>`};
+const slList=()=>{const b=$("slB")?$("slB").value:"",q=key($("slQ")?$("slQ").value:""),a=SLV.filter(x=>(!b||x.bulan===b)&&(!q||key(x.nama).includes(q)));
+  return list(a,x=>`<div class="card mb-2 flex justify-between items-center gap-2"><div><b>${isGuruRole()?bulanLbl(x.bulan):esc(x.nama)}</b>${isGuruRole()?"":` <span class="pill bg-emerald-100 text-emerald-700">${bulanLbl(x.bulan)}</span>`}<div class="text-sm">Total diterima <b>${rp(x.total)}</b></div><div class="text-xs text-slate-500">Diterbitkan ${fmtWaktu(x.terbit)}</div></div><div class="flex gap-1"><button class="btn" onclick="slLihat('${x.id}')">Lihat</button>${isGuruRole()?"":`<button class="btn2" onclick="slHapus('${x.id}')">Hapus</button>`}</div></div>`,isGuruRole()?"Belum ada slip gaji yang diterbitkan.":"Belum ada slip yang diterbitkan.")};
+window.slRender=()=>{if($("slOut"))$("slOut").innerHTML=slList()};
+window.slLihat=id=>{const x=SLV.find(v=>v.id===id);if(!x)return;
+  modal(`<div class="noprint flex justify-between items-center mb-2"><b class="text-sm">Slip gaji</b><button class="btn2" onclick="closeModal()">Tutup</button></div>${slipHTML(x)}<div class="noprint mt-4"><button class="btn w-full" onclick="cetakSlip()">🖨️ Cetak / Simpan PDF</button></div>`)};
+window.slHapus=async id=>{const x=SLV.find(v=>v.id===id);if(!x||!confirm("Hapus slip "+x.nama+" "+bulanLbl(x.bulan)+"? Guru tidak akan bisa melihatnya lagi."))return;
+  try{await deleteDoc(doc(db,"slipGaji",id))}catch(e){return alert("Gagal menghapus ("+(e.code||e.message)+")")}go("SlipGaji")};
+
+// ============ GURU PENGGANTI ============
+let PGN=[],PGSES=[],PGNV=[];
+const pnStat={Menunggu:"bg-amber-100 text-amber-700",Disetujui:"bg-emerald-100 text-emerald-700",Ditolak:"bg-rose-100 text-rose-700"};
+A.Pengganti=async()=>{
+  const [gs,jd]=await Promise.all([all("guru"),getJD()]);GURUV=gs.sort((a,b)=>(a.nama||"")>(b.nama||"")?1:-1);JD=jd;
+  const mine=GURUV.find(x=>x.id===key(me.idGuru||"")),locked=isGuruRole()&&!!mine,tg=today();
+  const opt=(a,sel)=>a.map(g=>`<option value="${esc(g.id)}" ${sel&&g.id===sel?"selected":""}>${esc(g.nama||g.idGuru)}</option>`).join("");
+  return `<div class="card space-y-2 mb-4"><h2 class="font-extrabold">🔁 Guru pengganti jam kosong</h2>
+  <p class="text-xs text-slate-500">Catat bila guru berhalangan hadir dan jam pelajarannya diganti guru lain. Guru pengganti mendapat tarif pengganti jam kosong (dengan syarat mengisi jurnal pada sesi tersebut), dan sesi tersebut tidak dihitung sebagai jam mengajar guru yang berhalangan. ${isGuruRole()?"Pengajuan dari guru menunggu persetujuan admin.":"Pengajuan yang Anda buat langsung disetujui."}</p>
+  <div><label class="text-xs text-slate-500">Tanggal</label><input id="pnTgl" type="date" class="inp" value="${tg}" onchange="pnRefresh()"></div>
+  <div><label class="text-xs text-slate-500">Guru yang berhalangan</label><select id="pnAsal" class="inp" onchange="pnRefresh()" ${locked?"disabled":""}>${locked?"":'<option value="">Pilih guru</option>'}${opt(locked?[mine]:GURUV,mine&&mine.id)}</select></div>
+  <div><label class="text-xs text-slate-500">Sesi yang digantikan</label><div id="pnSesi" class="space-y-1"></div></div>
+  <div><label class="text-xs text-slate-500">Guru pengganti</label><select id="pnPeng" class="inp"><option value="">Pilih guru pengganti</option>${opt(GURUV)}</select></div>
+  <div class="grid grid-cols-2 gap-2"><select id="pnAlasan" class="inp"><option>Sakit</option><option>Izin</option><option>Dinas luar</option><option>Keperluan keluarga</option><option>Lainnya</option></select><input id="pnKet" class="inp" placeholder="Keterangan (opsional)"></div>
+  <button class="btn w-full" onclick="pnSimpan()">${isGuruRole()?"Ajukan guru pengganti":"Simpan guru pengganti"}</button></div>
+  <div class="card mb-4 grid grid-cols-2 gap-2"><input id="pnBulan" type="month" class="inp" value="${tg.slice(0,7)}" onchange="pnRender()"><select id="pnSt" class="inp" onchange="pnRender()"><option value="">Semua status</option><option>Menunggu</option><option>Disetujui</option><option>Ditolak</option></select></div>
+  <div id="pnOut">${empty("Memuat…")}</div>`;
+};
+window.pnRefresh=async()=>{const gid=$("pnAsal").value,t=$("pnTgl").value;
+  PGN=await all("guruPengganti");
+  PGSES=(gid&&t?sesiGuru(JD,gid,t,guruMap(GURUV)):[]).filter(s=>!PGN.some(p=>p.status!=="Ditolak"&&p.guruAsalId===gid&&p.tgl===t&&p.sesiKey===s.key));
+  $("pnSesi").innerHTML=PGSES.length?PGSES.map((s,i)=>`<label class="flex items-center gap-2 text-sm card py-2"><input type="checkbox" class="pnCk" value="${i}"><span>${esc(s.jam)} · ${esc(s.kelas)} · ${esc(s.mapel)}</span></label>`).join(""):`<p class="text-xs text-slate-500">${gid&&t?"Tidak ada sesi mengajar yang tersedia pada tanggal ini (tidak ada jadwal, atau sudah dicatat).":"Pilih tanggal dan guru dulu."}</p>`};
+window.pnSimpan=async()=>{const asal=GURUV.find(x=>x.id===$("pnAsal").value),peng=GURUV.find(x=>x.id===$("pnPeng").value),t=$("pnTgl").value;
+  if(!asal)return alert("Pilih guru yang berhalangan.");if(!peng)return alert("Pilih guru pengganti.");if(peng.id===asal.id)return alert("Guru pengganti tidak boleh sama dengan guru yang berhalangan.");
+  const ck=[...document.querySelectorAll(".pnCk:checked")].map(c=>PGSES[+c.value]);if(!ck.length)return alert("Centang minimal satu sesi yang digantikan.");
+  const status=isGuruRole()?"Menunggu":"Disetujui";
+  try{for(const s of ck)await addDoc(collection(db,"guruPengganti"),{tgl:t,guruAsalId:asal.id,guruAsal:asal.nama||asal.idGuru,penggantiId:peng.id,pengganti:peng.nama||peng.idGuru,sesiKey:s.key,jam:s.jam,kelasId:s.kelasId,kelas:s.kelas,mapel:s.mapel,alasan:$("pnAlasan").value,ket:$("pnKet").value.trim(),status,dibuat:new Date().toISOString(),oleh:me.nama})}
+  catch(e){return alert("Gagal menyimpan ("+(e.code||e.message)+")")}
+  alert(status==="Menunggu"?"Pengajuan terkirim, menunggu persetujuan admin.":"Guru pengganti tersimpan.");go("Pengganti")};
+window.pnRender=async()=>{const out=$("pnOut");if(!out)return;const b=$("pnBulan").value,st=$("pnSt").value;
+  let jur=[];try{if(b)jur=(await getDocs(query(collection(db,"jurnal"),where("tgl",">=",b+"-01"),where("tgl","<=",b+"-31")))).docs.map(d=>d.data())}catch(e){}
+  PGN=await all("guruPengganti");const gid=key(me.idGuru||"");
+  let a=PGN.filter(x=>(!b||(x.tgl||"").startsWith(b))&&(!st||x.status===st));
+  if(isGuruRole())a=a.filter(x=>x.guruAsalId===gid||x.penggantiId===gid);
+  a.sort((x,y)=>(y.tgl+y.jam)>(x.tgl+x.jam)?1:-1);
+  if(!$("pnOut"))return;
+  out.innerHTML=`<p class="text-sm mb-2">${a.length} catatan</p>`+list(a,x=>{const isi=jur.some(j=>j.guruId===x.penggantiId&&j.tgl===x.tgl&&(j.sesi===x.sesiKey||kelasNorm(j.kelas)===x.kelasId));
+    const can=!isGuruRole()||(x.status==="Menunggu"&&x.guruAsalId===gid);
+    return `<div class="card mb-2"><div class="flex justify-between gap-2"><div><b>${esc(x.mapel)}</b> <span class="pill bg-emerald-100 text-emerald-700">${esc(x.kelas)}</span><div class="text-xs text-slate-500">${fmtTgl(x.tgl)} · ${esc(x.jam)}</div></div><span class="pill h-fit ${pnStat[x.status]||"bg-slate-100"}">${esc(x.status)}</span></div>
+    <div class="text-sm mt-1"><b>${esc(x.guruAsal)}</b> → diganti <b>${esc(x.pengganti)}</b></div><div class="text-xs text-slate-500">${esc(x.alasan||"")}${x.ket?" · "+esc(x.ket):""}</div>
+    ${x.status==="Disetujui"?`<div class="text-xs mt-1 ${isi?"text-emerald-700":"text-rose-600"}">${isi?"✓ Jurnal pengganti sudah diisi":"⚠ Guru pengganti belum mengisi jurnal (belum dibayar)"}</div>`:""}
+    <div class="flex flex-wrap gap-2 mt-2">${!isGuruRole()&&x.status==="Menunggu"?`<button class="btn" onclick="pnSet('${x.id}','Disetujui')">Setujui</button><button class="btn2" onclick="pnSet('${x.id}','Ditolak')">Tolak</button>`:""}${can?`<button class="btn2" onclick="pnHapus('${x.id}')">Hapus</button>`:""}</div></div>`},"Belum ada catatan guru pengganti.")};
+window.pnSet=async(id,status)=>{try{await updateDoc(doc(db,"guruPengganti",id),{status,diputuskan:me.nama})}catch(e){return alert("Gagal ("+(e.code||e.message)+")")}pnRender()};
+window.pnHapus=async id=>{if(!confirm("Hapus catatan guru pengganti ini?"))return;try{await deleteDoc(doc(db,"guruPengganti",id))}catch(e){return alert("Gagal menghapus ("+(e.code||e.message)+")")}pnRender()};
 
 
 // ============ HALAMAN VERIFIKASI QR SISWA (publik, dibuka dari scan Google/kamera) ============
