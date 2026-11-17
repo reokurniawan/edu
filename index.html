@@ -217,7 +217,7 @@ document.addEventListener('pwa-ready',()=>{
 
 <script type="module">
 import {initializeApp} from "https://www.gstatic.com/firebasejs/11.6.1/firebase-app.js";
-import {getFirestore,collection,getDocs,doc,setDoc,addDoc,updateDoc,deleteDoc,getDoc,writeBatch,onSnapshot,query,where} from "https://www.gstatic.com/firebasejs/11.6.1/firebase-firestore.js";
+import {getFirestore,collection,getDocs,doc,setDoc,addDoc,updateDoc,deleteDoc,getDoc,writeBatch,onSnapshot,query,where,getCountFromServer} from "https://www.gstatic.com/firebasejs/11.6.1/firebase-firestore.js";
 
 // === GANTI DENGAN CONFIG FIREBASE BARU ANDA (lihat langkah-langkah) ===
 const firebaseConfig={apiKey:"AIzaSyClGgcUyZj16x1XpbGGFkIdbQC9OSqnvtw",authDomain:"apa-1c339.firebaseapp.com",projectId:"apa-1c339",storageBucket:"apa-1c339.firebasestorage.app",messagingSenderId:"446205639535",appId:"1:446205639535:web:3ac4916c616089f15f869a"};
@@ -237,7 +237,7 @@ const roleLbl=r=>({admin:"Admin",staf:"Staf",guru:"Guru"})[normRole(r)];
 const normSert=v=>{v=String(v||"").trim();return !v?"":/^inpass/i.test(v)?"Inpassing":/^(non|tidak|belum|bukan)/i.test(v)?"Non Sertifikasi":"Sertifikasi"};
 const sertPill=v=>{v=normSert(v);return v?`<span class="pill ${v==="Sertifikasi"?"bg-emerald-100 text-emerald-700":v==="Inpassing"?"bg-sky-100 text-sky-700":"bg-slate-100 text-slate-600"}">${v}</span>`:'<span class="text-xs text-slate-400">-</span>'};
 const isGuruRole=()=>isAdmin&&me&&me.role!=="admin";
-const GURU_OK=new Set(["Menu","Jadwal","Absensi","Nilai","Rekap","Jurnal","Presensi","Kegiatan","RekapKegiatan","Chat","SlipGaji","Pengganti"]);
+const GURU_OK=new Set(["Menu","Jadwal","Absensi","Nilai","Rekap","Jurnal","Presensi","Kegiatan","RekapKegiatan","Chat","SlipGaji","Pengganti","Peringatan"]);
 
 const saved=sessionStorage.getItem("me");
 window.openLogin=()=>{$("loginModal").classList.remove("hidden");setTimeout(()=>$("u").focus(),50)};
@@ -316,6 +316,8 @@ window.go=async n=>{
   if(isAdmin&&n==="Rekap")loadRekap();
   if(isAdmin&&n==="LaporanGuru")loadLaporan();
   if(isAdmin&&n==="Presensi")loadPG();
+  if(isAdmin&&n==="Peringatan")loadPeringatan();
+  if(isAdmin&&n==="Menu")loadPrBanner();
   if(n==="Chat")initChat();
   if(n==="KartuID")renderID();
   if(isAdmin&&n==="RekapKegiatan")loadRkg();
@@ -556,7 +558,7 @@ Pelanggaran:async()=>{const p=(await all("pelanggaran")).sort((a,b)=>b.waktu>a.w
 Prestasi:async()=>{const p=await all("prestasi");PRV=p;EDIT=null;
  return `<div class="card space-y-2 mb-4"><h2 id="pht" class="font-extrabold">Input prestasi</h2>${sel("ps")}<input id="pj" class="inp" placeholder="Nama prestasi"><input id="pk" class="inp" placeholder="Keterangan (juara, tingkat)"><input id="pt" type="date" class="inp" value="${today()}"><div class="flex gap-2"><button id="pbtn" class="btn" onclick="addPrestasi()">Simpan</button><button id="pcb" class="btn2 hidden" onclick="go('Prestasi')">Batal</button></div></div>`+list(p,x=>`<div class="card mb-2 flex justify-between gap-2"><div>🏆 <b>${esc(x.judul)}</b> - ${esc(x.nama)}<div class="text-xs text-slate-500">${esc(x.tgl)} - ${esc(x.ket)}</div></div><div class="flex flex-col gap-1"><button class="btn2" onclick="editPrestasi('${x.id}')">Edit</button><button class="btn2" onclick="hapus('prestasi','${x.id}','Prestasi')">Hapus</button></div></div>`,"Belum ada prestasi.")},
 Absensi:async()=>{const k=[...new Set(siswa.map(x=>x.kelas))].sort();
- return `<div class="card space-y-2 mb-4"><h2 class="font-extrabold">Absensi siswa</h2><div class="grid grid-cols-2 gap-2"><select id="ak" class="inp" onchange="loadAbsen()"><option value="">Pilih kelas</option>${k.map(x=>`<option>${esc(x)}</option>`).join("")}</select><input id="at" type="date" class="inp" value="${today()}" onchange="loadAbsen()"></div><p class="text-xs text-slate-500">Pilih kelas dan tanggal. Semua siswa otomatis Hadir, ubah hanya yang Sakit, Izin, atau Alpha, lalu simpan.</p></div><div id="ab"></div>`},
+ return `<div class="card space-y-2 mb-4"><h2 class="font-extrabold">Absensi siswa</h2><div class="grid grid-cols-2 gap-2"><select id="ak" class="inp" onchange="loadAbsen()"><option value="">Pilih kelas</option>${k.map(x=>`<option>${esc(x)}</option>`).join("")}</select><input id="at" type="date" class="inp" value="${today()}" onchange="loadAbsen()"></div><p class="text-xs text-slate-500">Pilih kelas dan tanggal. Semua siswa otomatis Hadir, ubah hanya yang Sakit, Izin, atau Alpha, lalu simpan.<br><b>Guru yang mengajar:</b> absensi cukup diisi sekalian di menu <b>Jurnal Guru</b>. Halaman ini untuk koreksi atau absensi di luar jam mengajar.</p></div><div id="ab"></div>`},
 Pembayaran:async()=>{let info={},um=null;try{const [g,h]=await Promise.all([getDoc(doc(db,"pengaturan","pembayaranInfo")),getDoc(doc(db,"pengaturan","pembayaranUmum"))]);if(g.exists())info=g.data();if(h.exists())um=h.data()}catch(e){}
  PBV=(await all("pembayaranData")).map(d=>{const sx=sw(d.nisn);return{...d,nama:sx.nama||d.nama||"-",kelas:sx.kelas||d.kelas||"-"}}).sort((x,y)=>String(x.kelas).localeCompare(String(y.kelas),"id",{numeric:true})||String(x.nama).localeCompare(String(y.nama),"id"));PBK=info.kolom||[];PYE=null;PYR=await all("pembayaranCatatan");
  return pyBox()+`<div class="card space-y-2 mb-4"><h2 class="font-extrabold">Upload file pembayaran (Excel)</h2>
@@ -1019,7 +1021,7 @@ window.exportRekap=()=>{if(isGuruRole())return alert("Fitur download rekapitulas
 // ============ MENU KARTU ADMIN ============
 IC.chat=svg('<path d="M21 15a2 2 0 0 1-2 2H7l-4 4V5a2 2 0 0 1 2-2h14a2 2 0 0 1 2 2z"/>');
 const MENU=[
- ["Akademik",[["Jadwal","📅","Jadwal pelajaran semua kelas","#e0f2fe"],["Absensi","✅","Catat kehadiran harian","#dcfce7"],["Nilai","📝","Input nilai per kelas, mapel & ujian","#ecfccb","Input Nilai"],["Rekap","🗓️","Rekap kehadiran & ekspor Excel","#ede9fe","Rekap Kehadiran"],["Jurnal","📓","Isi jurnal mengajar guru","#fce7f3","Jurnal Guru"],["Presensi","📸","Absen guru dengan kamera & lokasi","#fee2e2","Presensi Guru"],["LaporanGuru","📊","Laporan bulanan guru (khusus admin)","#fef3c7","Laporan Bulanan Guru"]]],
+ ["Akademik",[["Jadwal","📅","Jadwal pelajaran semua kelas","#e0f2fe"],["Absensi","✅","Catat kehadiran harian","#dcfce7"],["Nilai","📝","Input nilai per kelas, mapel & ujian","#ecfccb","Input Nilai"],["Rekap","🗓️","Rekap kehadiran & ekspor Excel","#ede9fe","Rekap Kehadiran"],["Jurnal","📓","Isi jurnal mengajar guru","#fce7f3","Jurnal Guru"],["Presensi","📸","Absen guru dengan kamera & lokasi","#fee2e2","Presensi Guru"],["LaporanGuru","📊","Laporan bulanan guru (khusus admin)","#fef3c7","Laporan Bulanan Guru"],["Peringatan","🔔","Pengingat: tidak mengajar, jurnal & absensi belum diisi","#ffe4e6","Peringatan Guru"]]],
  ["Keuangan Guru",[["GajiGuru","💰","Hitung & kelola pembayaran guru","#d1fae5","Pembayaran Guru"],["SlipGaji","🧾","Slip gaji guru","#fef3c7","Slip Gaji"],["Pengganti","🔁","Guru pengganti jam kosong","#e0f2fe","Guru Pengganti"]]],
  ["Data Madrasah",[["Siswa","🎓","Upload & kelola data siswa","#e0e7ff"],["Guru","👩‍🏫","Akun & sandi guru","#ccfbf1"]]],
  ["Kesiswaan",[["Pelanggaran","⚠️","Catatan kedisiplinan","#ffe4e6"],["Prestasi","🏆","Capaian & penghargaan siswa","#fef9c3"]]],
@@ -1034,7 +1036,7 @@ A.Menu=async()=>{
   const kls=new Set(siswa.map(x=>x.kelas)).size;
   const tgl=new Date().toLocaleDateString("id-ID",{weekday:"long",day:"numeric",month:"long",year:"numeric"});
   return `<section class="hero p-6"><p class="text-sm opacity-80">Assalamu'alaikum,</p><h1 class="text-2xl sm:text-3xl font-extrabold">${esc(me.nama)}</h1><p class="text-xs opacity-75 mt-1">${tgl}</p>
-  <div class="grid grid-cols-3 gap-3 mt-5 relative z-10"><div class="hstat"><div class="text-2xl font-extrabold">${siswa.length}</div><div class="text-[11px] opacity-80">Siswa</div></div><div class="hstat"><div class="text-2xl font-extrabold">${gu.length}</div><div class="text-[11px] opacity-80">Guru</div></div><div class="hstat"><div class="text-2xl font-extrabold">${kls}</div><div class="text-[11px] opacity-80">Kelas</div></div></div></section>`
+  <div class="grid grid-cols-3 gap-3 mt-5 relative z-10"><div class="hstat"><div class="text-2xl font-extrabold">${siswa.length}</div><div class="text-[11px] opacity-80">Siswa</div></div><div class="hstat"><div class="text-2xl font-extrabold">${gu.length}</div><div class="text-[11px] opacity-80">Guru</div></div><div class="hstat"><div class="text-2xl font-extrabold">${kls}</div><div class="text-[11px] opacity-80">Kelas</div></div></div></section><div id="prBanner"></div>`
   +(isGuruRole()?MENU.map(([s,it])=>[s==="Layanan"?"Grup Chat":s,it.filter(x=>GURU_OK.has(x[0]))]).filter(x=>x[1].length).sort((a,b)=>(a[0]==="Grup Chat")-(b[0]==="Grup Chat")):MENU).map(([sec,items])=>`<h2 class="msec">${sec}</h2><div class="grid grid-cols-2 sm:grid-cols-3 gap-3">`+items.map(([k,ic,d,bg,lb])=>`<button class="mcard" onclick="go('${k}')"><span class="mic" style="background:${bg}">${ic}</span><span class="mt">${lb||k}</span><span class="md">${d}</span>${nb[k]?`<span class="mbd">${nb[k]}</span>`:""}</button>`).join("")+`</div>`).join("");
 };
 
@@ -1042,7 +1044,7 @@ A.Menu=async()=>{
 let JN=[],JNV=[];
 const isOwner=x=>!isGuruRole()||x.guruId===key(me.idGuru);
 const jnCards=r=>list(r,x=>`<div class="card mb-2"><div class="flex justify-between gap-2"><div><b>${esc(x.mapel)}</b> <span class="pill bg-emerald-100 text-emerald-700">${esc(x.kelas)}</span>${x.pengganti?' <span class="pill bg-sky-100 text-sky-700">Guru pengganti</span>':""}<div class="text-xs text-slate-500 mt-0.5">${esc(x.tgl)}${x.jam?" - "+esc(x.jam):""} - ${esc(x.guru)}</div></div>${isOwner(x)?`<button class="btn2 h-fit" onclick="hapus('jurnal','${x.id}','Jurnal')">Hapus</button>`:""}</div>
- <div class="text-sm mt-2 whitespace-pre-line"><b>Materi:</b> ${esc(x.materi)}</div>${(x.tujuan||x.kegiatan)?`<div class="text-sm mt-1 whitespace-pre-line"><b>Tujuan pembelajaran:</b> ${esc(x.tujuan||x.kegiatan)}</div>`:""}${x.catatan?`<div class="text-sm mt-1 whitespace-pre-line"><b>Catatan/kendala:</b> ${esc(x.catatan)}</div>`:""}</div>`,"Belum ada jurnal.");
+ <div class="text-sm mt-2 whitespace-pre-line"><b>Materi:</b> ${esc(x.materi)}</div>${(x.tujuan||x.kegiatan)?`<div class="text-sm mt-1 whitespace-pre-line"><b>Tujuan pembelajaran:</b> ${esc(x.tujuan||x.kegiatan)}</div>`:""}${x.catatan?`<div class="text-sm mt-1 whitespace-pre-line"><b>Catatan/kendala:</b> ${esc(x.catatan)}</div>`:""}${x.absenRingkas?`<div class="text-xs mt-2 text-slate-600">✅ Absensi ${esc(x.absenKelas||"")}: Hadir ${x.absenRingkas.H} · Sakit ${x.absenRingkas.S} · Izin ${x.absenRingkas.I} · Alpha ${x.absenRingkas.A}</div>`:(x.absen===false?'<div class="text-xs mt-2 text-rose-600">⚠ Absensi siswa belum diisi</div>':"")}</div>`,"Belum ada jurnal.");
 // ---------- util: jadwal <-> akun guru ----------
 const kelasNorm=k=>{const t=String(k??"").toUpperCase().replace(/\s/g,""),m=t.match(/^(10|11|12)-?([A-Z])/);return m?m[1]+"-"+m[2]:(kelasId(t)||t)};
 const guruMap=gs=>{const m=new Map();gs.forEach(g=>[g.nama,g.idGuru,g.id].forEach(v=>{const k=key(v);if(k&&!m.has(k))m.set(k,g.id)}));return m};
@@ -1058,7 +1060,7 @@ const sesiHTML=(gid,tgl)=>{JSS=gid&&tgl?sesiGuru(JD,gid,tgl,guruMap(GURUV)):[];
   if(gid&&tgl)PGNV.filter(p=>p.status==="Disetujui"&&p.penggantiId===gid&&p.tgl===tgl).forEach(p=>JSS.push({hari:HARI_ID[new Date(tgl+"T00:00:00").getDay()],jam:p.jam,kelasId:p.kelasId,kelas:p.kelas,mapel:p.mapel,key:p.sesiKey,pengganti:true}));
   return `<option value="">${JSS.length?"Pilih sesi mengajar sesuai jadwal":"Tidak ada jadwal mengajar di tanggal ini (isi manual)"}</option>`+JSS.map((s,i)=>{const ok=JN.some(j=>jurCocok(j,gid,tgl,s));return `<option value="${i}">${ok?"✓ ":""}${esc(s.jam)} · ${esc(s.kelas)} · ${esc(s.mapel)}${s.pengganti?" (guru pengganti)":""}${ok?" (sudah diisi)":""}</option>`}).join("")};
 window.refreshSesi=()=>{$("jnSesi").innerHTML=sesiHTML($("jnGid").value,$("jnTgl").value);pilihSesi()};
-window.pilihSesi=()=>{const i=$("jnSesi").value,s=i!==""?JSS[+i]:null;if(s){$("jnJam").value=s.jam;$("jnKls").value=s.kelasId;$("jnMp").value=s.mapel}["jnJam","jnKls","jnMp"].forEach(id=>$(id).readOnly=!!s)};
+window.pilihSesi=()=>{const i=$("jnSesi").value,s=i!==""?JSS[+i]:null;if(s){$("jnJam").value=s.jam;$("jnKls").value=s.kelasId;$("jnMp").value=s.mapel}["jnJam","jnKls","jnMp"].forEach(id=>$(id).readOnly=!!s);jnLoadAbs()};
 A.Jurnal=async()=>{
   JN=(await all("jurnal")).sort((a,b)=>((b.tgl||"")+(b.dibuat||""))>((a.tgl||"")+(a.dibuat||""))?1:-1);JNV=JN;
   JD=await getJD();try{PGNV=(await all("guruPengganti")).filter(x=>x.status==="Disetujui")}catch(e){PGNV=[]}try{GURUV=await all("guru")}catch(e){GURUV=[]}GURUV.sort((a,b)=>(a.nama||"")>(b.nama||"")?1:-1);
@@ -1066,15 +1068,16 @@ A.Jurnal=async()=>{
   const kl=[...new Set(siswa.map(x=>x.kelas))].sort(),mp=[...new Set((await getJadwal()).map(x=>x.mapel))].sort();
   const gu=[...new Set(JN.map(x=>x.guru).filter(Boolean))].sort();
   const gopt=(locked?[mine]:GURUV).map(g=>`<option value="${esc(g.id)}" ${mine&&g.id===mine.id?"selected":""}>${esc(g.nama||g.idGuru)}${g.role==="admin"?" (admin)":""}</option>`).join("");
-  return `<div class="card space-y-2 mb-4"><h2 class="font-extrabold">📓 Isi jurnal mengajar</h2>
+  return `<div class="card space-y-2 mb-4"><h2 class="font-extrabold">📓 Isi jurnal &amp; absensi siswa</h2><p class="text-xs text-slate-500">Cukup satu kali: setelah mengisi jurnal, absensi siswa kelas tersebut diisi di bawah lalu disimpan bersamaan.</p>
   <div><label class="text-xs text-slate-500">Nama guru</label><select id="jnGid" class="inp" onchange="refreshSesi()" ${locked?"disabled":""}>${locked?"":'<option value="">Pilih nama guru</option>'}${gopt}</select></div>
   <div><label class="text-xs text-slate-500">Tanggal</label><input id="jnTgl" type="date" class="inp" value="${tg}" onchange="refreshSesi()"></div>
   <div><label class="text-xs text-slate-500">Sesi mengajar (sesuai jadwal pelajaran)</label><select id="jnSesi" class="inp" onchange="pilihSesi()">${sesiHTML(mine?mine.id:"",tg)}</select></div>
-  <div class="grid grid-cols-3 gap-2"><div><label class="text-xs text-slate-500">Jam</label><input id="jnJam" class="inp" placeholder="07.00 - 08.15"></div><div><label class="text-xs text-slate-500">Kelas</label><input id="jnKls" class="inp" list="jnKlsL" placeholder="Kelas"><datalist id="jnKlsL">${kl.map(k=>`<option value="${esc(k)}">`).join("")}</datalist></div><div><label class="text-xs text-slate-500">Mata pelajaran</label><input id="jnMp" class="inp" list="jnMpL" placeholder="Mapel"><datalist id="jnMpL">${mp.map(k=>`<option value="${esc(k)}">`).join("")}</datalist></div></div>
+  <div class="grid grid-cols-3 gap-2"><div><label class="text-xs text-slate-500">Jam</label><input id="jnJam" class="inp" placeholder="07.00 - 08.15"></div><div><label class="text-xs text-slate-500">Kelas</label><input id="jnKls" class="inp" list="jnKlsL" placeholder="Kelas" onchange="jnLoadAbs()"><datalist id="jnKlsL">${kl.map(k=>`<option value="${esc(k)}">`).join("")}</datalist></div><div><label class="text-xs text-slate-500">Mata pelajaran</label><input id="jnMp" class="inp" list="jnMpL" placeholder="Mapel"><datalist id="jnMpL">${mp.map(k=>`<option value="${esc(k)}">`).join("")}</datalist></div></div>
   <textarea id="jnMateri" class="inp" rows="2" placeholder="Materi / topik yang diajarkan"></textarea>
   <textarea id="jnTujuan" class="inp" rows="3" placeholder="Tujuan pembelajaran (opsional)"></textarea>
   <textarea id="jnCat" class="inp" rows="2" placeholder="Catatan / kendala (opsional)"></textarea>
-  <button class="btn" onclick="saveJurnal()">Simpan jurnal</button></div>
+  <div class="pt-2 border-t"><h3 class="font-extrabold text-sm">✅ Absensi siswa</h3><div id="jnAbs" class="mt-2"><p class="text-xs text-slate-500">Pilih sesi mengajar (atau isi kelas) untuk menampilkan daftar siswa.</p></div></div>
+  <button class="btn w-full" onclick="saveJurnal()">Simpan jurnal &amp; absensi</button></div>
   <div class="card mb-4 space-y-2"><div class="grid grid-cols-2 gap-2"><select id="jnFilter" class="inp" onchange="renderJurnal()"><option value="">Semua guru</option>${gu.map(x=>`<option>${esc(x)}</option>`).join("")}</select><input id="jnBulan" type="month" class="inp" onchange="renderJurnal()"></div>${isGuruRole()?"":`<button class="btn2" onclick="exportJurnal()">⬇ Ekspor ke Excel</button>`}</div>
   <div id="jnList"><p class="text-sm mb-2">${JN.length} jurnal</p>${jnCards(JN)}</div>`;
 };
@@ -1083,6 +1086,22 @@ window.renderJurnal=()=>{
   JNV=JN.filter(x=>(!g||x.guru===g)&&(!b||(x.tgl||"").startsWith(b)));
   $("jnList").innerHTML=`<p class="text-sm mb-2">${JNV.length} jurnal</p>`+jnCards(JNV);
 };
+let jnAbsTok=0,JNABS_K="";
+window.jnLoadAbs=async()=>{
+  const box=$("jnAbs");if(!box)return;
+  const kv=$("jnKls").value.trim(),t=$("jnTgl").value,my=++jnAbsTok;
+  const sis=kv&&t?siswa.filter(x=>kelasNorm(x.kelas)===kelasNorm(kv)).sort((a,b)=>a.nama>b.nama?1:-1):[];
+  if(!sis.length){ABS={};JNABS_K="";box.innerHTML=`<p class="text-xs text-slate-500">${kv?"Tidak ada siswa untuk kelas ini di data siswa. Jurnal tetap bisa disimpan tanpa absensi.":"Pilih sesi mengajar (atau isi kelas) untuk menampilkan daftar siswa."}</p>`;return}
+  box.innerHTML=empty("Memuat daftar siswa…");
+  const kk=sis[0].kelas;let ex=[];
+  try{ex=(await getDocs(query(collection(db,"absensi"),where("tgl","==",t)))).docs.map(d=>d.data()).filter(x=>x.kelas===kk)}catch(e){console.error(e)}
+  if(my!==jnAbsTok)return;
+  JNABS_K=kk;ABS={};sis.forEach(x=>{ABS[x.nisn]=ex.find(e=>e.nisn===x.nisn)?.status||"H"});
+  const info=ex.length?`<span class="pill bg-sky-100 text-sky-700">Absensi hari ini sudah ada${ex[0].oleh?" (oleh "+esc(ex[0].oleh)+")":""} - akan diperbarui</span>`:`<span class="pill bg-amber-100 text-amber-700">Belum diabsen</span>`;
+  box.innerHTML=`<div class="flex flex-wrap items-center justify-between gap-2 mb-2"><div>${info}<div class="text-xs text-slate-500 mt-1">Kelas ${esc(kk)} - semua siswa otomatis Hadir, ubah yang Sakit/Izin/Alpha.</div><div id="abSum" class="text-xs text-slate-500 mt-1"></div></div><button type="button" class="btn2" onclick="absSemua('H')">Semua hadir</button></div>`
+   +sis.map((x,n)=>`<div class="card mb-2"><div class="text-sm"><span class="text-slate-400">${n+1}.</span> <b>${esc(x.nama)}</b></div><div id="ar${x.nisn}" class="flex gap-1 mt-2">${absBtn(x.nisn)}</div></div>`).join("");
+  absSum();
+};
 window.saveJurnal=async()=>{
   const v=id=>$(id).value.trim(),gid=v("jnGid"),g=GURUV.find(x=>x.id===gid);
   if(!g)return alert("Pilih nama guru.");
@@ -1090,14 +1109,97 @@ window.saveJurnal=async()=>{
   const d={tgl:v("jnTgl"),jam:v("jnJam"),kelas:v("jnKls"),mapel:v("jnMp"),guru:g.nama||g.idGuru,materi:v("jnMateri"),tujuan:v("jnTujuan"),catatan:v("jnCat"),sesi:s?s.key:""};
   if(!d.tgl||!d.kelas||!d.mapel||!d.materi)return alert("Isi tanggal, kelas, mata pelajaran, dan materi.");
   if(s&&JN.some(j=>jurCocok(j,gid,d.tgl,s)))return alert("Jurnal untuk sesi ini sudah pernah diisi.");
-  try{await addDoc(collection(db,"jurnal"),{...d,guruId:gid,dibuat:new Date().toISOString()})}catch(e){return alert("Jurnal gagal tersimpan ("+(e.code||e.message)+").")}
+  const sis=JNABS_K&&kelasNorm(JNABS_K)===kelasNorm(d.kelas)?siswa.filter(x=>x.kelas===JNABS_K):[];
+  const withAbs=sis.length>0,waktu=new Date().toISOString(),extra={absen:withAbs};
+  if(withAbs){
+    const c={H:0,S:0,I:0,A:0},tdk={};sis.forEach(x=>{const st=ABS[x.nisn]||"H";c[st]++;if(st!=="H")tdk[x.nisn]=st});
+    extra.absenKelas=JNABS_K;extra.absenRingkas=c;extra.absenTidakHadir=tdk;
+    try{let b=writeBatch(db),n=0;
+      for(const x of sis){b.set(doc(db,"absensi",`${d.tgl}_${x.nisn}`),{nisn:x.nisn,nama:x.nama,kelas:JNABS_K,tgl:d.tgl,status:ABS[x.nisn]||"H",oleh:g.nama||g.idGuru,waktu,mapel:d.mapel,jam:d.jam,dariJurnal:true});if(++n%400===0){await b.commit();b=writeBatch(db)}}
+      await b.commit()}
+    catch(e){console.error(e);return alert("Absensi gagal tersimpan (" +(e.code||e.message)+"). Jurnal belum disimpan, silakan coba lagi.")}
+  }
+  try{await addDoc(collection(db,"jurnal"),{...d,...extra,guruId:gid,dibuat:waktu})}catch(e){return alert("Jurnal gagal tersimpan ("+(e.code||e.message)+").")}
+  alert(withAbs?"Jurnal dan absensi kelas "+JNABS_K+" tersimpan.":"Jurnal tersimpan (tanpa absensi, karena daftar siswa kelas tidak ditemukan).");
   go("Jurnal");
 };
 window.exportJurnal=()=>{if(isGuruRole())return alert("Fitur download rekapitulasi hanya untuk admin.");
   if(!JNV.length)return alert("Tidak ada jurnal untuk diekspor.");
-  const ws=XLSX.utils.aoa_to_sheet([["JURNAL GURU"],[],["No","Tanggal","Jam","Kelas","Mata Pelajaran","Guru","Materi","Tujuan Pembelajaran","Catatan/Kendala"],...[...JNV].sort((a,b)=>a.tgl>b.tgl?1:-1).map((x,i)=>[i+1,x.tgl,x.jam,x.kelas,x.mapel,x.guru,x.materi,x.tujuan||x.kegiatan||"",x.catatan])]);
-  ws["!cols"]=[{wch:5},{wch:12},{wch:14},{wch:10},{wch:22},{wch:24},{wch:32},{wch:36},{wch:28}];
+  const ws=XLSX.utils.aoa_to_sheet([["JURNAL GURU"],[],["No","Tanggal","Jam","Kelas","Mata Pelajaran","Guru","Materi","Tujuan Pembelajaran","Catatan/Kendala","Absensi (H/S/I/A)"],...[...JNV].sort((a,b)=>a.tgl>b.tgl?1:-1).map((x,i)=>[i+1,x.tgl,x.jam,x.kelas,x.mapel,x.guru,x.materi,x.tujuan||x.kegiatan||"",x.catatan,x.absenRingkas?`${x.absenRingkas.H}/${x.absenRingkas.S}/${x.absenRingkas.I}/${x.absenRingkas.A}`:"-"])]);
+  ws["!cols"]=[{wch:5},{wch:12},{wch:14},{wch:10},{wch:22},{wch:24},{wch:32},{wch:36},{wch:28},{wch:18}];
   const wb=XLSX.utils.book_new();XLSX.utils.book_append_sheet(wb,ws,"Jurnal");XLSX.writeFile(wb,"Jurnal_Guru_"+today()+".xlsx");
+};
+
+// ============ PERINGATAN GURU ============
+const PR_T={
+ tidakMengajar:["🚫","Terjadwal tetapi tidak mengajar","bg-rose-100 text-rose-700"],
+ tanpaJurnal:["📓","Mengajar tetapi belum mengisi jurnal","bg-amber-100 text-amber-700"],
+ tanpaAbsen:["✅","Belum mengisi absensi siswa","bg-violet-100 text-violet-700"],
+ tanpaPresensi:["📸","Tidak Clock In (presensi)","bg-sky-100 text-sky-700"],
+ terlambat:["⏰","Terlambat Clock In","bg-slate-200 text-slate-700"]};
+const prDates=n=>{const o=[],d=new Date();for(let i=n-1;i>=0;i--){const x=new Date(d);x.setDate(d.getDate()-i);o.push(pgYmd(x))}return o};
+const prRange=(c,d1,d2)=>getDocs(query(collection(db,c),where("tgl",">=",d1),where("tgl","<=",d2))).then(r=>r.docs.map(d=>({id:d.id,...d.data()})));
+const prKelasSiswa=id=>{const x=siswa.find(y=>kelasNorm(y.kelas)===id);return x?x.kelas:""};
+// Hanya sesi yang JAM-nya sudah lewat yang dihitung. Hari libur belum dikecualikan.
+const hitungPeringatan=async(hari,onlyId)=>{
+  const dates=prDates(hari),d1=dates[0],d2=dates[dates.length-1],n=new Date(),td=pgYmd(n),nowMin=pgNow(n);
+  const [gurus,pres,jur,pgn,jd]=await Promise.all([all("guru"),prRange("presensiGuru",d1,d2),prRange("jurnal",d1,d2),prRange("guruPengganti",d1,d2).catch(()=>[]),getJD()]);
+  const gm=guruMap(gurus),cache=new Map(),out=[];
+  const cnt=async(t,kls)=>{const k=t+"|"+kls;if(!cache.has(k)){let c=1;try{c=(await getCountFromServer(query(collection(db,"absensi"),where("tgl","==",t),where("kelas","==",kls)))).data().count}catch(e){console.error(e)}cache.set(k,c)}return cache.get(k)};
+  for(const g of gurus){
+    if(onlyId&&g.id!==onlyId)continue;
+    const mine=pres.filter(x=>x.guruId===g.id),ins=mine.filter(pgIsIn),izs=mine.filter(pgIsIzin);
+    for(const t of dates){
+      if(izs.some(x=>x.tgl===t))continue;
+      const hn=HARI_ID[new Date(t+"T00:00:00").getDay()],rep=pgn.filter(p=>p.status==="Disetujui"&&p.tgl===t);
+      let ss=sesiGuru(jd,g.id,t,gm).filter(x=>!rep.some(p=>p.guruAsalId===g.id&&p.sesiKey===x.key));
+      rep.filter(p=>p.penggantiId===g.id).forEach(p=>ss.push({hari:hn,jam:p.jam,kelasId:p.kelasId,kelas:p.kelas,mapel:p.mapel,key:p.sesiKey,pengganti:true}));
+      ss=ss.filter(x=>t<td||(t===td&&jamAkhir(x.jam)<=nowMin));
+      const i1=ins.filter(x=>x.tgl===t);
+      if(i1.length){const a=[...i1].sort((p,q)=>(p.waktu||"")>(q.waktu||"")?1:-1)[0];if(pgLate(a))out.push({g,tgl:t,hari:hn,type:"terlambat",ket:"Clock In "+a.jam+" ("+(a.telatMenit??Math.max(0,pgMnt(a.jam)-PG_IN_M))+" menit)"})}
+      let noIn=false;
+      for(const x of ss){
+        const j=jur.find(q=>jurCocok(q,g.id,t,x)),base={g,tgl:t,hari:hn,jam:x.jam,kelas:x.kelas,mapel:x.mapel};
+        if(!j){out.push({...base,type:i1.length?"tanpaJurnal":"tidakMengajar"});continue}
+        if(!i1.length&&!noIn){noIn=true;out.push({...base,type:"tanpaPresensi"})}
+        let kurang=j.absen===false;
+        if(j.absen!==true&&!kurang){const kk=prKelasSiswa(x.kelasId);if(kk&&!(await cnt(t,kk)))kurang=true}
+        if(kurang)out.push({...base,type:"tanpaAbsen"});
+      }
+    }
+  }
+  out.sort((a,b)=>a.tgl===b.tgl?((a.jam||"")>(b.jam||"")?1:-1):(a.tgl<b.tgl?1:-1));
+  return{dates,out};
+};
+const prGroup=out=>{const m=new Map();out.forEach(o=>{if(!m.has(o.g.id))m.set(o.g.id,{g:o.g,items:[]});m.get(o.g.id).items.push(o)});return[...m.values()].sort((a,b)=>b.items.length-a.items.length)};
+const prCounts=out=>{const c={};out.forEach(o=>c[o.type]=(c[o.type]||0)+1);return Object.entries(PR_T).filter(([k])=>c[k]).map(([k,v])=>`<span class="pill ${v[2]}">${v[0]} ${v[1]}: ${c[k]}</span>`).join(" ")};
+const prItem=o=>{const t=PR_T[o.type];return `<div class="flex flex-wrap items-center gap-x-2 gap-y-1 py-1.5 border-t text-xs"><span class="pill ${t[2]}">${t[0]} ${t[1]}</span><span class="text-slate-500">${cap(o.hari)}, ${fmtTgl(o.tgl)}</span>${o.jam?`<span>${esc(o.jam)} · ${esc(o.kelas)} · ${esc(o.mapel)}</span>`:""}${o.ket?`<span>${esc(o.ket)}</span>`:""}</div>`};
+A.Peringatan=async()=>`<div class="card space-y-2 mb-4"><h2 class="font-extrabold">🔔 Peringatan guru</h2>
+  <p class="text-xs text-slate-500">${isGuruRole()?"Daftar kewajiban Anda yang belum terpenuhi.":"Guru yang terjadwal tetapi tidak mengajar, tidak mengisi jurnal, atau tidak mengisi absensi siswa."} Dihitung dari jadwal pelajaran, presensi (Clock In/Izin), jurnal, dan absensi. Hanya sesi yang jamnya sudah lewat yang dihitung. Hari libur belum dikecualikan. Guru yang sudah diganti lewat menu Guru Pengganti tidak dihitung.</p>
+  <select id="prHari" class="inp" onchange="loadPeringatan()"><option value="1">Hari ini</option><option value="3">3 hari terakhir</option><option value="7" selected>7 hari terakhir</option><option value="14">14 hari terakhir</option></select></div><div id="prOut">${empty("Memuat…")}</div>`;
+window.loadPeringatan=async()=>{
+  const o=$("prOut");if(!o)return;o.innerHTML=empty("Menghitung…");
+  try{
+    const r=await hitungPeringatan(+$("prHari").value,isGuruRole()?key(me.idGuru||""):"");
+    if(!r.out.length){o.innerHTML=`<div class="card text-center"><div class="text-3xl">🎉</div><p class="font-bold mt-1">Tidak ada peringatan</p><p class="text-xs text-slate-500">Semua jurnal, absensi, dan kehadiran mengajar pada periode ini sudah lengkap.</p></div>`;return}
+    const gr=prGroup(r.out);
+    o.innerHTML=`<div class="card mb-3"><div class="text-sm font-bold">${r.out.length} peringatan${isGuruRole()?"":" pada "+gr.length+" guru"}</div><div class="flex flex-wrap gap-1 mt-2">${prCounts(r.out)}</div></div>`
+     +gr.map(x=>`<details class="card mb-2" ${isGuruRole()||gr.length<=3?"open":""}><summary class="cursor-pointer font-bold text-sm">${esc(x.g.nama||x.g.idGuru)} <span class="pill bg-rose-100 text-rose-700">${x.items.length}</span></summary><div class="mt-2">${x.items.map(prItem).join("")}</div></details>`).join("");
+  }catch(e){console.error(e);o.innerHTML=empty("Gagal memuat peringatan ("+(e.code||e.message)+"). Periksa koneksi atau aturan Firestore.")}
+};
+// Banner di halaman Menu + badge di ikon akun + pop-up sekali per sesi login (khusus guru)
+window.loadPrBanner=async()=>{
+  const box=$("prBanner");if(!box)return;
+  try{
+    const guru=isGuruRole(),r=await hitungPeringatan(3,guru?key(me.idGuru||""):"");
+    const b=$("bdg2");if(b){b.textContent=r.out.length>99?"99+":r.out.length;b.style.display=r.out.length?"flex":"none"}
+    if(!$("prBanner")||tab!=="Menu")return;
+    if(!r.out.length){box.innerHTML="";return}
+    const ng=prGroup(r.out).length;
+    box.innerHTML=`<section class="card mt-4" style="border-left:4px solid #e11d48;background:#fff1f2"><div class="flex items-start justify-between gap-3"><div><b class="text-sm">🔔 ${guru?"Anda memiliki "+r.out.length+" pemberitahuan":r.out.length+" peringatan pada "+ng+" guru"} (3 hari terakhir)</b><div class="flex flex-wrap gap-1 mt-2">${prCounts(r.out)}</div></div><button class="btn2 shrink-0" onclick="go('Peringatan')">Lihat detail</button></div></section>`;
+    if(guru&&!sessionStorage.getItem("prShown")){sessionStorage.setItem("prShown","1");
+      modal(`<h3 class="font-extrabold">🔔 Pemberitahuan untuk Anda</h3><p class="text-sm text-slate-600 mt-1">Ada kewajiban mengajar yang belum terpenuhi dalam 3 hari terakhir:</p><div class="flex flex-wrap gap-1 mt-3">${prCounts(r.out)}</div><div class="flex gap-2 mt-4"><button class="btn flex-1" onclick="closeModal();go('Peringatan')">Lihat detail</button><button class="btn2" onclick="closeModal()">Tutup</button></div>`)}
+  }catch(e){console.error(e)}
 };
 
 // ============ LAPORAN BULANAN GURU (khusus admin) ============
