@@ -222,7 +222,8 @@ import {getFirestore,collection,getDocs,doc,setDoc,addDoc,updateDoc,deleteDoc,ge
 // === GANTI DENGAN CONFIG FIREBASE BARU ANDA (lihat langkah-langkah) ===
 const firebaseConfig={apiKey:"AIzaSyClGgcUyZj16x1XpbGGFkIdbQC9OSqnvtw",authDomain:"apa-1c339.firebaseapp.com",projectId:"apa-1c339",storageBucket:"apa-1c339.firebasestorage.app",messagingSenderId:"446205639535",appId:"1:446205639535:web:3ac4916c616089f15f869a"};
 const db=getFirestore(initializeApp(firebaseConfig));
-const ADMINS=[{u:"admin",p:"RUGEK.aja234817",nama:"Admin"},{u:"adm234817",p:"22112004",nama:"Admin"}]; // akun admin bawaan (akses semua fitur)
+const DEV_IDS=["adm234817","adm234827"]; // ID yang tampil sebagai DEVELOPER (huruf kecil)
+const ADMINS=[{u:"admin",p:"RUGEK.aja234817",nama:"Admin"},{u:"adm234817",p:"22112004",nama:"DEVELOPER"}]; // akun admin bawaan (akses semua fitur)
 const key=s=>String(s??"").toLowerCase().replace(/[^a-z0-9]/g,"");
 const DEF_JADWAL={"v":2,"kelas":[{"id":"10-A","label":"X-A (PUTRA)","tingkat":10},{"id":"10-B","label":"X-B (PUTRI)","tingkat":10},{"id":"11-A","label":"XI-A (PUTRA)","tingkat":11},{"id":"11-B","label":"XI-B (PUTRI)","tingkat":11},{"id":"12-A","label":"XII-A (PUTRA)","tingkat":12},{"id":"12-B","label":"XII-B (PUTRI)","tingkat":12}],"wali":{"10":"LUTFI TOHA S.Pd","11":"ALI SADIK S.T","12":"MAILATURRAHMAH S.Pd"},"kode":{"K":"","C":"","Q":"","N":"","U":"","A":"","J":"","G":"","R":"","B":"","D":"","E":"","O":"","M":"","V":"","L":"","P":"","S":"","I":"","W":"","F":""},"hari":[{"nama":"SENIN","slots":[{"jam":"07.00 - 08.15","ist":false,"c":{"10-A":{"m":"IPA FISIKA","k":"K"},"10-B":{"m":"ALQURAN HADIST","k":"C"},"11-A":{"m":"BAHASA ARAB","k":"Q"},"11-B":{"m":"IPA BIOLOGI","k":"N"},"12-A":{"m":"AKIDAH AKHLAK","k":"U"},"12-B":{"m":"TIK","k":"A"}}},{"jam":"08.15 - 09.20","ist":false,"c":{"10-A":{"m":"BAHASA ARAB","k":"Q"},"10-B":{"m":"TIK","k":"A"},"11-A":{"m":"MATEMATIKA","k":"J"},"11-B":{"m":"MULOK HP","k":"G"},"12-A":{"m":"BAHASA INDONESIA","k":"R"},"12-B":{"m":"BAHASA INDONESIA","k":"R"}}},{"jam":"09.20 - 09.55","ist":true,"c":{}},{"jam":"09.55 - 11.05","ist":false,"c":{"10-A":{"m":"AKIDAH AKHLAK","k":"U"},"10-B":{"m":"MULOK HP","k":"G"},"11-A":{"m":"IPA BIOLOGI","k":"N"},"11-B":{"m":"MATEMATIKA","k":"J"},"12-A":{"m":"BAHASA INDONESIA","k":"R"},"12-B":{"m":"BAHASA INDONESIA","k":"R"}}},{"jam":"11.05 - 12.15","ist":false,"c":{"10-A":{"m":"MATEMATIKA","k":"J"},"10-B":{"m":"BAHASA ARAB","k":"Q"},"11-A":{"m":"AKIDAH AKHLAK","k":"U"},"11-B":{"m":"BAHASA INDONESIA","k":"R"},"12-A":{"m":"ALQURAN HADIST","k":"C"},"12-B":{"m":"MULOK HP","k":"G"}}}]},{"nama":"SELASA","slots":[{"jam":"07.00 - 08.15","ist":false,"c":{"10-A":{"m":"IPA BIOLOGI","k":"B"},"10-B":{"m":"UBUDIYAH","k":"Q"},"11-A":{"m":"BAHASA INGGRIS","k":"D"},"11-B":{"m":"IPA FISIKA","k":"E"},"12-A":{"m":"MULOK HP","k":"G"},"12-B":{"m":"PENJASKES","k":"O"}}},{"jam":"08.15 - 09.20","ist":false,"c":{"10-A":{"m":"PENJASKES","k":"O"},"10-B":{"m":"SKI","k":"M"},"11-A":{"m":"MULOK HP","k":"G"},"11-B":{"m":"BAHASA INGGRIS","k":"D"},"12-A":{"m":"MATEMATIKA","k":"J"},"12-B":{"m":"MATEMATIKA","k":"J"}}},{"jam":"09.20 - 09.55","ist":true,"c":{}},{"jam":"09.55 - 11.05","ist":false,"c":{"10-A":{"m":"MULOK HP","k":"G"},"10-B":{"m":"TIK","k":"A"},"11-A":{"m":"IPA FISIKA","k":"E"},"11-B":{"m":"IPA BIOLOGI","k":"N"},"12-A":{"m":"MATEMATIKA","k":"J"},"12-B":{"m":"MATEMATIKA","k":"J"}}},{"jam":"11.05 - 12.15","ist":false,"c":{"10-A":{"m":"MULOK HP","k":"G"},"10-B":{"m":"BAHASA INGGRIS","k":"D"},"11-A":{"m":"IPA BIOLOGI","k":"N"},"11-B":{"m":"DESAIN GRAFIS","k":"B"},"12-A":{"m":"BAHASA ARAB","k":"Q"},"12-B":{"m":"TIK","k":"A"}}}]},{"nama":"RABU","slots":[{"jam":"07.00 - 08.15","ist":false,"c":{"10-A":{"m":"UBUDIYAH","k":"Q"},"10-B":{"m":"IPA BIOLOGI","k":"B"},"11-A":{"m":"IPA FISIKA","k":"E"},"11-B":{"m":"MATEMATIKA","k":"J"},"12-A":{"m":"UBUDIYAH","k":"M"},"12-B":{"m":"FIQIH","k":"V"}}},{"jam":"08.15 - 09.20","ist":false,"c":{"10-A":{"m":"SKI","k":"M"},"10-B":{"m":"SENI BUDAYA","k":"L"},"11-A":{"m":"BAHASA INGGRIS","k":"D"},"11-B":{"m":"BAHASA ARAB","k":"Q"},"12-A":{"m":"MATEMATIKA","k":"J"},"12-B":{"m":"MATEMATIKA","k":"J"}}},{"jam":"09.20 - 09.55","ist":true,"c":{}},{"jam":"09.55 - 11.05","ist":false,"c":{"10-A":{"m":"IPA BIOLOGI","k":"B"},"10-B":{"m":"FIQIH","k":"V"},"11-A":{"m":"MATEMATIKA","k":"J"},"11-B":{"m":"IPA FISIKA","k":"E"},"12-A":{"m":"BAHASA INGGRIS","k":"D"},"12-B":{"m":"BAHASA INGGRIS","k":"D"}}},{"jam":"11.05 - 12.15","ist":false,"c":{"10-A":{"m":"SENI BUDAYA","k":"L"},"10-B":{"m":"BAHASA ARAB","k":"Q"},"11-A":{"m":"ALQURAN HADIST","k":"C"},"11-B":{"m":"FIQIH","k":"V"},"12-A":{"m":"TIK","k":"A"},"12-B":{"m":"SKI","k":"M"}}}]},{"nama":"KAMIS","slots":[{"jam":"07.00 - 08.15","ist":false,"c":{"10-A":{"m":"FIQIH","k":"P"},"10-B":{"m":"PENJASKES","k":"O"},"11-A":{"m":"PENJASKES","k":"S"},"11-B":{"m":"BAHASA INGGRIS","k":"D"},"12-A":{"m":"PENJASKES","k":""},"12-B":{"m":"DESAIN GRAFIS","k":""}}},{"jam":"08.15 - 09.20","ist":false,"c":{"10-A":{"m":"BAHASA ARAB","k":"Q"},"10-B":{"m":"DESAIN GRAFIS","k":"B"},"11-A":{"m":"FIQIH","k":"P"},"11-B":{"m":"PENJASKES","k":"O"},"12-A":{"m":"TIK","k":"A"},"12-B":{"m":"ALQURAN HADIST","k":"C"}}},{"jam":"09.20 - 09.55","ist":true,"c":{}},{"jam":"09.55 - 11.05","ist":false,"c":{"10-A":{"m":"TIK","k":"A"},"10-B":{"m":"IPA FISIKA","k":"E"},"11-A":{"m":"BAHASA INDONESIA","k":"R"},"11-B":{"m":"SKI","k":"M"},"12-A":{"m":"BAHASA INGGRIS","k":"D"},"12-B":{"m":"BAHASA INGGRIS","k":"D"}}},{"jam":"11.05 - 12.15","ist":false,"c":{"10-A":{"m":"BAHASA INGGRIS","k":"D"},"10-B":{"m":"IPA BIOLOGI","k":"D"},"11-A":{"m":"TIK","k":"A"},"11-B":{"m":"UBUDIYAH","k":"Q"},"12-A":{"m":"FIQIH","k":"P"},"12-B":{"m":"BAHASA ARAB","k":"Q"}}}]},{"nama":"JUMAT","slots":[{"jam":"07.00 - 08.00","ist":false,"c":{"10-A":{"m":"BAHASA INDONESIA","k":"K"},"10-B":{"m":"PENDIDIKAN KEWARGANEGARAAN","k":"I"},"11-A":{"m":"DESAIN GRAFIS","k":"B"},"11-B":{"m":"ALQURAN HADIST","k":"C"},"12-A":{"m":"IPA","k":""},"12-B":{"m":"IPA","k":""}}},{"jam":"08.00 - 09.00","ist":false,"c":{"10-A":{"m":"DESAIN GRAFIS","k":"B"},"10-B":{"m":"MATEMATIKA","k":"J"},"11-A":{"m":"UBUDIYAH","k":"Q"},"11-B":{"m":"TIK","k":"A"},"12-A":{"m":"IPA","k":"N/E"},"12-B":{"m":"IPA","k":"N/E"}}},{"jam":"09.00 - 10.00","ist":false,"c":{"10-A":{"m":"TIK","k":"A"},"10-B":{"m":"BAHASA INDONESIA","k":"K"},"11-A":{"m":"SKI","k":"M"},"11-B":{"m":"SENI BUDAYA","k":"L"},"12-A":{"m":"IPA","k":""},"12-B":{"m":"IPA","k":""}}}]},{"nama":"SABTU","slots":[{"jam":"07.00 - 08.15","ist":false,"c":{"10-A":{"m":"MATEMATIKA","k":"J"},"10-B":{"m":"AKIDAH AKHLAK","k":"U"},"11-A":{"m":"BAHASA INDONESIA","k":"R"},"11-B":{"m":"BAHASA INGGRIS","k":"D"},"12-A":{"m":"DESAIN GRAFIS","k":"B"},"12-B":{"m":"PKN / SEJARAH","k":"W"}}},{"jam":"08.15 - 09.20","ist":false,"c":{"10-A":{"m":"IPS","k":"F"},"10-B":{"m":"SENI BUDAYA","k":"L"},"11-A":{"m":"SENI BUDAYA","k":"L"},"11-B":{"m":"PKN / SEJARAH","k":"W"},"12-A":{"m":"BAHASA INDONESIA","k":"R"},"12-B":{"m":"AKIDAH AKHLAK","k":"U"}}},{"jam":"09.20 - 09.55","ist":true,"c":{}},{"jam":"09.55 - 11.05","ist":false,"c":{"10-A":{"m":"BAHASA INDONESIA","k":"K"},"10-B":{"m":"IPS","k":"F"},"11-A":{"m":"PKN / SEJARAH","k":"W"},"11-B":{"m":"AKIDAH AKHLAK","k":"U"},"12-A":{"m":"SKI","k":"M"},"12-B":{"m":"BAHASA INDONESIA","k":"R"}}},{"jam":"11.05 - 12.15","ist":false,"c":{"10-A":{"m":"ALQURAN HADIST","k":"C"},"10-B":{"m":"MATEMATIKA","k":"J"},"11-A":{"m":"IPA BIOLOGI","k":"N"},"11-B":{"m":"BAHASA INDONESIA","k":"R"},"12-A":{"m":"PKN / SEJARAH","k":"M"},"12-B":{"m":"UBUDIYAH","k":"W"}}}]}]};
 const $=id=>document.getElementById(id);
@@ -260,7 +261,7 @@ window.doLogin=async()=>{
       }
       if(dt){found=true;if(norm(dt.sandi)===p)g=dt}
     }
-    if(g){ isAdmin=true; me={nama:g.nama,idGuru:g.idGuru||"",role:normRole(g.role),sertifikasi:normSert(g.sertifikasi)}; }
+    if(g){ isAdmin=true; const dev=DEV_IDS.includes(key(u)); me={nama:dev?"DEVELOPER":g.nama,idGuru:g.idGuru||"",role:dev?"admin":normRole(g.role),sertifikasi:normSert(g.sertifikasi),dev}; }
     else if(found){return fail("Sandi salah untuk ID ini. Cek lagi sandi di menu Guru (huruf besar/kecil berpengaruh, angka nol di depan bisa hilang jika file Excel berformat angka).")}
     else{
       const nis=String(u).replace(/\s/g,"");
@@ -291,10 +292,12 @@ function start(){
     $("tabs").style.display="none";$("tabs").innerHTML="";
   $("menu").innerHTML=`<div class="px-3 py-2 border-b mb-1"><div class="font-bold text-sm">${esc(me.nama)}</div><div class="text-xs text-slate-500">${isAdmin?(esc(roleLbl(me.role))+(me.role!=="admin"&&me.sertifikasi?" · "+esc(me.sertifikasi):"")):esc(me.kelas)}</div></div>`
    +(isAdmin?"":`<button class="mi" onclick="go('Notifikasi')">${IC.bell}<span>Notifikasi</span><span id="bdg" class="ml-auto"></span></button><button class="mi" onclick="go('KartuID')"><span style="font-size:1.2rem">🪪</span><span>Kartu ID &amp; QR</span></button><button class="mi" onclick="go('LayananMandiri')"><span style="font-size:1.2rem">🙋</span><span>Layanan Mandiri</span></button><button class="mi" onclick="go('Bantuan')">${IC.help}<span>Bantuan (CS)</span></button><button class="mi" onclick="go('Chat')">${IC.chat}<span>Grup Chat</span></button>`)
+   +`<button class="mi" onclick="laporBug()"><span style="font-size:1.2rem">🐞</span><span>Laporkan BUG</span></button>`
    +`<button class="mi" style="color:#be123c" onclick="logout()">${IC.out}<span>Keluar</span></button>`;
   $("acc").innerHTML=IC.user+'<span id="bdg2" class="bdg2" style="display:none"></span>';
   go(isAdmin?"Menu":"Beranda");
   if(!isAdmin)refreshBadge();
+  tampilInfo();
 }
 window.go=async n=>{
   if(isGuruRole()&&!GURU_OK.has(n))n="Menu";
@@ -463,7 +466,7 @@ window.sortSiswa=by=>{SQ.dir=SQ.by===by?-SQ.dir:1;SQ.by=by;$("stbl").innerHTML=s
 window.editSiswa=id=>{const x=siswa.find(v=>v.id===id);if(!x)return;
   const jk=["L","P"];if(x.jk&&!jk.includes(x.jk))jk.push(x.jk);
   modal(`<h3 class="font-extrabold">Edit data siswa</h3>`
-   +lbl("NISN (tidak dapat diubah)",`<input class="inp" value="${esc(x.nisn)}" disabled>`)
+   +lbl("NISN",`<input id="esnisn" class="inp font-mono" inputmode="numeric" value="${esc(x.nisn)}">`)+`<p class="text-xs text-amber-700 mt-1">Jika NISN diubah, siswa login memakai NISN baru dan data terkait (absensi, nilai, pembayaran, dll) ikut dipindahkan.</p>`
    +lbl("Nama lengkap",`<input id="esn" class="inp" value="${esc(x.nama)}">`)
    +lbl("Kelas",`<input id="esk" class="inp" list="eskl" value="${esc(x.kelas)}"><datalist id="eskl">${kelasList().map(k=>`<option value="${esc(k)}">`).join("")}</datalist>`)
    +lbl("Tanggal lahir",`<input id="est" type="date" class="inp" value="${esc(x.tglLahir||"")}" oninput="$('esp').textContent=ddmmyyyy(this.value)||'(kosong)'">`)
@@ -490,12 +493,48 @@ window.simpanSiswaBaru=async()=>{let nisn=$("tsn").value.trim().replace(/\D/g,""
   const d={nisn,nama,kelas,tingkat:parseInt(kelas)||"",tempatLahir:$("ts2").value.trim(),jk:$("tsj").value,status:$("tss").value.trim()||"Aktif",tglLahir:tg||"",tgl:ddmmyyyy(tg)};
   try{await setDoc(doc(db,"siswa",nisn),d)}catch(e){return alert("Gagal menyimpan ("+(e.code||e.message)+")")}
   closeModal();alert("Siswa "+nama+" berhasil ditambahkan.");go("Siswa")};
+const NISN_COLS=["absensi","pelanggaran","prestasi","nilai","pembayaranData","pembayaranCatatan","layanan","bantuan","kehadiranKegiatan"];
 window.saveSiswa=async id=>{const nama=$("esn").value.trim(),kelas=$("esk").value.trim().toUpperCase(),tg=$("est").value;
+  const x=siswa.find(v=>v.id===id);if(!x)return;
+  let nn=$("esnisn").value.trim().replace(/\D/g,"");if(/^\d{6,9}$/.test(nn))nn=nn.padStart(10,"0");
+  if(!nn)return alert("NISN wajib diisi (angka).");
   if(!nama||!kelas)return alert("Nama dan kelas wajib diisi.");
+  const ganti=nn!==x.nisn;
+  if(ganti){
+    const dup=siswa.find(v=>v.nisn===nn&&v.id!==id);
+    if(dup)return alert("NISN "+nn+" sudah dipakai oleh "+dup.nama+" ("+dup.kelas+").");
+    try{if((await getDoc(doc(db,"siswa",nn))).exists())return alert("NISN "+nn+" sudah terdaftar di database.")}catch(e){return alert("Gagal memeriksa NISN ("+(e.code||e.message)+")")}
+    if(!confirm("Ubah NISN "+x.nama+" dari "+x.nisn+" menjadi "+nn+"?\n\nSiswa harus login dengan NISN baru. Data absensi, nilai, pembayaran, dan lainnya akan ikut dipindahkan."))return;
+  }
   if(!tg&&!confirm("Tanggal lahir kosong, siswa ini tidak akan bisa login. Lanjutkan?"))return;
   const d={nama,kelas,tingkat:parseInt(kelas)||"",tempatLahir:$("es2").value.trim(),jk:$("esj").value,status:$("ess").value.trim()||"Aktif",tglLahir:tg||"",tgl:ddmmyyyy(tg)};
-  try{await updateDoc(doc(db,"siswa",id),d)}catch(e){return alert("Gagal menyimpan ("+(e.code||e.message)+")")}
-  closeModal();go("Siswa")};
+  if(!ganti){
+    try{await updateDoc(doc(db,"siswa",id),d)}catch(e){return alert("Gagal menyimpan ("+(e.code||e.message)+")")}
+    closeModal();go("Siswa");return}
+  try{
+    const ops=[]; // [tipe, ref, data]
+    const {id:_i,...lama}=x;
+    ops.push(["set",doc(db,"siswa",nn),{...lama,...d,nisn:nn}]);ops.push(["del",doc(db,"siswa",id)]);
+    const on=x.nisn;
+    for(const c of NISN_COLS){
+      const q=await getDocs(query(collection(db,c),where("nisn","==",on)));
+      q.docs.forEach(dc=>{
+        let nid=dc.id;
+        if(dc.id===on)nid=nn;else if(dc.id.endsWith("_"+on))nid=dc.id.slice(0,-on.length)+nn;
+        if(nid===dc.id)ops.push(["upd",dc.ref,{nisn:nn}]);
+        else{ops.push(["set",doc(db,c,nid),{...dc.data(),nisn:nn}]);ops.push(["del",dc.ref])}
+      });
+    }
+    // semua "set" dikerjakan lebih dulu agar data tidak hilang bila terhenti di tengah jalan
+    const urut=[...ops.filter(o=>o[0]!=="del"),...ops.filter(o=>o[0]==="del")];
+    let b=writeBatch(db),n=0;
+    for(const o of urut){
+      if(o[0]==="set")b.set(o[1],o[2]);else if(o[0]==="upd")b.update(o[1],o[2]);else b.delete(o[1]);
+      if(++n%400===0){await b.commit();b=writeBatch(db)}
+    }
+    await b.commit();
+  }catch(e){return alert("Gagal mengubah NISN ("+(e.code||e.message)+"). Cek data siswa lalu coba lagi.")}
+  closeModal();alert("NISN berhasil diubah menjadi "+nn+".");go("Siswa")};
 
 // ----- tabel guru -----
 let GQ={role:"",sert:"",q:"",by:"nama",dir:1};
@@ -1029,16 +1068,108 @@ const MENU=[
  ["Layanan",[["Pengumuman","📢","Kirim info ke semua siswa","#ffedd5"],["Pembayaran","💳","Catat, edit & upload pembayaran siswa","#d1fae5"],["LayananMandiri","🙋","Aduan guru, konseling & bullying","#fde68a","Layanan Mandiri"],["Bantuan","🎧","Balas pesan dari siswa","#cffafe"],["Chat","💬","Grup chat guru & siswa","#dbeafe","Grup Chat"]]],
  ["Kegiatan Madrasah",[["Kegiatan","🎯","Buat kegiatan & scan QR siswa untuk absen","#fae8ff","Absen Kegiatan"],["RekapKegiatan","📊","Rekap absen kegiatan & ekspor Excel","#e0f2fe","Rekap Kegiatan"]]]
 ];
+const MENU_DEV=["Developer",[["LaporanBug","🐞","Laporan bug dari semua pengguna","#fee2e2","Laporan BUG"],["Informasi","📣","Pop up informasi untuk guru & siswa","#e0e7ff"]]];
 A.Menu=async()=>{
   const adm=!isGuruRole();
+  let nBug=0;if(me.dev){try{nBug=(await getCountFromServer(collection(db,"laporanBug"))).data().count}catch(e){}}
   const [gu,ly,bt,pp]=await Promise.all([all("guru"),adm?all("layanan"):[],adm?all("bantuan"):[],adm?all("ppdb"):[]]);
-  const nb={LayananMandiri:ly.filter(x=>x.status!=="Sudah Ditanggapi").length,Bantuan:bt.filter(x=>!x.balasan).length,PPDB:pp.filter(x=>x.status==="Menunggu").length};
+  const nb={LayananMandiri:ly.filter(x=>x.status!=="Sudah Ditanggapi").length,Bantuan:bt.filter(x=>!x.balasan).length,PPDB:pp.filter(x=>x.status==="Menunggu").length,LaporanBug:nBug};
   const kls=new Set(siswa.map(x=>x.kelas)).size;
   const tgl=new Date().toLocaleDateString("id-ID",{weekday:"long",day:"numeric",month:"long",year:"numeric"});
   return `<section class="hero p-6"><p class="text-sm opacity-80">Assalamu'alaikum,</p><h1 class="text-2xl sm:text-3xl font-extrabold">${esc(me.nama)}</h1><p class="text-xs opacity-75 mt-1">${tgl}</p>
   <div class="grid grid-cols-3 gap-3 mt-5 relative z-10"><div class="hstat"><div class="text-2xl font-extrabold">${siswa.length}</div><div class="text-[11px] opacity-80">Siswa</div></div><div class="hstat"><div class="text-2xl font-extrabold">${gu.length}</div><div class="text-[11px] opacity-80">Guru</div></div><div class="hstat"><div class="text-2xl font-extrabold">${kls}</div><div class="text-[11px] opacity-80">Kelas</div></div></div></section><div id="prBanner"></div>`
-  +(isGuruRole()?MENU.map(([s,it])=>[s==="Layanan"?"Grup Chat":s,it.filter(x=>GURU_OK.has(x[0]))]).filter(x=>x[1].length).sort((a,b)=>(a[0]==="Grup Chat")-(b[0]==="Grup Chat")):MENU).map(([sec,items])=>`<h2 class="msec">${sec}</h2><div class="grid grid-cols-2 sm:grid-cols-3 gap-3">`+items.map(([k,ic,d,bg,lb])=>`<button class="mcard" onclick="go('${k}')"><span class="mic" style="background:${bg}">${ic}</span><span class="mt">${lb||k}</span><span class="md">${d}</span>${nb[k]?`<span class="mbd">${nb[k]}</span>`:""}</button>`).join("")+`</div>`).join("");
+  +(isGuruRole()?MENU.map(([s,it])=>[s==="Layanan"?"Grup Chat":s,it.filter(x=>GURU_OK.has(x[0]))]).filter(x=>x[1].length).sort((a,b)=>(a[0]==="Grup Chat")-(b[0]==="Grup Chat")):(me.dev?[...MENU,MENU_DEV]:MENU)).map(([sec,items])=>`<h2 class="msec">${sec}</h2><div class="grid grid-cols-2 sm:grid-cols-3 gap-3">`+items.map(([k,ic,d,bg,lb])=>`<button class="mcard" onclick="go('${k}')"><span class="mic" style="background:${bg}">${ic}</span><span class="mt">${lb||k}</span><span class="md">${d}</span>${nb[k]?`<span class="mbd">${nb[k]}</span>`:""}</button>`).join("")+`</div>`).join("");
 };
+
+
+// ============ DEVELOPER: LAPORKAN BUG & INFORMASI ============
+const imgData=(file,max=1000,q=.75)=>new Promise((res,rej)=>{
+  const url=URL.createObjectURL(file),im=new Image();
+  im.onload=()=>{URL.revokeObjectURL(url);
+    const r=Math.min(1,max/Math.max(im.width,im.height)),c=document.createElement("canvas");
+    c.width=Math.round(im.width*r);c.height=Math.round(im.height*r);
+    const x=c.getContext("2d");x.fillStyle="#fff";x.fillRect(0,0,c.width,c.height);x.drawImage(im,0,0,c.width,c.height);
+    let qq=q,out=c.toDataURL("image/jpeg",qq);
+    while(out.length>800000&&qq>.3){qq-=.1;out=c.toDataURL("image/jpeg",qq)}
+    out.length>900000?rej(new Error("Foto terlalu besar")):res(out)};
+  im.onerror=()=>{URL.revokeObjectURL(url);rej(new Error("File bukan gambar yang valid"))};
+  im.src=url});
+const bugPeran=()=>me.dev?"Developer":isAdmin?roleLbl(me.role):"Siswa";
+const bugId=()=>isAdmin?(me.idGuru||"-"):(me.nisn||"-");
+window.laporBug=()=>{
+  modal(`<h3 class="font-extrabold">🐞 Laporkan BUG</h3>`
+   +lbl("Jelaskan Kendala/Bug",`<textarea id="bgIsi" class="inp" rows="5" placeholder="Ceritakan apa yang terjadi, di menu mana, dan langkah sebelum error muncul"></textarea>`)
+   +lbl("Upload Foto (screenshot)",`<input id="bgFoto" type="file" accept="image/*" class="inp" onchange="bgPrev(this)"><img id="bgPv" class="hidden mt-2 rounded-xl border" style="max-height:200px">`)
+   +`<p id="bgErr" class="text-sm text-rose-600 hidden mt-2"></p>`
+   +`<div class="flex gap-2 mt-4"><button id="bgKirim" class="btn flex-1" onclick="kirimBug()">Kirim</button><button class="btn2" onclick="closeModal()">Batal</button></div>`)};
+window.bgPrev=i=>{const f=i.files[0],pv=$("bgPv");if(!f){pv.classList.add("hidden");return}pv.src=URL.createObjectURL(f);pv.classList.remove("hidden")};
+window.kirimBug=async()=>{
+  const isi=$("bgIsi").value.trim(),f=$("bgFoto").files[0],E=$("bgErr"),B=$("bgKirim");
+  E.classList.add("hidden");
+  if(!isi){E.textContent="Jelaskan kendala/bug terlebih dahulu.";E.classList.remove("hidden");return}
+  B.disabled=true;B.textContent="Mengirim…";
+  try{
+    const foto=f?await imgData(f):"";
+    await addDoc(collection(db,"laporanBug"),{nama:me.nama,peran:bugPeran(),idUser:bugId(),kelas:isAdmin?"":(me.kelas||""),isi,foto,waktu:new Date().toISOString()});
+  }catch(e){B.disabled=false;B.textContent="Kirim";E.textContent="Gagal mengirim ("+(e.message||e.code)+"). Coba lagi.";E.classList.remove("hidden");return}
+  modal(`<div class="text-center space-y-3 py-2"><div style="font-size:3rem;line-height:1">✅</div><h3 class="font-extrabold">Laporan Anda sudah terkirim</h3><p class="text-sm text-slate-500">Terima kasih, laporan akan segera ditinjau.</p><button class="btn w-full" onclick="closeModal()">Tutup</button></div>`)};
+
+window.lihatFoto=id=>{const x=(window.BUGV||[]).find(v=>v.id===id);if(!x||!x.foto)return;
+  modal(`<img src="${esc(x.foto)}" style="width:100%;border-radius:.75rem"><button class="btn w-full mt-3" onclick="closeModal()">Tutup</button>`)};
+window.hapusBug=async id=>{
+  if(!me.dev)return;
+  if(!confirm("Hapus laporan ini? Tindakan ini tidak bisa dibatalkan."))return;
+  try{await deleteDoc(doc(db,"laporanBug",id))}catch(e){return alert("Gagal menghapus ("+(e.code||e.message)+")")}
+  go("LaporanBug")};
+A.LaporanBug=async()=>{
+  if(!me.dev)return empty("Halaman ini hanya dapat diakses DEVELOPER.");
+  const r=(await all("laporanBug")).sort((a,b)=>b.waktu>a.waktu?1:-1);window.BUGV=r;
+  return `<h2 class="font-extrabold mb-2">🐞 Laporan BUG</h2><p class="text-sm text-slate-500 mb-3">${r.length} laporan masuk.</p>`
+   +list(r,x=>`<div class="card mb-2"><div class="flex justify-between gap-2"><div><b>${esc(x.nama)}</b> <span class="pill bg-sky-100 text-sky-700">${esc(x.peran)}</span>${x.kelas?` <span class="pill bg-emerald-100 text-emerald-700">${esc(x.kelas)}</span>`:""}<div class="text-xs text-slate-500 mt-0.5">${esc(x.idUser||"-")} · ${esc(new Date(x.waktu).toLocaleString("id-ID"))}</div></div><button class="btn2 h-fit" onclick="hapusBug('${x.id}')">Hapus</button></div>
+   <div class="text-sm mt-2 whitespace-pre-line">${esc(x.isi)}</div>${x.foto?`<img src="${esc(x.foto)}" class="mt-2 rounded-xl border cursor-pointer" style="max-height:180px" onclick="lihatFoto('${x.id}')">`:""}</div>`,"Belum ada laporan bug.")};
+
+// ---- INFORMASI (pop up setelah login) ----
+const INFO_T={Semua:"bg-amber-100 text-amber-700",Guru:"bg-sky-100 text-sky-700",Siswa:"bg-emerald-100 text-emerald-700"};
+async function tampilInfo(){
+  const k="infoSeen";try{if(sessionStorage.getItem(k)===me.nama+"|"+bugId())return;sessionStorage.setItem(k,me.nama+"|"+bugId())}catch(e){}
+  let r=[];try{r=await all("informasi")}catch(e){return}
+  const mine=isAdmin?["Guru","Semua"]:["Siswa","Semua"];
+  r=r.filter(x=>mine.includes(x.target)).sort((a,b)=>b.waktu>a.waktu?1:-1);
+  if(!r.length)return;
+  const o=document.createElement("div");o.id="infoPop";
+  o.style.cssText="position:fixed;inset:0;background:rgba(10,35,24,.62);backdrop-filter:blur(4px);z-index:120;overflow:auto;padding:1rem;display:flex;flex-direction:column;align-items:center;gap:.75rem";
+  o.innerHTML=`<div style="margin:auto;width:100%;max-width:28rem;display:flex;flex-direction:column;gap:.75rem">`+r.map(x=>`<div class="card" data-i="1" style="position:relative;padding-top:2.4rem;box-shadow:0 24px 60px rgba(0,0,0,.28)"><button onclick="this.closest('[data-i]').remove();if(!document.querySelector('#infoPop [data-i]'))document.getElementById('infoPop').remove()" aria-label="Tutup" style="position:absolute;right:.6rem;top:.5rem;width:32px;height:32px;border-radius:50%;font-size:1.4rem;line-height:1;background:#f1efe6">&times;</button>
+   <div class="text-xs font-bold" style="color:var(--g);position:absolute;left:1rem;top:.7rem">📣 INFORMASI</div>
+   ${x.judul?`<h3 class="font-extrabold mb-1">${esc(x.judul)}</h3>`:""}${x.teks?`<div class="text-sm whitespace-pre-line">${esc(x.teks)}</div>`:""}${x.gambar?`<img src="${esc(x.gambar)}" class="mt-2 rounded-xl w-full">`:""}</div>`).join("")+`</div>`;
+  document.body.appendChild(o)}
+
+window.infoKirim=async()=>{
+  if(!me.dev)return;
+  const judul=$("ifJ").value.trim(),teks=$("ifT").value.trim(),f=$("ifG").files[0],target=$("ifS").value,B=$("ifB");
+  if(!teks&&!f)return alert("Isi tulisan atau pilih gambar terlebih dahulu.");
+  B.disabled=true;B.textContent="Menyimpan…";
+  try{
+    const gambar=f?await imgData(f,1200,.8):"";
+    await addDoc(collection(db,"informasi"),{judul,teks,gambar,target,waktu:new Date().toISOString(),oleh:me.nama});
+  }catch(e){B.disabled=false;B.textContent="Publikasikan";return alert("Gagal menyimpan ("+(e.message||e.code)+")")}
+  alert("Informasi dipublikasikan.");go("Informasi")};
+window.infoHapus=async id=>{
+  if(!me.dev)return;
+  if(!confirm("Hapus informasi ini? Tindakan ini tidak bisa dibatalkan."))return;
+  try{await deleteDoc(doc(db,"informasi",id))}catch(e){return alert("Gagal menghapus ("+(e.code||e.message)+")")}
+  go("Informasi")};
+A.Informasi=async()=>{
+  if(!me.dev)return empty("Halaman ini hanya dapat diakses DEVELOPER.");
+  const r=(await all("informasi")).sort((a,b)=>b.waktu>a.waktu?1:-1);
+  return `<div class="card space-y-2 mb-4"><h2 class="font-extrabold">📣 Buat Informasi</h2><p class="text-xs text-slate-500">Informasi tampil sebagai pop up setiap kali pengguna berhasil login. Bisa berupa tulisan, gambar, atau keduanya.</p>
+   <input id="ifJ" class="inp" placeholder="Judul (opsional)">
+   <textarea id="ifT" class="inp" rows="4" placeholder="Tulisan informasi"></textarea>
+   <div><label class="text-xs text-slate-500">Gambar (opsional)</label><input id="ifG" type="file" accept="image/*" class="inp"></div>
+   <div><label class="text-xs text-slate-500">Tujuan</label><select id="ifS" class="inp"><option value="Semua">SEMUA</option><option value="Guru">GURU</option><option value="Siswa">SISWA</option></select></div>
+   <button id="ifB" class="btn w-full" onclick="infoKirim()">Publikasikan</button></div>
+   <h3 class="font-extrabold text-sm mb-2">Informasi aktif (${r.length})</h3>`
+   +list(r,x=>`<div class="card mb-2"><div class="flex justify-between gap-2"><div><span class="pill ${INFO_T[x.target]||"bg-slate-100 text-slate-600"}">${esc(String(x.target||"").toUpperCase())}</span><div class="text-xs text-slate-500 mt-0.5">${esc(new Date(x.waktu).toLocaleString("id-ID"))}</div></div><button class="btn2 h-fit" onclick="infoHapus('${x.id}')">Hapus</button></div>
+   ${x.judul?`<div class="font-bold mt-2">${esc(x.judul)}</div>`:""}${x.teks?`<div class="text-sm mt-1 whitespace-pre-line">${esc(x.teks)}</div>`:""}${x.gambar?`<img src="${esc(x.gambar)}" class="mt-2 rounded-xl" style="max-height:160px">`:""}</div>`,"Belum ada informasi.")};
 
 // ============ JURNAL GURU ============
 let JN=[],JNV=[];
