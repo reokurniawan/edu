@@ -241,11 +241,57 @@ const isGuruRole=()=>isAdmin&&me&&me.role!=="admin";
 const GURU_OK=new Set(["Menu","Jadwal","Absensi","Nilai","Rekap","Jurnal","Presensi","Kegiatan","RekapKegiatan","Chat","SlipGaji","Pengganti","Peringatan"]);
 
 const saved=sessionStorage.getItem("me");
+// ============ MODE SHUTDOWN WEB (hanya dikontrol DEVELOPER) ============
+let MT={on:false},AUTO_LOGIN=false;
+const MT_DOC=()=>doc(db,"pengaturan","maintenance"),MT_TITLE=document.title;
+const mtDevLink=c=>`<div style="margin-top:2.2rem"><button onclick="openLogin()" style="font-size:11px;color:${c};background:none;border:0;cursor:pointer">Developer</button></div>`;
+const mtHtml=()=>MT.alasan==="UPDATE"
+ ?`<div style="max-width:30rem;margin:0 auto;padding:12vh 1.25rem 3rem;text-align:center">
+   <div style="font-size:4rem;line-height:1">🛠️</div>
+   <div class="font-extrabold text-2xl mt-2" style="color:var(--g)">MyIgi</div>
+   <div class="text-xs text-slate-500">MA Insan Generasi Islami</div>
+   <div class="card" style="margin-top:1.5rem;padding:1.6rem 1.25rem">
+    <span class="pill bg-amber-100 text-amber-700">UPDATE</span>
+    <h1 class="font-extrabold text-xl mt-3">Sedang Pembaruan Sistem</h1>
+    <p class="text-sm text-slate-600 mt-2">MyIgi sedang diperbarui agar lebih baik. Untuk sementara web tidak dapat diakses. Mohon kembali beberapa saat lagi.</p>
+    ${MT.catatan?`<div class="text-sm mt-3 p-3 rounded-xl bg-amber-50 border border-amber-200 whitespace-pre-line">${esc(MT.catatan)}</div>`:""}
+    ${MT.sejak?`<p class="text-xs text-slate-400 mt-3">Dimulai ${esc(new Date(MT.sejak).toLocaleString("id-ID"))}</p>`:""}
+    <p class="text-xs text-slate-400 mt-1">Halaman akan terbuka kembali otomatis setelah pembaruan selesai.</p>
+    <button class="btn mt-4" onclick="location.reload()">Muat ulang</button>
+   </div>${mtDevLink("#b9b5a5")}</div>`
+ :`<div style="max-width:36rem;margin:0 auto;padding:14vh 1.5rem 3rem;text-align:center;font-family:Arial,Helvetica,sans-serif;color:#202124">
+   <div style="font-size:7rem;font-weight:700;line-height:1;color:#9aa0a6;letter-spacing:-2px">500</div>
+   <h1 style="font-size:1.6rem;font-weight:600;margin:.7rem 0 .5rem">Internal Server Error</h1>
+   <p style="color:#5f6368;font-size:.95rem;line-height:1.65">Server mengalami kesalahan internal dan tidak dapat memproses permintaan Anda.<br>Server mungkin sedang kelebihan beban atau terjadi kesalahan pada aplikasi. Silakan coba lagi beberapa saat lagi.</p>
+   <button onclick="location.reload()" style="margin-top:1.5rem;padding:.6rem 1.5rem;border-radius:4px;background:#1a73e8;color:#fff;font-weight:600;font-size:.9rem">Muat ulang</button>
+   <hr style="margin:2.5rem 0 .8rem;border:0;border-top:1px solid #e0e0e0"><div style="font-size:.75rem;color:#9aa0a6">500 · Internal Server Error</div>
+   ${mtDevLink("#d4d4d4")}</div>`;
+function applyMT(){
+  let o=$("mtOv");const show=MT.on&&!(me&&me.dev),v=$("vrfSiswa");
+  if(!show){if(o)o.remove();document.title=MT_TITLE;if(v)v.style.display="";return}
+  if(window.pgStop)window.pgStop();
+  document.querySelectorAll(".modal").forEach(m=>{if(m.id!=="loginModal")m.classList.add("hidden")});
+  if(window.closeModal)window.closeModal();
+  const ip=$("infoPop");if(ip)ip.remove();if(v)v.style.display="none";
+  if(!o){o=document.createElement("div");o.id="mtOv";document.body.appendChild(o)}
+  const err=MT.alasan!=="UPDATE";
+  o.style.cssText="position:fixed;inset:0;z-index:90;overflow:auto;background:"+(err?"#fff":"var(--bg)");
+  const k=(MT.alasan||"")+"|"+(MT.catatan||"")+"|"+(MT.sejak||"");
+  if(o.dataset.k!==k){o.dataset.k=k;o.innerHTML=mtHtml()}
+  document.title=err?"500 Internal Server Error":"MyIgi - Pembaruan Sistem";
+}
+// pantau status server secara real-time: semua pengguna langsung kena efeknya
+onSnapshot(MT_DOC(),s=>{
+  const was=MT.on;MT=s.exists()?s.data():{on:false};MT.on=!!MT.on;applyMT();
+  if($("svRoot")&&window.svRender)window.svRender();
+  if(was&&!MT.on&&!me&&saved&&!CEK){try{const x=JSON.parse(saved);$("u").value=x.u;$("p").value=x.p;AUTO_LOGIN=true;doLogin()}catch(e){}}
+},e=>console.error("Status server:",e));
 window.openLogin=()=>{$("loginModal").classList.remove("hidden");setTimeout(()=>$("u").focus(),50)};
 window.closeLogin=()=>$("loginModal").classList.add("hidden");
 document.addEventListener("keydown",e=>{if(e.key==="Escape")closeLogin();if(e.key==="Enter"&&!$("loginModal").classList.contains("hidden"))doLogin()});
 $("yr").textContent=new Date().getFullYear();
 window.doLogin=async()=>{
+  const auto=AUTO_LOGIN;AUTO_LOGIN=false;
   const u=$("u").value.trim(),p=$("p").value.trim(),E=$("err");E.classList.add("hidden");
   const fail=m=>{E.textContent=m;E.classList.remove("hidden");sessionStorage.removeItem("me");openLogin()};
   const norm=v=>String(v??"").trim();
@@ -274,6 +320,8 @@ window.doLogin=async()=>{
       me=dt;isAdmin=false;
     }
   }catch(e){console.error("Login error:",e);return fail("Gagal terhubung ke database ("+(e.code||e.message||"error")+"). Jika 'permission-denied', periksa Rules Firestore.")}
+  try{const m=await getDoc(MT_DOC());MT=m.exists()?m.data():{on:false};MT.on=!!MT.on}catch(e){}
+  if(MT.on&&!(me&&me.dev)){me=null;isAdmin=false;applyMT();if(auto)return;return fail("Web sedang dalam mode "+(MT.alasan==="UPDATE"?"UPDATE":"SERVER ERROR")+". Hanya DEVELOPER yang dapat masuk saat ini.")}
   sessionStorage.setItem("me",JSON.stringify({u,p}));
   start();
 };
@@ -288,7 +336,7 @@ window.toggleMenu=e=>{e.stopPropagation();$("menu").classList.toggle("hidden")};
 document.addEventListener("click",()=>$("menu")&&$("menu").classList.add("hidden"));
 window.home=()=>{go(isAdmin?"Menu":"Beranda")};
 function start(){
-  closeLogin();$("login").classList.add("hidden");$("app").classList.remove("hidden");
+  closeLogin();applyMT();$("login").classList.add("hidden");$("app").classList.remove("hidden");
     $("tabs").style.display="none";$("tabs").innerHTML="";
   $("menu").innerHTML=`<div class="px-3 py-2 border-b mb-1"><div class="font-bold text-sm">${esc(me.nama)}</div><div class="text-xs text-slate-500">${isAdmin?(esc(roleLbl(me.role))+(me.role!=="admin"&&me.sertifikasi?" · "+esc(me.sertifikasi):"")):esc(me.kelas)}</div></div>`
    +(isAdmin?"":`<button class="mi" onclick="go('Notifikasi')">${IC.bell}<span>Notifikasi</span><span id="bdg" class="ml-auto"></span></button><button class="mi" onclick="go('KartuID')"><span style="font-size:1.2rem">🪪</span><span>Kartu ID &amp; QR</span></button><button class="mi" onclick="go('LayananMandiri')"><span style="font-size:1.2rem">🙋</span><span>Layanan Mandiri</span></button><button class="mi" onclick="go('Bantuan')">${IC.help}<span>Bantuan (CS)</span></button><button class="mi" onclick="go('Chat')">${IC.chat}<span>Grup Chat</span></button>`)
@@ -1062,13 +1110,13 @@ IC.chat=svg('<path d="M21 15a2 2 0 0 1-2 2H7l-4 4V5a2 2 0 0 1 2-2h14a2 2 0 0 1 2
 const MENU=[
  ["Akademik",[["Jadwal","📅","Jadwal pelajaran semua kelas","#e0f2fe"],["Absensi","✅","Catat kehadiran harian","#dcfce7"],["Nilai","📝","Input nilai per kelas, mapel & ujian","#ecfccb","Input Nilai"],["Rekap","🗓️","Rekap kehadiran & ekspor Excel","#ede9fe","Rekap Kehadiran"],["Jurnal","📓","Isi jurnal mengajar guru","#fce7f3","Jurnal Guru"],["Presensi","📸","Absen guru dengan kamera & lokasi","#fee2e2","Presensi Guru"],["LaporanGuru","📊","Laporan bulanan guru (khusus admin)","#fef3c7","Laporan Bulanan Guru"],["Peringatan","🔔","Pengingat: tidak mengajar, jurnal & absensi belum diisi","#ffe4e6","Peringatan Guru"]]],
  ["Keuangan Guru",[["GajiGuru","💰","Hitung & kelola pembayaran guru","#d1fae5","Pembayaran Guru"],["SlipGaji","🧾","Slip gaji guru","#fef3c7","Slip Gaji"],["Pengganti","🔁","Guru pengganti jam kosong","#e0f2fe","Guru Pengganti"]]],
- ["Data Madrasah",[["Siswa","🎓","Upload & kelola data siswa","#e0e7ff"],["Guru","👩‍🏫","Akun & sandi guru","#ccfbf1"]]],
+ ["Data Madrasah",[["Siswa","🎓","Upload & kelola data siswa","#e0e7ff"],["Guru","👩‍🏫","Akun & sandi guru","#ccfbf1"],["GuruPiket","🛡️","Atur guru piket harian (Clock In 06.30)","#fef3c7","Guru Piket"]]],
  ["Kesiswaan",[["Pelanggaran","⚠️","Catatan kedisiplinan","#ffe4e6"],["Prestasi","🏆","Capaian & penghargaan siswa","#fef9c3"]]],
  ["PPDB",[["PPDB","📋","Data pendaftar & unduh berkas PDF","#fef3c7","Data PPDB"],["VerifPPDB","🔍","Scan QR cek keaslian berkas","#dcfce7","Verifikasi QR"]]],
  ["Layanan",[["Pengumuman","📢","Kirim info ke semua siswa","#ffedd5"],["Pembayaran","💳","Catat, edit & upload pembayaran siswa","#d1fae5"],["LayananMandiri","🙋","Aduan guru, konseling & bullying","#fde68a","Layanan Mandiri"],["Bantuan","🎧","Balas pesan dari siswa","#cffafe"],["Chat","💬","Grup chat guru & siswa","#dbeafe","Grup Chat"]]],
  ["Kegiatan Madrasah",[["Kegiatan","🎯","Buat kegiatan & scan QR siswa untuk absen","#fae8ff","Absen Kegiatan"],["RekapKegiatan","📊","Rekap absen kegiatan & ekspor Excel","#e0f2fe","Rekap Kegiatan"]]]
 ];
-const MENU_DEV=["Developer",[["LaporanBug","🐞","Laporan bug dari semua pengguna","#fee2e2","Laporan BUG"],["Informasi","📣","Pop up informasi untuk guru & siswa","#e0e7ff"]]];
+const MENU_DEV=["Developer",[["LaporanBug","🐞","Laporan bug dari semua pengguna","#fee2e2","Laporan BUG"],["Informasi","📣","Pop up informasi untuk guru & siswa","#e0e7ff"],["Server","🛑","Shutdown / hidupkan kembali web","#fee2e2","Kontrol Server"]]];
 A.Menu=async()=>{
   const adm=!isGuruRole();
   let nBug=0;if(me.dev){try{nBug=(await getCountFromServer(collection(db,"laporanBug"))).data().count}catch(e){}}
@@ -1077,7 +1125,7 @@ A.Menu=async()=>{
   const kls=new Set(siswa.map(x=>x.kelas)).size;
   const tgl=new Date().toLocaleDateString("id-ID",{weekday:"long",day:"numeric",month:"long",year:"numeric"});
   return `<section class="hero p-6"><p class="text-sm opacity-80">Assalamu'alaikum,</p><h1 class="text-2xl sm:text-3xl font-extrabold">${esc(me.nama)}</h1><p class="text-xs opacity-75 mt-1">${tgl}</p>
-  <div class="grid grid-cols-3 gap-3 mt-5 relative z-10"><div class="hstat"><div class="text-2xl font-extrabold">${siswa.length}</div><div class="text-[11px] opacity-80">Siswa</div></div><div class="hstat"><div class="text-2xl font-extrabold">${gu.length}</div><div class="text-[11px] opacity-80">Guru</div></div><div class="hstat"><div class="text-2xl font-extrabold">${kls}</div><div class="text-[11px] opacity-80">Kelas</div></div></div></section><div id="prBanner"></div>`
+  <div class="grid grid-cols-3 gap-3 mt-5 relative z-10"><div class="hstat"><div class="text-2xl font-extrabold">${siswa.length}</div><div class="text-[11px] opacity-80">Siswa</div></div><div class="hstat"><div class="text-2xl font-extrabold">${gu.length}</div><div class="text-[11px] opacity-80">Guru</div></div><div class="hstat"><div class="text-2xl font-extrabold">${kls}</div><div class="text-[11px] opacity-80">Kelas</div></div></div></section><div id="prBanner"></div>${me.dev&&MT.on?`<button class="card w-full text-left mt-3" style="border-color:#fecdd3;background:#fff1f2" onclick="go('Server')"><b class="text-rose-700">🛑 Web sedang dimatikan (${esc(MT.alasan||"-")})</b><div class="text-xs text-slate-600">Hanya DEVELOPER yang bisa mengakses. Ketuk untuk membuka Kontrol Server.</div></button>`:""}`
   +(isGuruRole()?MENU.map(([s,it])=>[s==="Layanan"?"Grup Chat":s,it.filter(x=>GURU_OK.has(x[0]))]).filter(x=>x[1].length).sort((a,b)=>(a[0]==="Grup Chat")-(b[0]==="Grup Chat")):(me.dev?[...MENU,MENU_DEV]:MENU)).map(([sec,items])=>`<h2 class="msec">${sec}</h2><div class="grid grid-cols-2 sm:grid-cols-3 gap-3">`+items.map(([k,ic,d,bg,lb])=>`<button class="mcard" onclick="go('${k}')"><span class="mic" style="background:${bg}">${ic}</span><span class="mt">${lb||k}</span><span class="md">${d}</span>${nb[k]?`<span class="mbd">${nb[k]}</span>`:""}</button>`).join("")+`</div>`).join("");
 };
 
@@ -1170,6 +1218,42 @@ A.Informasi=async()=>{
    <h3 class="font-extrabold text-sm mb-2">Informasi aktif (${r.length})</h3>`
    +list(r,x=>`<div class="card mb-2"><div class="flex justify-between gap-2"><div><span class="pill ${INFO_T[x.target]||"bg-slate-100 text-slate-600"}">${esc(String(x.target||"").toUpperCase())}</span><div class="text-xs text-slate-500 mt-0.5">${esc(new Date(x.waktu).toLocaleString("id-ID"))}</div></div><button class="btn2 h-fit" onclick="infoHapus('${x.id}')">Hapus</button></div>
    ${x.judul?`<div class="font-bold mt-2">${esc(x.judul)}</div>`:""}${x.teks?`<div class="text-sm mt-1 whitespace-pre-line">${esc(x.teks)}</div>`:""}${x.gambar?`<img src="${esc(x.gambar)}" class="mt-2 rounded-xl" style="max-height:160px">`:""}</div>`,"Belum ada informasi.")};
+
+// ============ DEVELOPER: KONTROL SERVER (shutdown web) ============
+const svHtml=()=>{
+  if(MT.on){const err=MT.alasan!=="UPDATE";
+    return `<div class="card space-y-2" style="border-color:#fecdd3"><h2 class="font-extrabold">🛑 Web sedang DIMATIKAN</h2>
+    <div><span class="pill ${err?"bg-rose-100 text-rose-700":"bg-amber-100 text-amber-700"}">${esc(MT.alasan||"-")}</span></div>
+    ${MT.catatan?`<div class="text-sm whitespace-pre-line"><b>Catatan:</b> ${esc(MT.catatan)}</div>`:""}
+    <div class="text-xs text-slate-500">Dimatikan oleh ${esc(MT.oleh||"-")} · ${MT.sejak?esc(new Date(MT.sejak).toLocaleString("id-ID")):"-"}</div>
+    <p class="text-xs text-slate-500">Semua pengguna (guru, siswa, pengunjung) melihat halaman ${err?"<b>500 Internal Server Error</b>":"<b>Sedang Pembaruan Sistem</b>"}. Hanya akun DEVELOPER yang masih bisa masuk (lewat tombol kecil “Developer” di bagian bawah halaman).</p>
+    <button class="btn w-full" onclick="svNyala()">✅ Hidupkan Kembali Web</button></div>`}
+  return `<div class="card space-y-2"><h2 class="font-extrabold">🟢 Web sedang AKTIF</h2>
+   <p class="text-xs text-slate-500">Shutdown akan langsung memblokir semua pengguna selain DEVELOPER, termasuk yang sedang membuka web. Pilih keterangan terlebih dahulu.</p>
+   ${lbl("Keterangan shutdown (wajib)",`<select id="svAls" class="inp" onchange="svToggle()"><option value="">— Pilih keterangan —</option><option value="SERVER ERROR">SERVER ERROR</option><option value="UPDATE">UPDATE</option></select>`)}
+   <div id="svCatW" class="hidden">${lbl("Catatan untuk pengguna (opsional)",`<textarea id="svCat" class="inp" rows="3" placeholder="Contoh: Perkiraan selesai pukul 14.00 WIB"></textarea>`)}</div>
+   <p class="text-xs text-slate-500">• <b>SERVER ERROR</b>: pengguna melihat halaman “500 Internal Server Error” seperti error server pada umumnya.<br>• <b>UPDATE</b>: pengguna melihat halaman “Sedang Pembaruan Sistem”.</p>
+   <button class="btn w-full" style="background:#be123c" onclick="svMati()">🛑 Shutdown Web</button></div>`};
+window.svRender=()=>{const r=$("svRoot");if(r)r.innerHTML=svHtml()};
+window.svToggle=()=>{const w=$("svCatW");if(w)w.classList.toggle("hidden",$("svAls").value!=="UPDATE")};
+window.svMati=async()=>{
+  if(!me.dev)return;
+  const als=$("svAls").value,cat=als==="UPDATE"?($("svCat").value||"").trim():"";
+  if(!als)return alert("Pilih keterangan dulu: SERVER ERROR atau UPDATE.");
+  if(!confirm("Shutdown web dengan keterangan "+als+"?\n\nSemua pengguna (guru, siswa, pengunjung) tidak dapat mengakses web sampai Anda menghidupkannya kembali."))return;
+  const d={on:true,alasan:als,catatan:cat,sejak:new Date().toISOString(),oleh:me.nama};
+  try{await setDoc(MT_DOC(),d)}catch(e){return alert("Gagal shutdown ("+(e.code||e.message)+")")}
+  MT=d;svRender()};
+window.svNyala=async()=>{
+  if(!me.dev)return;
+  if(!confirm("Hidupkan kembali web sekarang?"))return;
+  const d={on:false,alasan:"",catatan:"",sejak:"",oleh:"",dihidupkan:new Date().toISOString(),dihidupkanOleh:me.nama};
+  try{await setDoc(MT_DOC(),d)}catch(e){return alert("Gagal menghidupkan ("+(e.code||e.message)+")")}
+  MT=d;svRender()};
+A.Server=async()=>{
+  if(!me.dev)return empty("Halaman ini hanya dapat diakses DEVELOPER.");
+  try{const m=await getDoc(MT_DOC());MT=m.exists()?m.data():{on:false};MT.on=!!MT.on}catch(e){}
+  return `<div id="svRoot">${svHtml()}</div>`};
 
 // ============ JURNAL GURU ============
 let JN=[],JNV=[];
@@ -1362,7 +1446,7 @@ A.LaporanGuru=async()=>{
   if(isGuruRole())return empty("Halaman ini hanya dapat diakses admin.");
   GURUV=(await all("guru")).sort((a,b)=>(a.nama||"")>(b.nama||"")?1:-1);
   return `<div class="card space-y-2 mb-4"><h2 class="font-extrabold">📊 Laporan bulanan guru</h2>
-  <p class="text-xs text-slate-500">Dihitung dari presensi (Clock In/Izin), jadwal pelajaran, dan jurnal. Guru yang Clock In wajib mengisi jurnal untuk setiap sesi mengajarnya pada hari itu. Terlambat bila Clock In lewat jam 06.45. Hari libur belum dikecualikan dari hitungan "terjadwal tanpa presensi".</p>
+  <p class="text-xs text-slate-500">Dihitung dari presensi (Clock In/Izin), jadwal pelajaran, dan jurnal. Guru yang Clock In wajib mengisi jurnal untuk setiap sesi mengajarnya pada hari itu. Terlambat bila Clock In lewat jam 06.45 (guru piket yang bertugas hari itu: 06.30). Hari libur belum dikecualikan dari hitungan "terjadwal tanpa presensi".</p>
   <div class="grid grid-cols-2 gap-2"><input id="lpBulan" type="month" class="inp" value="${today().slice(0,7)}" onchange="loadLaporan()"><select id="lpGuru" class="inp" onchange="renderLaporan()"><option value="">Semua guru</option>${GURUV.map(x=>`<option value="${esc(x.id)}">${esc(x.nama||x.idGuru)}</option>`).join("")}</select></div>
   <button class="btn2" onclick="exportLaporan()">⬇ Ekspor ke Excel</button></div><div id="lpOut">${empty("Memuat…")}</div>`;
 };
@@ -1392,7 +1476,7 @@ window.renderLaporan=()=>{if(!LP)return;const f=$("lpGuru").value,rs=LP.rows.fil
 window.exportLaporan=()=>{
   if(isGuruRole())return alert("Laporan hanya dapat diunduh oleh admin.");
   if(!LP)return alert("Laporan belum dimuat.");
-  const f=$("lpGuru").value,rs=LP.rows.filter(r=>!f||r.g.id===f),b=LP.bulan,nm=r=>r.g.nama||r.g.idGuru,ttl=t=>[[t],["Bulan: "+b+" | "+(f?nm(rs[0]||{g:{}}):"Semua guru")+" | Clock In maks 06.45"],[]];
+  const f=$("lpGuru").value,rs=LP.rows.filter(r=>!f||r.g.id===f),b=LP.bulan,nm=r=>r.g.nama||r.g.idGuru,ttl=t=>[[t],["Bulan: "+b+" | "+(f?nm(rs[0]||{g:{}}):"Semua guru")+" | Clock In maks 06.45 (guru piket 06.30)"],[]];
   const sheet=(t,head,rows,w)=>{const ws=XLSX.utils.aoa_to_sheet([...ttl(t),head,...rows]);ws["!cols"]=w.map(x=>({wch:x}));return ws};
   const flat=fn=>rs.flatMap(r=>fn(r)).map((x,i)=>[i+1,...x]);
   const ring=rs.map((r,i)=>[i+1,nm(r),r.g.idGuru||r.g.id,r.hadir.length,lpHari(r),r.telat.length,r.menit,r.telat.map(x=>cap(x.hari)+" "+fmtTgl(x.tgl)+" ("+x.menit+" mnt)").join("; "),r.izin.length,r.izin.map(x=>cap(x.hari)+" "+fmtTgl(x.tgl)).join("; "),r.sesi.length,r.sesi.filter(x=>x.isi).length,r.belum.length,r.absen.length]);
@@ -1408,7 +1492,7 @@ window.exportLaporan=()=>{
 };
 
 // ============ PRESENSI GURU (kamera + lokasi) ============
-const PG_IN_M=6*60+45,PG_OUT_M=12*60+10; // Clock In maks 06.45, Clock Out mulai 12.10
+const PG_IN_M=6*60+45,PG_OUT_M=12*60+10; // Clock In maks 06.45 (guru piket 06.30), Clock Out mulai 12.10
 const pgMnt=s=>{const[a,b]=String(s||"0:0").split(":");return(+a)*60+(+b)},pgNow=n=>n.getHours()*60+n.getMinutes();
 const pgIsIzin=x=>x.status==="Izin",pgIsOut=x=>x.jenis==="pulang",pgIsIn=x=>!pgIsIzin(x)&&!pgIsOut(x);
 const pgLate=x=>pgIsIn(x)&&(x.terlambat!==undefined?x.terlambat:pgMnt(x.jam)>PG_IN_M);
@@ -1431,8 +1515,59 @@ const pgMsg=(t,c)=>{const e=$("pgMsg");if(e){e.textContent=t;e.className="text-s
 const getPos=()=>new Promise((ok,no)=>navigator.geolocation.getCurrentPosition(p=>ok({lat:p.coords.latitude,lng:p.coords.longitude,acc:p.coords.accuracy}),no,{enableHighAccuracy:true,timeout:20000,maximumAge:0}));
 const kelasTxt=r=>Object.entries(r.kelas).map(([k,n])=>k+" ("+n+")").join(", ");
 
+// ============ GURU PIKET (diatur admin) ============
+// Guru piket yang bertugas pada hari itu: Clock In maksimal 06.30 (guru lain tetap 06.45).
+const PKT_HARI=["SENIN","SELASA","RABU","KAMIS","JUMAT","SABTU"],PG_IN_PIKET_M=6*60+30;
+let PKT={},PKG=[],PKD="SENIN";
+const getPiket=async()=>{try{const d=await getDoc(doc(db,"pengaturan","guruPiket"));PKT=(d.exists()&&d.data().hari)||{}}catch(e){console.error(e)}return PKT};
+const isPiketOn=(gid,tgl)=>{const l=PKT[HARI_ID[new Date(tgl+"T00:00:00").getDay()]];return Array.isArray(l)&&l.some(p=>p.id===gid||(p.idGuru&&key(p.idGuru)===gid))};
+const pkRef=g=>({id:g.id,idGuru:g.idGuru||"",nama:g.nama||g.idGuru||g.id});
+const pkCap=h=>h[0]+h.slice(1).toLowerCase();
+const pkOpt=(p,ids)=>{
+  const ada=p&&PKG.some(g=>g.id===p.id),ex=p&&!ada?`<option value="${esc(p.id)}" selected>${esc(p.nama||p.id)}</option>`:"";
+  return ex+PKG.filter(g=>(p&&g.id===p.id)||!ids.includes(g.id)).map(g=>`<option value="${esc(g.id)}"${p&&g.id===p.id?" selected":""}>${esc(g.nama||g.idGuru||g.id)}</option>`).join("")};
+const pkHtml=()=>{
+  const hn=HARI_ID[new Date().getDay()],cur=PKT[PKD]||[],ids=cur.map(p=>p.id);
+  return `<div class="card space-y-1 mb-4"><h2 class="font-extrabold">🛡️ Guru Piket</h2>
+  <p class="text-xs text-slate-500">Pilih guru yang bertugas piket pada tiap hari. Guru piket yang bertugas pada hari itu wajib <b>Clock In maksimal jam 06.30</b>; guru lain tetap maksimal 06.45. Perubahan langsung tersimpan dan berlaku untuk Clock In berikutnya (presensi yang sudah tercatat tidak berubah).</p></div>
+  <nav class="flex gap-2 overflow-x-auto pb-2 mb-2">${PKT_HARI.map(h=>`<button class="tab ${h===PKD?"on":""}" onclick="pkHari('${h}')">${pkCap(h)} (${(PKT[h]||[]).length})${h===hn?" • hari ini":""}</button>`).join("")}</nav>
+  <div class="card mb-4"><h3 class="font-extrabold text-sm mb-2">Guru piket hari ${pkCap(PKD)}</h3>
+  ${cur.length?cur.map((p,i)=>`<div class="flex gap-2 items-center mb-2"><select class="inp" onchange="pkGanti(${i},this.value)">${pkOpt(p,ids)}</select><button class="btn2" onclick="pkHapus(${i})">Hapus</button></div>`).join(""):empty("Belum ada guru piket pada hari ini.")}
+  <div class="flex gap-2 items-center mt-3 pt-3 border-t"><select id="pkAdd" class="inp"><option value="">Pilih guru untuk ditambahkan…</option>${pkOpt(null,ids)}</select><button class="btn whitespace-nowrap" onclick="pkTambah()">+ Tambah</button></div></div>
+  <h3 class="msec">Ringkasan jadwal piket</h3>
+  <div class="card overflow-x-auto p-0"><table class="w-full text-sm"><thead style="background:var(--g);color:#fff"><tr><th class="text-left p-3">Hari</th><th class="text-left p-3">Guru piket (Clock In maks 06.30)</th></tr></thead><tbody>${PKT_HARI.map(h=>`<tr class="border-t"><td class="p-3 font-semibold whitespace-nowrap">${pkCap(h)}</td><td class="p-3">${(PKT[h]||[]).length?PKT[h].map(p=>`<span class="pill bg-indigo-100 text-indigo-700 mr-1">${esc(p.nama)}</span>`).join(""):'<span class="text-xs text-slate-400">-</span>'}</td></tr>`).join("")}</tbody></table></div>`};
+window.pkRender=()=>{const r=$("pkRoot");if(r)r.innerHTML=pkHtml()};
+const pkSimpan=async()=>{
+  try{await setDoc(doc(db,"pengaturan","guruPiket"),{hari:PKT,diubah:new Date().toISOString(),oleh:me.nama})}
+  catch(e){await getPiket();pkRender();alert("Gagal menyimpan guru piket ("+(e.code||e.message)+").");return}
+  pkRender()};
+window.pkHari=h=>{PKD=h;pkRender()};
+window.pkTambah=async()=>{
+  if(isGuruRole())return;
+  const v=$("pkAdd").value;if(!v)return alert("Pilih guru terlebih dahulu.");
+  const g=PKG.find(x=>x.id===v);if(!g)return;
+  const l=[...(PKT[PKD]||[])];if(l.some(p=>p.id===v))return;
+  l.push(pkRef(g));PKT[PKD]=l;await pkSimpan()};
+window.pkGanti=async(i,v)=>{
+  if(isGuruRole())return;
+  const g=PKG.find(x=>x.id===v);if(!g)return;
+  const l=[...(PKT[PKD]||[])];
+  if(l.some((p,j)=>j!==i&&p.id===v)){pkRender();return alert("Guru tersebut sudah terdaftar piket pada hari ini.")}
+  l[i]=pkRef(g);PKT[PKD]=l;await pkSimpan()};
+window.pkHapus=async i=>{
+  if(isGuruRole())return;
+  const l=[...(PKT[PKD]||[])],p=l[i];
+  if(!p||!confirm("Hapus "+p.nama+" dari piket hari "+pkCap(PKD)+"?"))return;
+  l.splice(i,1);PKT[PKD]=l;await pkSimpan()};
+A.GuruPiket=async()=>{
+  if(isGuruRole())return empty("Halaman ini hanya dapat diakses admin.");
+  const [gs]=await Promise.all([all("guru"),getPiket()]);
+  PKG=gs.sort((a,b)=>(a.nama||"")>(b.nama||"")?1:-1);
+  const hn=HARI_ID[new Date().getDay()];PKD=PKT_HARI.includes(hn)?hn:"SENIN";
+  return `<div id="pkRoot">${pkHtml()}</div>`};
+
 A.Presensi=async()=>{
-  const full=!isGuruRole();await getLokasi();
+  const full=!isGuruRole();await Promise.all([getLokasi(),getPiket()]);
   PGG=full?(await all("guru")).sort((a,b)=>(a.nama||"")>(b.nama||"")?1:-1):[];
   if(full&&!PGG.some(x=>x.id===pgSelf()||key(x.idGuru)===pgSelf()))PGG.push({id:pgSelf(),nama:me.nama,idGuru:me.idGuru||"admin"});
   const ok=PGL.lat!=null&&PGL.lng!=null;
@@ -1440,9 +1575,10 @@ A.Presensi=async()=>{
   const hari0=pgYmd(new Date());PGT=[];
   try{const q=await getDocs(query(collection(db,"presensiGuru"),where("tgl","==",hari0)));PGT=q.docs.map(d=>({id:d.id,...d.data()})).filter(x=>x.guruId===pgSelf())}catch(e){}
   const tIn=PGT.find(pgIsIn),tOut=PGT.find(pgIsOut),tIzin=PGT.find(pgIsIzin);
+  const pkOn=isPiketOn(pgSelf(),hari0),pkBatasTxt=pkOn?"06.30 (hari ini Anda bertugas sebagai <b>guru piket</b>)":"06.45 (guru piket yang bertugas pada hari itu: 06.30)";
   const form=`<div class="card space-y-2 mb-4"><h2 class="font-extrabold">📸 Presensi ${full?"admin":"guru"} (Clock In / Clock Out)</h2>
   <p class="text-xs text-slate-500">📍 ${lokInfo}</p>
-  <p class="text-xs text-slate-500">Clock In / Clock Out hanya bisa dilakukan di dalam radius lokasi madrasah, dengan foto selfie langsung dari kamera.<br>⏰ Clock In maksimal jam 06.45; lewat dari itu tercatat <b>terlambat</b> beserta lama keterlambatannya. Clock Out mulai jam 12.10; pulang lebih awal wajib mengisi alasan.</p>
+  <p class="text-xs text-slate-500">Clock In / Clock Out hanya bisa dilakukan di dalam radius lokasi madrasah, dengan foto selfie langsung dari kamera.<br>⏰ Clock In maksimal jam ${pkBatasTxt}; lewat dari itu tercatat <b>terlambat</b> beserta lama keterlambatannya. Clock Out mulai jam 12.10; pulang lebih awal wajib mengisi alasan.</p>
   <div class="text-sm rounded-xl p-3 border bg-slate-50">Hari ini: ${tIzin?`<b class="text-amber-700">Izin</b>`:`Clock In <b>${tIn?esc(tIn.jam):"-"}</b>${tIn&&pgLate(tIn)?` <span class="pill bg-rose-100 text-rose-700">Terlambat</span>`:""} · Clock Out <b>${tOut?esc(tOut.jam):"-"}</b>${tOut&&tOut.pulangAwal?` <span class="pill bg-amber-100 text-amber-700">Pulang awal</span>`:""}`}</div>
   <textarea id="pgAls" class="inp" rows="2" placeholder="Alasan pulang lebih awal (wajib diisi jika Clock Out sebelum jam 12.10)"></textarea>
   <div id="pgCam" class="hidden"><video id="pgVid" autoplay playsinline muted style="width:100%;border-radius:.75rem;background:#000;transform:scaleX(-1)"></video></div>
@@ -1498,15 +1634,15 @@ window.pgAmbil=()=>{
 window.pgKirim=async()=>{
   if(!pgFoto||!pgPos)return alert("Ambil foto dulu.");
   const d=hav(pgPos.lat,pgPos.lng,PGL.lat,PGL.lng);if(d>PGL.radius)return alert("Di luar radius presensi.");
-  const n=new Date(),mn=pgNow(n),als=$("pgAls").value.trim(),ex={jenis:pgJ};
-  if(pgJ==="masuk"){ex.terlambat=mn>PG_IN_M;ex.telatMenit=Math.max(0,mn-PG_IN_M)}
+  await getPiket();const n=new Date(),mn=pgNow(n),als=$("pgAls").value.trim(),ex={jenis:pgJ};
+  if(pgJ==="masuk"){const pk=isPiketOn(pgSelf(),pgYmd(n)),bt=pk?PG_IN_PIKET_M:PG_IN_M;ex.terlambat=mn>bt;ex.telatMenit=Math.max(0,mn-bt);ex.batasMasuk=pk?"06.30":"06.45";ex.piket=pk}
   else{ex.pulangAwal=mn<PG_OUT_M;if(ex.pulangAwal){if(!als)return alert("Clock Out sebelum jam 12.10 wajib mengisi alasan pulang.");ex.alasan=als}}
   $("pgB3").disabled=true;
   try{
     const ref=await addDoc(collection(db,"presensiGuru"),{tgl:pgYmd(n),jam:pgp(n.getHours())+":"+pgp(n.getMinutes()),waktu:n.toISOString(),guruId:pgSelf(),idGuru:me.idGuru||"admin",nama:me.nama,kelas:"",mapel:"",lat:pgPos.lat,lng:pgPos.lng,akurasi:Math.round(pgPos.acc),jarak:Math.round(d),...ex});
     await setDoc(doc(db,"presensiFoto",ref.id),{foto:pgFoto});
   }catch(e){$("pgB3").disabled=false;return alert("Presensi gagal tersimpan. Periksa koneksi lalu coba lagi.")}
-  pgFoto="";alert(pgJ==="masuk"?(ex.terlambat?"Clock In tersimpan. Status: TERLAMBAT "+ex.telatMenit+" menit.":"Clock In tersimpan, tepat waktu."):(ex.pulangAwal?"Clock Out tersimpan (pulang lebih awal).":"Clock Out tersimpan."));go("Presensi");
+  pgFoto="";alert(pgJ==="masuk"?(ex.terlambat?"Clock In tersimpan. Status: TERLAMBAT "+ex.telatMenit+" menit."+(ex.piket?" (batas Clock In guru piket 06.30)":""):"Clock In tersimpan, tepat waktu."+(ex.piket?" Terima kasih telah bertugas sebagai guru piket.":"")):(ex.pulangAwal?"Clock Out tersimpan (pulang lebih awal).":"Clock Out tersimpan."));go("Presensi");
 };
 window.izKirim=async()=>{
   const full=!isGuruRole(),t1=$("izTgl").value,t2=$("izTgl2").value||t1,ket=$("izKet").value.trim();
@@ -1546,7 +1682,7 @@ const pgHar=()=>{const m=new Map(),hari=pgYmd(new Date());
   return [...m.values()].map(r=>{const k=[];let tone="ok";
     if(r.izin!==undefined){k.push("Izin: "+r.izin);tone="izin"}
     else{
-      if(r.in){if(pgLate(r.in)){const mm=r.in.telatMenit??Math.max(0,pgMnt(r.in.jam)-PG_IN_M);k.push("Terlambat"+(mm?" "+mm+" menit":""));tone="late"}else k.push("Tepat waktu")}
+      if(r.in){if(pgLate(r.in)){const mm=r.in.telatMenit??Math.max(0,pgMnt(r.in.jam)-PG_IN_M);k.push("Terlambat"+(mm?" "+mm+" menit":"")+(r.in.piket?" (piket, batas 06.30)":""));tone="late"}else k.push(r.in.piket?"Tepat waktu (piket)":"Tepat waktu")}
       else{k.push("Tidak Clock In");tone="late"}
       if(r.out){if(r.out.pulangAwal){k.push("Pulang awal"+(r.out.alasan?" ("+r.out.alasan+")":""));if(tone==="ok")tone="awal"}}
       else if(r.in&&r.tgl<hari){k.push("Belum Clock Out");if(tone==="ok")tone="awal"}
@@ -1559,7 +1695,7 @@ window.renderPG=()=>{
   $("pgRekap").innerHTML=`<p class="text-sm mb-2">${rows.filter(r=>r.hari.size).length} guru hadir - ${rows.reduce((a,r)=>a+r.telat.size,0)} kali terlambat - ${rows.reduce((a,r)=>a+r.izin.size,0)} hari izin</p>`
   +(rows.length?`<div class="card overflow-x-auto p-0 mb-4"><table class="w-full text-sm"><thead style="background:var(--g);color:#fff"><tr><th class="text-left p-3">Guru</th><th class="p-3">Hadir</th><th class="p-3">Tepat waktu</th><th class="p-3">Terlambat</th><th class="p-3">Izin</th><th class="p-3">Pulang awal</th><th class="p-3">Belum Clock Out</th></tr></thead><tbody>${rows.map(r=>`<tr class="border-t"><td class="p-3 font-semibold">${esc(r.nama)}</td><td class="p-3 text-center ${r.hari.size?"":"text-rose-600 font-bold"}">${r.hari.size}</td><td class="p-3 text-center">${r.hari.size-r.telat.size}</td><td class="p-3 text-center ${r.telat.size?"text-rose-600 font-bold":""}">${r.telat.size}${r.menit?` <span class="text-[10px] font-normal">(${r.menit} mnt)</span>`:""}</td><td class="p-3 text-center ${r.izin.size?"text-amber-600 font-bold":""}">${r.izin.size}</td><td class="p-3 text-center">${r.awal.size}</td><td class="p-3 text-center">${pgLupa(r)}</td></tr>`).join("")}</tbody></table></div>`:empty("Belum ada data guru."))
   +`<h3 class="msec">Jam Clock In / Clock Out</h3>`+(()=>{const h=pgHar();return h.length?`<div class="card overflow-x-auto p-0 mb-4"><table class="w-full text-sm"><thead style="background:var(--g);color:#fff"><tr><th class="text-left p-3">Tanggal</th><th class="text-left p-3">Guru</th><th class="p-3">Clock In</th><th class="p-3">Clock Out</th><th class="text-left p-3">Keterangan</th></tr></thead><tbody>${h.map(r=>`<tr class="border-t"><td class="p-3 whitespace-nowrap">${esc(r.tgl)}</td><td class="p-3 font-semibold">${esc(r.nama)}</td><td class="p-3 text-center font-semibold ${r.tone==="late"&&r.jamIn?"text-rose-600":""}">${r.jamIn?esc(r.jamIn):"-"}</td><td class="p-3 text-center font-semibold">${r.jamOut?esc(r.jamOut):"-"}</td><td class="p-3"><span class="pill ${pgTone[r.tone]}">${esc(r.ket)}</span></td></tr>`).join("")}</tbody></table></div>`:empty("Belum ada presensi pada bulan ini.")})()
-  +`<h3 class="msec">Riwayat presensi</h3>`+list(det,x=>x.status==="Izin"?`<div class="card mb-2 flex justify-between gap-2"><div><b>${esc(x.nama)}</b> <span class="pill bg-amber-100 text-amber-700">Izin</span><div class="text-sm whitespace-pre-line"><b>Keterangan:</b> ${esc(x.ket||"-")}</div><div class="text-xs text-slate-500">${esc(x.tgl)}</div></div>${full?`<div class="flex flex-col gap-1"><button class="btn2" onclick="pgHapus('${x.id}')">Hapus</button></div>`:""}</div>`:`<div class="card mb-2 flex justify-between gap-2"><div><b>${esc(x.nama)}</b> ${pgIsOut(x)?`<span class="pill bg-sky-100 text-sky-700">Clock Out</span>${x.pulangAwal?` <span class="pill bg-amber-100 text-amber-700">Pulang awal</span>`:""}`:`<span class="pill bg-emerald-100 text-emerald-700">Clock In</span>${pgLate(x)?` <span class="pill bg-rose-100 text-rose-700">Terlambat${x.telatMenit?" "+x.telatMenit+" mnt":""}</span>`:""}`}${x.alasan?`<div class="text-sm whitespace-pre-line"><b>Alasan pulang:</b> ${esc(x.alasan)}</div>`:""}<div class="text-xs text-slate-500">${esc(x.tgl)} ${esc(x.jam)} - ${fmJ(x.jarak||0)} dari lokasi</div></div><div class="flex flex-col gap-1"><button class="btn2" onclick="pgLihat('${x.id}')">Foto</button>${full?`<button class="btn2" onclick="pgHapus('${x.id}')">Hapus</button>`:""}</div></div>`,"Belum ada presensi pada bulan ini.");
+  +`<h3 class="msec">Riwayat presensi</h3>`+list(det,x=>x.status==="Izin"?`<div class="card mb-2 flex justify-between gap-2"><div><b>${esc(x.nama)}</b> <span class="pill bg-amber-100 text-amber-700">Izin</span><div class="text-sm whitespace-pre-line"><b>Keterangan:</b> ${esc(x.ket||"-")}</div><div class="text-xs text-slate-500">${esc(x.tgl)}</div></div>${full?`<div class="flex flex-col gap-1"><button class="btn2" onclick="pgHapus('${x.id}')">Hapus</button></div>`:""}</div>`:`<div class="card mb-2 flex justify-between gap-2"><div><b>${esc(x.nama)}</b> ${pgIsOut(x)?`<span class="pill bg-sky-100 text-sky-700">Clock Out</span>${x.pulangAwal?` <span class="pill bg-amber-100 text-amber-700">Pulang awal</span>`:""}`:`<span class="pill bg-emerald-100 text-emerald-700">Clock In</span>${x.piket?` <span class="pill bg-indigo-100 text-indigo-700">Guru piket</span>`:""}${pgLate(x)?` <span class="pill bg-rose-100 text-rose-700">Terlambat${x.telatMenit?" "+x.telatMenit+" mnt":""}</span>`:""}`}${x.alasan?`<div class="text-sm whitespace-pre-line"><b>Alasan pulang:</b> ${esc(x.alasan)}</div>`:""}<div class="text-xs text-slate-500">${esc(x.tgl)} ${esc(x.jam)} - ${fmJ(x.jarak||0)} dari lokasi</div></div><div class="flex flex-col gap-1"><button class="btn2" onclick="pgLihat('${x.id}')">Foto</button>${full?`<button class="btn2" onclick="pgHapus('${x.id}')">Hapus</button>`:""}</div></div>`,"Belum ada presensi pada bulan ini.");
 };
 window.pgLihat=async id=>{
   let d;try{d=await getDoc(doc(db,"presensiFoto",id))}catch(e){return alert("Foto gagal dimuat.")}
@@ -1573,9 +1709,9 @@ window.exportPresensi=()=>{if(isGuruRole())return alert("Fitur download rekapitu
   if(!b||!det.length)return alert("Tidak ada data presensi untuk diekspor.");
   const [y,mo]=b.split("-").map(Number),nd=new Date(y,mo,0).getDate();
   const g=$("pgGuru")?.value,gn=g?(rows[0]?.nama||""):"Semua guru";
-  const s1=[["REKAP KEHADIRAN GURU"],["Bulan: "+b+" | "+gn+" | Clock In maks 06.45 | Clock Out mulai 12.10 | Radius "+PGL.radius+" m"],[],["No","Nama","ID Guru","Hari Hadir","Tepat Waktu","Terlambat (hari)","Total Menit Terlambat","Hari Izin","Pulang Awal","Belum Clock Out"],...rows.map((r,i)=>[i+1,r.nama,r.idGuru,r.hari.size,r.hari.size-r.telat.size,r.telat.size,r.menit,r.izin.size,r.awal.size,pgLupa(r)])];
+  const s1=[["REKAP KEHADIRAN GURU"],["Bulan: "+b+" | "+gn+" | Clock In maks 06.45 (guru piket 06.30) | Clock Out mulai 12.10 | Radius "+PGL.radius+" m"],[],["No","Nama","ID Guru","Hari Hadir","Tepat Waktu","Terlambat (hari)","Total Menit Terlambat","Hari Izin","Pulang Awal","Belum Clock Out"],...rows.map((r,i)=>[i+1,r.nama,r.idGuru,r.hari.size,r.hari.size-r.telat.size,r.telat.size,r.menit,r.izin.size,r.awal.size,pgLupa(r)])];
   const hr=pgHar();
-  const sj=[["JAM CLOCK IN / CLOCK OUT GURU"],["Bulan: "+b+" | "+gn+" | Clock In maks 06.45 | Clock Out mulai 12.10"],[],["No","Tanggal","Nama","ID Guru","Clock In","Clock Out","Keterangan"],...hr.map((r,i)=>[i+1,r.tgl,r.nama,r.idGuru,r.jamIn||"-",r.jamOut||"-",r.ket])];
+  const sj=[["JAM CLOCK IN / CLOCK OUT GURU"],["Bulan: "+b+" | "+gn+" | Clock In maks 06.45 (guru piket 06.30) | Clock Out mulai 12.10"],[],["No","Tanggal","Nama","ID Guru","Clock In","Clock Out","Keterangan"],...hr.map((r,i)=>[i+1,r.tgl,r.nama,r.idGuru,r.jamIn||"-",r.jamOut||"-",r.ket])];
   const wj=XLSX.utils.aoa_to_sheet(sj);wj["!cols"]=[{wch:5},{wch:12},{wch:28},{wch:14},{wch:10},{wch:10},{wch:50}];
   const w1=XLSX.utils.aoa_to_sheet(s1);w1["!cols"]=[{wch:5},{wch:28},{wch:14},{wch:11},{wch:12},{wch:16},{wch:20},{wch:10},{wch:12},{wch:16}];
   const days=Array.from({length:nd},(_,i)=>i+1);
@@ -2449,7 +2585,7 @@ if(CEK){(async()=>{
 })()}
 
 // Login otomatis dari sesi tersimpan: HARUS paling akhir agar semua fungsi/const sudah siap
-if(saved&&!CEK){try{const s=JSON.parse(saved);$("u").value=s.u;$("p").value=s.p;doLogin()}catch(e){sessionStorage.removeItem("me")}}
+if(saved&&!CEK){try{const s=JSON.parse(saved);$("u").value=s.u;$("p").value=s.p;AUTO_LOGIN=true;doLogin()}catch(e){sessionStorage.removeItem("me")}}
 </script>
 </body>
 </html>
