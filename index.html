@@ -350,6 +350,7 @@ function start(){
 window.go=async n=>{
   if(isGuruRole()&&!GURU_OK.has(n))n="Menu";
   if(window.unsubChat){window.unsubChat();window.unsubChat=null}
+  if(window.unsubBayar){window.unsubBayar();window.unsubBayar=null}
   if(window.pgStop)window.pgStop();
   if(window.kgStop)window.kgStop();
   if(window.vpStop)window.vpStop();
@@ -372,6 +373,8 @@ window.go=async n=>{
   if(n==="Chat")initChat();
   if(n==="KartuID")renderID();
   if(isAdmin&&n==="KartuGuru")kgInit();
+  if(isAdmin&&n==="BayarMasuk")byInitA();
+  if(!isAdmin&&n==="Bayar")byInitS();
   if(isAdmin&&n==="RekapKegiatan")loadRkg();
   if(isAdmin&&n==="GajiGuru")loadGaji();
   if(isAdmin&&n==="Pengganti"){pnRefresh();pnRender()}
@@ -392,6 +395,7 @@ Beranda:async()=>{
   <h1 class="text-2xl sm:text-3xl font-extrabold">${esc(me.nama)}</h1>
   <div class="flex gap-8 text-sm pt-2"><div><div class="opacity-70 text-xs">NISN</div><b>${esc(me.nisn)}</b></div><div><div class="opacity-70 text-xs">Kelas</div><b>${esc(me.kelas)}</b></div></div></section>
   <section class="grid grid-cols-3 gap-3 mt-4">${[["Jadwal","📅"],["Nilai","📝"],["Pembayaran","💳"]].map(([t,i])=>`<button class="tile" onclick="go('${t}')"><span class="text-3xl">${i}</span><span class="text-sm font-bold">${t}</span></button>`).join("")}</section>
+  <section class="mt-3"><button class="card w-full flex items-center gap-3 text-left" style="border-color:var(--g)" onclick="go('Bayar')"><span class="text-3xl">💸</span><span><b class="block">Bayar</b><span class="text-xs text-slate-500">Bayar lewat QRIS dan kirim bukti transfer</span></span></button></section>
   ${jadwalHariIni(jd,me.kelas)}
   <section class="mt-4"><h2 class="font-extrabold text-sm mb-2">Kehadiran saya</h2><div class="grid grid-cols-4 gap-2">${[["H","Hadir","#16a34a"],["S","Sakit","#2563eb"],["I","Izin","#d97706"],["A","Alpha","#e11d48"]].map(([v,l,c])=>`<div class="card text-center"><div class="text-2xl font-extrabold" style="color:${c}">${cnt(v)}</div><div class="text-xs text-slate-500">${l}</div></div>`).join("")}</div></section>
   <section class="grid grid-cols-2 gap-3 mt-4">
@@ -414,8 +418,8 @@ Pembayaran:async()=>{
   try{const [g,h]=await Promise.all([getDoc(doc(db,"pembayaranData",me.nisn)),getDoc(doc(db,"pengaturan","pembayaranUmum"))]);if(g.exists())d=g.data();if(h.exists())u=h.data()}catch(e){console.error(e)}
   try{cat=(await getDocs(query(collection(db,"pembayaranCatatan"),where("nisn","==",me.nisn)))).docs.map(x=>({id:x.id,...x.data()})).sort((a,b)=>String(a.jenis).localeCompare(String(b.jenis),"id",{numeric:true}))}catch(e){console.error(e)}
   const pribadi=d&&d.baris?.length;
-  if(!u&&!pribadi&&!cat.length)return `<div class="card mb-4"><h2 class="font-extrabold">💳 Informasi Pembayaran</h2></div>`+empty("Informasi pembayaran belum tersedia. Hubungi bagian administrasi jika ada pertanyaan.");
-  return `<div class="card mb-3"><h2 class="font-extrabold">💳 Informasi Pembayaran</h2><p class="text-xs text-slate-500 mt-1">${esc(me.nama)} · ${esc(me.kelas)}</p></div>`
+  if(!u&&!pribadi&&!cat.length)return `<div class="card mb-4"><h2 class="font-extrabold">💳 Informasi Pembayaran</h2><button class="btn mt-3" onclick="go('Bayar')">💸 Bayar sekarang</button></div>`+empty("Informasi pembayaran belum tersedia. Hubungi bagian administrasi jika ada pertanyaan.");
+  return `<div class="card mb-3"><h2 class="font-extrabold">💳 Informasi Pembayaran</h2><p class="text-xs text-slate-500 mt-1">${esc(me.nama)} · ${esc(me.kelas)}</p><button class="btn mt-3" onclick="go('Bayar')">💸 Bayar sekarang</button></div>`
   +catHtml(cat)
   +(u?umumHtml(u):"")
   +(pribadi?`<h3 class="font-extrabold text-sm mt-4 mb-2">Tagihan & pembayaran Anda${d.updated?` <span class="text-xs font-normal text-slate-500">· diperbarui ${fmtWaktu(d.updated)}</span>`:""}</h3>
@@ -542,7 +546,7 @@ window.simpanSiswaBaru=async()=>{let nisn=$("tsn").value.trim().replace(/\D/g,""
   const d={nisn,nama,kelas,tingkat:parseInt(kelas)||"",tempatLahir:$("ts2").value.trim(),jk:$("tsj").value,status:$("tss").value.trim()||"Aktif",tglLahir:tg||"",tgl:ddmmyyyy(tg)};
   try{await setDoc(doc(db,"siswa",nisn),d)}catch(e){return alert("Gagal menyimpan ("+(e.code||e.message)+")")}
   closeModal();alert("Siswa "+nama+" berhasil ditambahkan.");go("Siswa")};
-const NISN_COLS=["absensi","pelanggaran","prestasi","nilai","pembayaranData","pembayaranCatatan","layanan","bantuan","kehadiranKegiatan"];
+const NISN_COLS=["absensi","pelanggaran","prestasi","nilai","pembayaranData","pembayaranCatatan","layanan","bantuan","kehadiranKegiatan","pembayaranSiswa","buktiBayar"];
 window.saveSiswa=async id=>{const nama=$("esn").value.trim(),kelas=$("esk").value.trim().toUpperCase(),tg=$("est").value;
   const x=siswa.find(v=>v.id===id);if(!x)return;
   let nn=$("esnisn").value.trim().replace(/\D/g,"");if(/^\d{6,9}$/.test(nn))nn=nn.padStart(10,"0");
@@ -1114,18 +1118,19 @@ const MENU=[
  ["Data Madrasah",[["Siswa","🎓","Upload & kelola data siswa","#e0e7ff"],["Guru","👩‍🏫","Akun & sandi guru","#ccfbf1"],["GuruPiket","🛡️","Atur guru piket harian (Clock In 06.30)","#fef3c7","Guru Piket"],["KartuGuru","🪪","ID card guru & foto profil","#fef3c7","Kartu ID Guru"]]],
  ["Kesiswaan",[["Pelanggaran","⚠️","Catatan kedisiplinan","#ffe4e6"],["Prestasi","🏆","Capaian & penghargaan siswa","#fef9c3"]]],
  ["PPDB",[["PPDB","📋","Data pendaftar & unduh berkas PDF","#fef3c7","Data PPDB"],["VerifPPDB","🔍","Scan QR cek keaslian berkas","#dcfce7","Verifikasi QR"]]],
- ["Layanan",[["Pengumuman","📢","Kirim info ke semua siswa","#ffedd5"],["Pembayaran","💳","Catat, edit & upload pembayaran siswa","#d1fae5"],["LayananMandiri","🙋","Aduan guru, konseling & bullying","#fde68a","Layanan Mandiri"],["Bantuan","🎧","Balas pesan dari siswa","#cffafe"],["Chat","💬","Grup chat guru & siswa","#dbeafe","Grup Chat"]]],
+ ["Layanan",[["Pengumuman","📢","Kirim info ke semua siswa","#ffedd5"],["Pembayaran","💳","Catat, edit & upload pembayaran siswa","#d1fae5"],["BayarMasuk","📥","Bukti bayar dari siswa, QRIS & ubah status","#dcfce7","Pembayaran Masuk"],["LayananMandiri","🙋","Aduan guru, konseling & bullying","#fde68a","Layanan Mandiri"],["Bantuan","🎧","Balas pesan dari siswa","#cffafe"],["Chat","💬","Grup chat guru & siswa","#dbeafe","Grup Chat"]]],
  ["Kegiatan Madrasah",[["Kegiatan","🎯","Buat kegiatan & scan QR siswa untuk absen","#fae8ff","Absen Kegiatan"],["RekapKegiatan","📊","Rekap absen kegiatan & ekspor Excel","#e0f2fe","Rekap Kegiatan"]]]
 ];
 const MENU_DEV=["Developer",[["LaporanBug","🐞","Laporan bug dari semua pengguna","#fee2e2","Laporan BUG"],["Informasi","📣","Pop up informasi untuk guru & siswa","#e0e7ff"],["Server","🛑","Shutdown / hidupkan kembali web","#fee2e2","Kontrol Server"]]];
 A.Menu=async()=>{
   const adm=!isGuruRole();
   let nBug=0;if(me.dev){try{nBug=(await getCountFromServer(collection(db,"laporanBug"))).data().count}catch(e){}}
-  const [gu,ly,bt,pp]=await Promise.all([all("guru"),adm?all("layanan"):[],adm?all("bantuan"):[],adm?all("ppdb"):[]]);
-  const nb={LayananMandiri:ly.filter(x=>x.status!=="Sudah Ditanggapi").length,Bantuan:bt.filter(x=>!x.balasan).length,PPDB:pp.filter(x=>x.status==="Menunggu").length,LaporanBug:nBug};
+  const [gu,ly,bt,pp,bs]=await Promise.all([all("guru"),adm?all("layanan"):[],adm?all("bantuan"):[],adm?all("ppdb"):[],adm?all("pembayaranSiswa").catch(()=>[]):[]]);
+  const nb={LayananMandiri:ly.filter(x=>x.status!=="Sudah Ditanggapi").length,Bantuan:bt.filter(x=>!x.balasan).length,PPDB:pp.filter(x=>x.status==="Menunggu").length,LaporanBug:nBug,BayarMasuk:bs.filter(x=>x.status!=="SUKSES").length};
   const kls=new Set(siswa.map(x=>x.kelas)).size;
+  if(fotoMe===null)fotoMe=await kgFotoGet(kgSelfId());
   const tgl=new Date().toLocaleDateString("id-ID",{weekday:"long",day:"numeric",month:"long",year:"numeric"});
-  return `<section class="hero p-6"><p class="text-sm opacity-80">Assalamu'alaikum,</p><h1 class="text-2xl sm:text-3xl font-extrabold">${esc(me.nama)}</h1><p class="text-xs opacity-75 mt-1">${tgl}</p>
+  return `<section class="hero p-6"><div class="relative z-10" style="display:flex;align-items:center;gap:1rem"><button type="button" title="Ubah foto di Kartu ID" onclick="go('KartuGuru')" style="width:84px;height:112px;flex:none;border-radius:14px;overflow:hidden;border:3px solid rgba(255,255,255,.85);background:rgba(255,255,255,.15);display:flex;align-items:center;justify-content:center;padding:0">${fotoMe?`<img src="${fotoMe}" style="width:100%;height:100%;object-fit:cover" alt="Foto profil">`:`<span style="font-size:2.4rem;opacity:.75">👤</span>`}</button><div style="min-width:0"><p class="text-sm opacity-80">Assalamu'alaikum,</p><h1 class="text-xl sm:text-2xl font-extrabold leading-tight">${esc(me.nama)}</h1><p class="text-xs mt-1" style="opacity:.92">${me.idGuru?"ID: "+esc(me.idGuru)+" · ":""}${esc(roleLbl(me.role))}</p><p class="text-xs opacity-75 mt-0.5">${tgl}</p></div></div>
   <div class="grid grid-cols-3 gap-3 mt-5 relative z-10"><div class="hstat"><div class="text-2xl font-extrabold">${siswa.length}</div><div class="text-[11px] opacity-80">Siswa</div></div><div class="hstat"><div class="text-2xl font-extrabold">${gu.length}</div><div class="text-[11px] opacity-80">Guru</div></div><div class="hstat"><div class="text-2xl font-extrabold">${kls}</div><div class="text-[11px] opacity-80">Kelas</div></div></div></section><div id="prBanner"></div>${me.dev&&MT.on?`<button class="card w-full text-left mt-3" style="border-color:#fecdd3;background:#fff1f2" onclick="go('Server')"><b class="text-rose-700">🛑 Web sedang dimatikan (${esc(MT.alasan||"-")})</b><div class="text-xs text-slate-600">Hanya DEVELOPER yang bisa mengakses. Ketuk untuk membuka Kontrol Server.</div></button>`:""}`
   +(isGuruRole()?MENU.map(([s,it])=>[s==="Layanan"?"Grup Chat":s,it.filter(x=>GURU_OK.has(x[0]))]).filter(x=>x[1].length).sort((a,b)=>(a[0]==="Grup Chat")-(b[0]==="Grup Chat")):(me.dev?[...MENU,MENU_DEV]:MENU)).map(([sec,items])=>`<h2 class="msec">${sec}</h2><div class="grid grid-cols-2 sm:grid-cols-3 gap-3">`+items.map(([k,ic,d,bg,lb])=>`<button class="mcard" onclick="go('${k}')"><span class="mic" style="background:${bg}">${ic}</span><span class="mt">${lb||k}</span><span class="md">${d}</span>${nb[k]?`<span class="mbd">${nb[k]}</span>`:""}</button>`).join("")+`</div>`).join("");
 };
@@ -1909,16 +1914,6 @@ const kgFotoGet=async id=>{
   if(!id){try{return localStorage.getItem("fotoGuruLokal")||""}catch(e){return ""}}
   try{const d=await getDoc(doc(db,"fotoGuru",id));return d.exists()?(d.data().foto||""):""}catch(e){console.error(e);return ""}
 };
-// potong tengah rasio 3:4 dan kecilkan agar ringan (360x480 px, ~30-50 KB)
-const fotoCrop=file=>new Promise((res,rej)=>{
-  const url=URL.createObjectURL(file),im=new Image();
-  im.onload=()=>{URL.revokeObjectURL(url);
-    const W=360,H=480,c=document.createElement("canvas");c.width=W;c.height=H;
-    const x=c.getContext("2d"),r=Math.max(W/im.width,H/im.height),w=im.width*r,h=im.height*r;
-    x.fillStyle="#fff";x.fillRect(0,0,W,H);x.drawImage(im,(W-w)/2,(H-h)*.3,w,h);
-    res(c.toDataURL("image/jpeg",.85))};
-  im.onerror=()=>{URL.revokeObjectURL(url);rej(new Error("File bukan gambar yang valid"))};
-  im.src=url});
 const kgData=(g,id)=>({nama:g.nama||g.idGuru||id,role:roleLbl(g.role),id:g.idGuru||(id||"")});
 A.KartuGuru=async()=>{
   const adm=!isGuruRole();
@@ -1926,8 +1921,8 @@ A.KartuGuru=async()=>{
   <p id="kgMsgS" class="text-sm text-slate-500">Membuat kartu…</p>
   <img id="kgPrev" class="mx-auto rounded-2xl border hidden" style="max-width:290px;width:100%" alt="Kartu ID">
   <input id="kgFile" type="file" accept="image/*" class="hidden" onchange="kgUpload(this)">
-  <div class="flex flex-wrap gap-2 justify-center"><button class="btn" onclick="kgPick(kgSelfId())">📷 Upload / ganti foto profil</button><button class="btn2" onclick="kgDlSelf('png')">⬇ PNG</button><button class="btn2" onclick="kgDlSelf('pdf')">⬇ PDF (siap cetak)</button></div>
-  <p class="text-xs text-slate-500">Pilih foto yang wajahnya jelas (disarankan foto berdiri/portrait). Foto otomatis dipotong rasio 3×4. Kartu berukuran standar 54 × 85,6 mm.${kgSelfId()?"":"<br><b>Catatan:</b> akun ini tidak punya data guru di database, jadi foto hanya tersimpan di perangkat ini."}</p></div>
+  <div class="flex flex-wrap gap-2 justify-center"><button class="btn" onclick="kgPick(kgSelfId())">📷 Upload / ganti foto profil</button><button class="btn2" onclick="kgReedit(kgSelfId())">✂️ Atur foto (geser/zoom)</button><button class="btn2" onclick="kgDlSelf('png')">⬇ PNG</button><button class="btn2" onclick="kgDlSelf('pdf')">⬇ PDF (siap cetak)</button></div>
+  <p class="text-xs text-slate-500">Pilih foto yang wajahnya jelas (disarankan foto berdiri/portrait). Setelah memilih foto, Anda bisa menggeser, memperbesar (zoom), dan memotongnya sendiri (rasio 3×4). Kartu berukuran standar 54 × 85,6 mm.${kgSelfId()?"":"<br><b>Catatan:</b> akun ini tidak punya data guru di database, jadi foto hanya tersimpan di perangkat ini."}</p></div>
   ${adm?`<div class="card mt-4 space-y-3"><h2 class="font-extrabold">Kartu semua guru & staf</h2>
   <p class="text-xs text-slate-500">Admin dapat mengunggah foto untuk guru yang belum punya, dan mengunduh kartu satu per satu atau semuanya sekaligus (PDF, 9 kartu per halaman A4).</p>
   <div class="flex flex-wrap gap-2"><input id="kgQ" class="inp" style="flex:1;min-width:180px" placeholder="🔍 Cari nama / ID" oninput="kgList()"><button id="kgAllBtn" class="btn" onclick="kgPdfAll()">⬇ Unduh semua kartu (PDF)</button></div>
@@ -1955,24 +1950,9 @@ window.kgList=()=>{
   const o=$("kgList");if(!o)return;
   const q=key($("kgQ")?$("kgQ").value:""),a=KGD.guru.filter(x=>!q||key((x.nama||"")+(x.idGuru||x.id)).includes(q)).sort((p,r)=>String(p.nama||"").localeCompare(String(r.nama||""))),n=KGD.guru.filter(x=>KGD.map[x.id]).length;
   o.innerHTML=`<p class="text-xs text-slate-500">${a.length} akun ditampilkan · ${n} dari ${KGD.guru.length} sudah punya foto</p>`
-   +(a.length?a.map(x=>`<div class="card mt-2 flex items-center gap-3"><div style="width:42px;height:56px;border-radius:8px;overflow:hidden;background:#eef3ef;flex-shrink:0">${KGD.map[x.id]?`<img src="${KGD.map[x.id]}" style="width:100%;height:100%;object-fit:cover" alt="">`:""}</div><div class="flex-1 min-w-0"><b class="block truncate">${esc(x.nama||x.idGuru)}</b><span class="text-xs text-slate-500">${esc(roleLbl(x.role))} · ${esc(x.idGuru||x.id)}${KGD.map[x.id]?"":" · <span class=\"text-rose-600\">belum ada foto</span>"}</span></div><button class="btn2" title="Upload foto" onclick="kgPick('${esc(x.id)}')">📷</button><button class="btn2" title="Download kartu" onclick="kgDl('${esc(x.id)}')">⬇</button></div>`).join(""):empty("Tidak ada data guru."));
+   +(a.length?a.map(x=>`<div class="card mt-2 flex items-center gap-3"><div style="width:42px;height:56px;border-radius:8px;overflow:hidden;background:#eef3ef;flex-shrink:0">${KGD.map[x.id]?`<img src="${KGD.map[x.id]}" style="width:100%;height:100%;object-fit:cover" alt="">`:""}</div><div class="flex-1 min-w-0"><b class="block truncate">${esc(x.nama||x.idGuru)}</b><span class="text-xs text-slate-500">${esc(roleLbl(x.role))} · ${esc(x.idGuru||x.id)}${KGD.map[x.id]?"":" · <span class=\"text-rose-600\">belum ada foto</span>"}</span></div><button class="btn2" title="Upload foto" onclick="kgPick('${esc(x.id)}')">📷</button>${KGD.map[x.id]?`<button class="btn2" title="Atur foto" onclick="kgReedit('${esc(x.id)}')">✂️</button>`:""}<button class="btn2" title="Download kartu" onclick="kgDl('${esc(x.id)}')">⬇</button></div>`).join(""):empty("Tidak ada data guru."));
 };
 window.kgPick=id=>{KGD.target=id||"";const f=$("kgFile");if(!f)return;f.value="";f.click()};
-window.kgUpload=async inp=>{
-  const f=inp.files&&inp.files[0];if(!f)return;
-  const id=isGuruRole()?kgSelfId():KGD.target;
-  if(!/^image\//.test(f.type))return alert("File harus berupa gambar (JPG atau PNG).");
-  try{
-    const d=await fotoCrop(f);
-    if(id)await setDoc(doc(db,"fotoGuru",id),{foto:d,waktu:new Date().toISOString()});
-    else localStorage.setItem("fotoGuruLokal",d);
-    if(id)KGD.map[id]=d;
-    if(id===kgSelfId()){KGD.self=d;await kgDrawSelf()}
-    if(!isGuruRole())kgList();
-    alert("Foto profil tersimpan.");
-  }catch(e){console.error(e);alert("Gagal menyimpan foto ("+(e.code||e.message)+"). Jika 'permission-denied', tambahkan koleksi fotoGuru di Rules Firestore.")}
-  inp.value="";
-};
 window.kgDlSelf=fmt=>{
   if(!KGD.cv)return alert("Kartu belum siap. Tunggu sebentar.");
   const nm="ID_Guru_"+safeNm(me.nama);
@@ -1992,6 +1972,209 @@ window.kgPdfAll=async()=>{
     pdfKartu(cv,"ID_Card_Semua_Guru.pdf");
   }catch(e){alert("Gagal membuat PDF ("+(e.message||e)+")")}
   b.disabled=false;b.textContent="⬇ Unduh semua kartu (PDF)";
+};
+
+// ============ EDITOR FOTO PROFIL (geser, zoom, potong 3:4) ============
+let fotoMe=null,KGE=null; // fotoMe: foto akun yang sedang login (untuk beranda); null = belum dimuat
+const kgEDraw=(cv,k)=>{
+  const E=KGE,b=Math.max(270/E.im.width,360/E.im.height)*E.z,w=E.im.width*b,h=E.im.height*b,mx=(w-270)/2,my=(h-360)/2;
+  E.ox=Math.max(-mx,Math.min(mx,E.ox));E.oy=Math.max(-my,Math.min(my,E.oy));
+  const x=cv.getContext("2d");x.fillStyle="#fff";x.fillRect(0,0,cv.width,cv.height);
+  x.drawImage(E.im,((270-w)/2+E.ox)*k,((360-h)/2+E.oy)*k,w*k,h*k);
+};
+window.kgEdit=async(src,id,revoke)=>{
+  let im;
+  try{im=await loadImg(src)}catch(e){if(revoke)URL.revokeObjectURL(src);return alert("File bukan gambar yang valid.")}
+  if(revoke)URL.revokeObjectURL(src);
+  KGE={im,z:1,ox:0,oy:0,id:id||""};
+  modal(`<h3 class="font-extrabold">✂️ Atur foto profil</h3>
+   <p class="text-xs text-slate-500 mb-2">Geser foto dengan jari/mouse. Zoom dengan slider, cubit dua jari, atau scroll. Bagian di dalam bingkai hijau akan menjadi foto di kartu (rasio 3×4).</p>
+   <div style="display:flex;justify-content:center"><canvas id="kgEc" width="270" height="360" style="width:270px;height:360px;max-width:100%;border-radius:12px;border:3px solid var(--g);touch-action:none;cursor:grab;background:#fff"></canvas></div>
+   <div class="flex items-center gap-2 mt-3"><span>🔍</span><input id="kgEz" type="range" min="1" max="4" step="0.01" value="1" class="flex-1" oninput="kgEZoom(this.value)"><button class="btn2" onclick="kgEReset()">Reset</button></div>
+   <div class="flex gap-2 mt-3"><button id="kgEs" class="btn flex-1" onclick="kgESave()">Simpan foto</button><button class="btn2" onclick="closeModal()">Batal</button></div>`);
+  const cv=$("kgEc"),pts=new Map();let d0=0,z0=1;
+  const draw=()=>kgEDraw(cv,1),sc=()=>cv.getBoundingClientRect().width/270||1;
+  const setZ=z=>{KGE.z=Math.max(1,Math.min(4,z));$("kgEz").value=KGE.z;draw()};
+  window.kgEZoom=v=>{KGE.z=+v;draw()};
+  window.kgEReset=()=>{KGE.ox=0;KGE.oy=0;setZ(1)};
+  cv.addEventListener("pointerdown",e=>{cv.setPointerCapture(e.pointerId);pts.set(e.pointerId,{x:e.clientX,y:e.clientY});if(pts.size===2){const [a,b]=[...pts.values()];d0=Math.hypot(a.x-b.x,a.y-b.y)||1;z0=KGE.z}cv.style.cursor="grabbing"});
+  cv.addEventListener("pointermove",e=>{
+    const p=pts.get(e.pointerId);if(!p)return;
+    if(pts.size===1){KGE.ox+=(e.clientX-p.x)/sc();KGE.oy+=(e.clientY-p.y)/sc();p.x=e.clientX;p.y=e.clientY;draw()}
+    else{p.x=e.clientX;p.y=e.clientY;const [a,b]=[...pts.values()];setZ(z0*Math.hypot(a.x-b.x,a.y-b.y)/d0)}
+  });
+  const up=e=>{pts.delete(e.pointerId);cv.style.cursor="grab";const r=[...pts.values()][0];if(r&&pts.size===1){/* lanjut geser dengan jari yang tersisa */}};
+  cv.addEventListener("pointerup",up);cv.addEventListener("pointercancel",up);
+  cv.addEventListener("wheel",e=>{e.preventDefault();setZ(KGE.z*(e.deltaY<0?1.08:1/1.08))},{passive:false});
+  draw();
+};
+window.kgESave=async()=>{
+  if(!KGE)return;
+  const id=isGuruRole()?kgSelfId():KGE.id,b=$("kgEs");b.disabled=true;b.textContent="Menyimpan…";
+  const out=document.createElement("canvas");out.width=450;out.height=600;kgEDraw(out,450/270);
+  const ok=await kgSaveFoto(id,out.toDataURL("image/jpeg",.85));
+  if(ok)closeModal();else{b.disabled=false;b.textContent="Simpan foto"}
+};
+const kgSaveFoto=async(id,d)=>{
+  try{
+    if(id)await setDoc(doc(db,"fotoGuru",id),{foto:d,waktu:new Date().toISOString()});
+    else localStorage.setItem("fotoGuruLokal",d);
+    if(id)KGD.map[id]=d;
+    if(id===kgSelfId()){KGD.self=d;fotoMe=d;if($("kgPrev"))await kgDrawSelf()}
+    if(!isGuruRole()&&$("kgList"))kgList();
+    return true;
+  }catch(e){console.error(e);alert("Gagal menyimpan foto ("+(e.code||e.message)+"). Jika 'permission-denied', tambahkan koleksi fotoGuru di Rules Firestore.");return false}
+};
+window.kgUpload=inp=>{
+  const f=inp.files&&inp.files[0];if(!f)return;
+  const id=isGuruRole()?kgSelfId():KGD.target;
+  inp.value="";
+  if(!/^image\//.test(f.type))return alert("File harus berupa gambar (JPG atau PNG).");
+  kgEdit(URL.createObjectURL(f),id,true);
+};
+window.kgReedit=id=>{
+  const sid=kgSelfId(),src=(id===sid?KGD.self:"")||KGD.map[id]||"";
+  if(!src)return alert("Belum ada foto. Upload foto terlebih dahulu.");
+  kgEdit(src,id,false);
+};
+
+// ============ BAYAR (SISWA) & PEMBAYARAN MASUK (ADMIN) ============
+// Koleksi: pembayaranSiswa (data kiriman), buktiBayar (foto bukti, id sama), pengaturan/qris (gambar QRIS dari admin)
+const byPill=s=>s==="SUKSES"?'<span class="pill bg-emerald-100 text-emerald-700">✅ SUKSES</span>':'<span class="pill bg-amber-100 text-amber-700">⏳ PENDING</span>';
+const getQris=async()=>{try{const d=await getDoc(doc(db,"pengaturan","qris"));return d.exists()?d.data():null}catch(e){return null}};
+window.byLihat=async id=>{
+  let d;try{d=await getDoc(doc(db,"buktiBayar",id))}catch(e){return alert("Bukti gagal dimuat ("+(e.code||e.message)+").")}
+  if(!d.exists()||!d.data().foto)return alert("Bukti transfer tidak ditemukan.");
+  modal(`<img src="${d.data().foto}" class="w-full rounded-xl" alt="Bukti transfer"><button class="btn w-full mt-3" onclick="closeModal()">Tutup</button>`);
+};
+window.byQris=async()=>{const q=await getQris();if(!q||!q.gambar)return;modal(`<img src="${q.gambar}" class="w-full rounded-xl" alt="QRIS"><button class="btn w-full mt-3" onclick="closeModal()">Tutup</button>`)};
+let BYC=[],BYA=[];
+S.Bayar=async()=>{
+  const [q,cat]=await Promise.all([getQris(),getDocs(query(collection(db,"pembayaranCatatan"),where("nisn","==",me.nisn))).then(r=>r.docs.map(x=>({id:x.id,...x.data()}))).catch(()=>[])]);
+  BYC=cat.filter(x=>pyKurang(x)>0).sort((a,b)=>String(a.jenis).localeCompare(String(b.jenis),"id",{numeric:true}));
+  return `<div class="card mb-3"><h2 class="font-extrabold">💸 Bayar</h2><p class="text-xs text-slate-500 mt-1">${esc(me.nama)} · ${esc(me.kelas)}</p></div>
+  <div class="card mb-3 text-center space-y-2"><h3 class="font-extrabold text-sm text-left">1. Scan QRIS</h3>
+  ${q&&q.gambar?`<img src="${q.gambar}" class="mx-auto rounded-xl border" style="max-width:300px;width:100%;cursor:zoom-in" alt="QRIS" onclick="byQris()">
+   <div><a class="btn2 inline-block" href="${q.gambar}" download="QRIS_MyIgi.jpg">⬇ Simpan gambar QRIS</a></div>
+   <p class="text-xs text-slate-500">Buka aplikasi e-wallet atau m-banking, scan QRIS di atas, lalu bayar sesuai nominal. Simpan bukti transfernya.</p>`
+   :`<p class="text-sm text-slate-500">QRIS belum diunggah oleh admin. Silakan hubungi bagian administrasi.</p>`}</div>
+  <div class="card mb-4 space-y-2"><h3 class="font-extrabold text-sm">2. Isi form pembayaran</h3>
+   ${lbl("Pembayaran",`<select id="byJ" class="inp" onchange="byPilih()"><option value="">Pilih pembayaran…</option>${BYC.map(x=>`<option value="${esc(x.id)}">${esc(x.jenis)} (kurang ${rp(pyKurang(x))})</option>`).join("")}<option value="__lain">Lainnya (ketik sendiri)</option></select><input id="byJL" class="inp mt-2 hidden" placeholder="mis. SPP Januari">`)}
+   ${lbl("Nominal (Rp)",`<input id="byN" type="number" min="1" inputmode="numeric" class="inp" placeholder="0">`)}
+   ${lbl("Upload bukti transfer",`<input id="byF" type="file" accept="image/*" class="inp" onchange="byPrev(this)"><img id="byPv" class="hidden mt-2 rounded-xl border" style="max-height:220px" alt="Pratinjau bukti">`)}
+   <button id="byBtn" class="btn w-full" onclick="byKirim()">Kirim pembayaran</button>
+   <p class="text-xs text-slate-500">Setelah dikirim, status <b>PENDING</b> sampai admin memeriksa dan mengubahnya menjadi <b>SUKSES</b>.</p></div>
+  <h3 class="font-extrabold text-sm mb-2">Riwayat pembayaran saya</h3><div id="byRiw"><p class="text-sm text-slate-500">Memuat…</p></div>`;
+};
+window.byPilih=()=>{
+  const v=$("byJ").value,l=$("byJL");l.classList.toggle("hidden",v!=="__lain");
+  const c=BYC.find(x=>x.id===v);if(c)$("byN").value=pyKurang(c);
+};
+window.byPrev=inp=>{
+  const f=inp.files[0],im=$("byPv");
+  if(!f){im.classList.add("hidden");return}
+  if(im.dataset.u)URL.revokeObjectURL(im.dataset.u);
+  const u=URL.createObjectURL(f);im.dataset.u=u;im.src=u;im.classList.remove("hidden");
+};
+window.byKirim=async()=>{
+  const sv=$("byJ").value,nom=Math.round(+$("byN").value),f=$("byF").files[0];
+  let jenis="",cid="";
+  if(!sv)return alert("Pilih jenis pembayaran.");
+  if(sv==="__lain"){jenis=$("byJL").value.trim();if(!jenis)return alert("Ketik nama pembayaran.")}
+  else{const c=BYC.find(x=>x.id===sv);if(!c)return alert("Pembayaran tidak valid, muat ulang halaman.");jenis=c.jenis;cid=c.id}
+  if(!(nom>0))return alert("Isi nominal pembayaran.");
+  if(!f)return alert("Upload bukti transfer terlebih dahulu.");
+  if(!/^image\//.test(f.type))return alert("Bukti transfer harus berupa gambar (JPG atau PNG).");
+  const b=$("byBtn");b.disabled=true;b.textContent="Mengirim…";
+  try{
+    const foto=await imgData(f,1100,.75),ref=doc(collection(db,"pembayaranSiswa"));
+    await setDoc(doc(db,"buktiBayar",ref.id),{nisn:me.nisn,foto});
+    await setDoc(ref,{nisn:me.nisn,nama:me.nama,kelas:me.kelas,jenis,catatanId:cid,nominal:nom,status:"PENDING",waktu:new Date().toISOString()});
+  }catch(e){console.error(e);b.disabled=false;b.textContent="Kirim pembayaran";return alert("Gagal mengirim ("+(e.code||e.message)+"). Coba lagi atau gunakan foto yang lebih kecil.")}
+  alert("Pembayaran terkirim dengan status PENDING. Admin akan memeriksa dan mengonfirmasinya.");
+  go("Bayar");
+};
+window.byInitS=()=>{
+  window.unsubBayar=onSnapshot(query(collection(db,"pembayaranSiswa"),where("nisn","==",me.nisn)),s=>{
+    const o=$("byRiw");if(!o)return;
+    const a=s.docs.map(d=>({id:d.id,...d.data()})).sort((x,y)=>y.waktu>x.waktu?1:-1);
+    o.innerHTML=list(a,x=>`<div class="card mb-2"><div class="flex justify-between gap-2"><b>${esc(x.jenis)}</b>${byPill(x.status)}</div><div class="text-lg font-extrabold mt-1" style="color:var(--g)">${rp(x.nominal)}</div><div class="text-xs text-slate-500">Dikirim ${fmtWaktu(x.waktu)}${x.status==="SUKSES"&&x.dikonfirmasi?" · dikonfirmasi "+fmtWaktu(x.dikonfirmasi):""}</div><button class="btn2 mt-2" onclick="byLihat('${esc(x.id)}')">🧾 Lihat bukti</button></div>`,"Belum ada pembayaran yang dikirim.");
+  },e=>{console.error(e);const o=$("byRiw");if(o)o.innerHTML=empty("Riwayat gagal dimuat ("+esc(e.code||e.message)+").")});
+};
+
+// ---- Admin ----
+const qrisHtml=q=>q&&q.gambar?`<img src="${q.gambar}" class="rounded-xl border mt-2" style="max-width:220px;width:100%" alt="QRIS"><p class="text-xs text-slate-500 mt-1">Diunggah ${fmtWaktu(q.waktu)}</p>`:`<p class="text-sm text-slate-500 mt-2">Belum ada QRIS. Upload gambar QRIS agar siswa bisa membayar.</p>`;
+A.BayarMasuk=async()=>{
+  if(isGuruRole())return empty("Halaman ini hanya dapat diakses admin.");
+  const q=await getQris(),kl=[...new Set(siswa.map(x=>x.kelas))].sort();
+  return `<div class="card space-y-2 mb-4"><h2 class="font-extrabold">📥 Pembayaran Masuk</h2>
+  <h3 class="font-bold text-sm">QRIS pembayaran</h3><p class="text-xs text-slate-500">Gambar QRIS ini tampil di halaman Bayar semua siswa.</p>
+  <div>${qrisHtml(q)}</div>
+  <input id="byQf" type="file" accept="image/*" class="hidden" onchange="byQUpload(this)">
+  <div class="flex flex-wrap gap-2"><button class="btn" onclick="document.getElementById('byQf').click()">📤 Upload / ganti QRIS</button>${q?`<button class="btn2" onclick="byQHapus()">Hapus QRIS</button>`:""}</div></div>
+  <div class="card space-y-2 mb-3"><h3 class="font-extrabold text-sm">Daftar pembayaran dari siswa</h3>
+  <input id="byAq" class="inp" placeholder="🔍 Cari nama / NISN / pembayaran" oninput="byARender()">
+  <div class="grid grid-cols-2 gap-2"><select id="byAs" class="inp" onchange="byARender()"><option value="">Semua status</option><option>PENDING</option><option>SUKSES</option></select><select id="byAk" class="inp" onchange="byARender()"><option value="">Semua kelas</option>${kl.map(k=>`<option>${esc(k)}</option>`).join("")}</select></div></div>
+  <div id="byAo"><p class="text-sm text-slate-500">Memuat…</p></div>`;
+};
+window.byQUpload=async inp=>{
+  if(isGuruRole())return;
+  const f=inp.files[0];if(!f)return;inp.value="";
+  if(!/^image\//.test(f.type))return alert("File harus berupa gambar (JPG atau PNG).");
+  try{const gambar=await imgData(f,1000,.9);await setDoc(doc(db,"pengaturan","qris"),{gambar,waktu:new Date().toISOString()})}
+  catch(e){return alert("Gagal menyimpan QRIS ("+(e.code||e.message)+")")}
+  alert("QRIS tersimpan dan sudah tampil di akun semua siswa.");go("BayarMasuk");
+};
+window.byQHapus=async()=>{
+  if(isGuruRole()||!confirm("Hapus QRIS? Siswa tidak akan melihat QRIS sampai Anda mengunggah yang baru."))return;
+  try{await deleteDoc(doc(db,"pengaturan","qris"))}catch(e){return alert("Gagal menghapus ("+(e.code||e.message)+")")}
+  go("BayarMasuk");
+};
+window.byInitA=()=>{
+  window.unsubBayar=onSnapshot(collection(db,"pembayaranSiswa"),s=>{
+    BYA=s.docs.map(d=>({id:d.id,...d.data()})).sort((x,y)=>y.waktu>x.waktu?1:-1);byARender();
+  },e=>{console.error(e);const o=$("byAo");if(o)o.innerHTML=empty("Data gagal dimuat ("+esc(e.code||e.message)+").")});
+};
+window.byARender=()=>{
+  const o=$("byAo");if(!o)return;
+  const q=key($("byAq")?$("byAq").value:""),st=$("byAs")?$("byAs").value:"",kl=$("byAk")?$("byAk").value:"";
+  const a=BYA.filter(x=>(!st||x.status===st)&&(!kl||x.kelas===kl)&&(!q||key((x.nama||"")+(x.nisn||"")+(x.jenis||"")).includes(q)));
+  const ok=a.filter(x=>x.status==="SUKSES").reduce((n,x)=>n+(+x.nominal||0),0),pend=BYA.filter(x=>x.status!=="SUKSES").length;
+  o.innerHTML=`<p class="text-xs text-slate-500 mb-2">${a.length} pembayaran · <b class="${pend?"text-amber-700":""}">${pend} PENDING</b> · Total SUKSES ${rp(ok)}</p>`
+  +list(a,x=>`<div class="card mb-2"><div class="flex justify-between gap-2"><div class="min-w-0"><b class="block">${esc(x.nama||x.nisn)}</b><span class="text-xs text-slate-500">${esc(x.kelas||"-")} · <span class="font-mono">${esc(x.nisn)}</span></span></div>${byPill(x.status)}</div>
+   <div class="mt-1 text-sm">${esc(x.jenis)}${x.catatanId?"":' <span class="text-xs text-slate-400">(tagihan lain)</span>'}</div>
+   <div class="text-lg font-extrabold" style="color:var(--g)">${rp(x.nominal)}</div><div class="text-xs text-slate-500">${fmtWaktu(x.waktu)}</div>
+   <div class="flex flex-wrap items-center gap-2 mt-2"><button class="btn2" onclick="byLihat('${esc(x.id)}')">🧾 Bukti</button>
+   <select class="inp" style="width:auto;padding:.4rem .6rem;font-weight:700" onchange="byStatus('${esc(x.id)}',this.value)"><option ${x.status!=="SUKSES"?"selected":""}>PENDING</option><option ${x.status==="SUKSES"?"selected":""}>SUKSES</option></select>
+   <button class="btn2" style="color:#be123c" onclick="byHapus('${esc(x.id)}')">🗑</button></div></div>`,BYA.length?"Tidak ditemukan.":"Belum ada pembayaran masuk dari siswa.");
+};
+// Sinkron ke data pembayaran siswa: SUKSES menambah kolom "Dibayar" pada tagihan terkait (sekali saja), PENDING membatalkannya.
+const byApply=async(x,st)=>{
+  const upd={};
+  if(x.catatanId){
+    const ref=doc(db,"pembayaranCatatan",x.catatanId),c=await getDoc(ref);
+    if(c.exists()){
+      const cur=+c.data().dibayar||0,nom=+x.nominal||0,now=new Date().toISOString();
+      if(st==="SUKSES"&&!x.applied){await updateDoc(ref,{dibayar:cur+nom,tgl:today(),updated:now});upd.applied=true}
+      else if(st!=="SUKSES"&&x.applied){await updateDoc(ref,{dibayar:Math.max(0,cur-nom),updated:now});upd.applied=false}
+    }
+  }
+  return upd;
+};
+window.byStatus=async(id,st)=>{
+  if(isGuruRole())return;
+  const x=BYA.find(v=>v.id===id);if(!x||x.status===st)return;
+  try{
+    const now=new Date().toISOString(),upd={status:st,diperbarui:now,...await byApply(x,st)};
+    if(st==="SUKSES")upd.dikonfirmasi=now;
+    await updateDoc(doc(db,"pembayaranSiswa",id),upd);
+  }catch(e){console.error(e);alert("Gagal memperbarui status ("+(e.code||e.message)+")");byARender()}
+};
+window.byHapus=async id=>{
+  if(isGuruRole())return;
+  const x=BYA.find(v=>v.id===id);if(!x||!confirm("Hapus data pembayaran "+x.nama+" ("+rp(x.nominal)+")?"+(x.applied?"\n\nNominal ini sudah ditambahkan ke data pembayaran siswa dan akan dikurangi kembali.":"")))return;
+  try{await byApply(x,"PENDING");await deleteDoc(doc(db,"pembayaranSiswa",id));try{await deleteDoc(doc(db,"buktiBayar",id))}catch(e){}}
+  catch(e){alert("Gagal menghapus ("+(e.code||e.message)+")")}
 };
 
 // ============ ABSEN KEGIATAN (scan QR siswa) ============
