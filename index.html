@@ -238,7 +238,7 @@ const roleLbl=r=>({admin:"Admin",staf:"Staf",guru:"Guru"})[normRole(r)];
 const normSert=v=>{v=String(v||"").trim();return !v?"":/^inpass/i.test(v)?"Inpassing":/^(non|tidak|belum|bukan)/i.test(v)?"Non Sertifikasi":"Sertifikasi"};
 const sertPill=v=>{v=normSert(v);return v?`<span class="pill ${v==="Sertifikasi"?"bg-emerald-100 text-emerald-700":v==="Inpassing"?"bg-sky-100 text-sky-700":"bg-slate-100 text-slate-600"}">${v}</span>`:'<span class="text-xs text-slate-400">-</span>'};
 const isGuruRole=()=>isAdmin&&me&&me.role!=="admin";
-const GURU_OK=new Set(["Menu","Jadwal","Absensi","Nilai","Rekap","Jurnal","Presensi","Kegiatan","RekapKegiatan","Chat","SlipGaji","Pengganti","Peringatan"]);
+const GURU_OK=new Set(["Menu","Jadwal","Absensi","Nilai","Rekap","Jurnal","Presensi","Kegiatan","RekapKegiatan","Chat","SlipGaji","Pengganti","Peringatan","KartuGuru"]);
 
 const saved=sessionStorage.getItem("me");
 // ============ MODE SHUTDOWN WEB (hanya dikontrol DEVELOPER) ============
@@ -371,6 +371,7 @@ window.go=async n=>{
   if(isAdmin&&n==="Menu")loadPrBanner();
   if(n==="Chat")initChat();
   if(n==="KartuID")renderID();
+  if(isAdmin&&n==="KartuGuru")kgInit();
   if(isAdmin&&n==="RekapKegiatan")loadRkg();
   if(isAdmin&&n==="GajiGuru")loadGaji();
   if(isAdmin&&n==="Pengganti"){pnRefresh();pnRender()}
@@ -1110,7 +1111,7 @@ IC.chat=svg('<path d="M21 15a2 2 0 0 1-2 2H7l-4 4V5a2 2 0 0 1 2-2h14a2 2 0 0 1 2
 const MENU=[
  ["Akademik",[["Jadwal","📅","Jadwal pelajaran semua kelas","#e0f2fe"],["Absensi","✅","Catat kehadiran harian","#dcfce7"],["Nilai","📝","Input nilai per kelas, mapel & ujian","#ecfccb","Input Nilai"],["Rekap","🗓️","Rekap kehadiran & ekspor Excel","#ede9fe","Rekap Kehadiran"],["Jurnal","📓","Isi jurnal mengajar guru","#fce7f3","Jurnal Guru"],["Presensi","📸","Absen guru dengan kamera & lokasi","#fee2e2","Presensi Guru"],["LaporanGuru","📊","Laporan bulanan guru (khusus admin)","#fef3c7","Laporan Bulanan Guru"],["Peringatan","🔔","Pengingat: tidak mengajar, jurnal & absensi belum diisi","#ffe4e6","Peringatan Guru"]]],
  ["Keuangan Guru",[["GajiGuru","💰","Hitung & kelola pembayaran guru","#d1fae5","Pembayaran Guru"],["SlipGaji","🧾","Slip gaji guru","#fef3c7","Slip Gaji"],["Pengganti","🔁","Guru pengganti jam kosong","#e0f2fe","Guru Pengganti"]]],
- ["Data Madrasah",[["Siswa","🎓","Upload & kelola data siswa","#e0e7ff"],["Guru","👩‍🏫","Akun & sandi guru","#ccfbf1"],["GuruPiket","🛡️","Atur guru piket harian (Clock In 06.30)","#fef3c7","Guru Piket"]]],
+ ["Data Madrasah",[["Siswa","🎓","Upload & kelola data siswa","#e0e7ff"],["Guru","👩‍🏫","Akun & sandi guru","#ccfbf1"],["GuruPiket","🛡️","Atur guru piket harian (Clock In 06.30)","#fef3c7","Guru Piket"],["KartuGuru","🪪","ID card guru & foto profil","#fef3c7","Kartu ID Guru"]]],
  ["Kesiswaan",[["Pelanggaran","⚠️","Catatan kedisiplinan","#ffe4e6"],["Prestasi","🏆","Capaian & penghargaan siswa","#fef9c3"]]],
  ["PPDB",[["PPDB","📋","Data pendaftar & unduh berkas PDF","#fef3c7","Data PPDB"],["VerifPPDB","🔍","Scan QR cek keaslian berkas","#dcfce7","Verifikasi QR"]]],
  ["Layanan",[["Pengumuman","📢","Kirim info ke semua siswa","#ffedd5"],["Pembayaran","💳","Catat, edit & upload pembayaran siswa","#d1fae5"],["LayananMandiri","🙋","Aduan guru, konseling & bullying","#fde68a","Layanan Mandiri"],["Bantuan","🎧","Balas pesan dari siswa","#cffafe"],["Chat","💬","Grup chat guru & siswa","#dbeafe","Grup Chat"]]],
@@ -1775,53 +1776,222 @@ const drawQR=(x,cx,cy,size,t)=>{
   x.fillStyle="#000";
   for(let r=0;r<n;r++)for(let k=0;k<n;k++)if(q.isDark(r,k))x.fillRect(cx+o+k*c,cy+o+r*c,c,c);
 };
-const makeID=async s=>{
-  try{await document.fonts.load("800 30px 'Plus Jakarta Sans'");await document.fonts.load("600 30px 'Plus Jakarta Sans'")}catch(e){}
-  const W=720,H=1140,c=document.createElement("canvas");c.width=W;c.height=H;
-  const x=c.getContext("2d"),F="'Plus Jakarta Sans',system-ui,sans-serif";
-  const rr=(a,b,w,h,r)=>{x.beginPath();x.moveTo(a+r,b);x.arcTo(a+w,b,a+w,b+h,r);x.arcTo(a+w,b+h,a,b+h,r);x.arcTo(a,b+h,a,b,r);x.arcTo(a,b,a+w,b,r);x.closePath()};
-  x.fillStyle="#f6f4ee";x.fillRect(0,0,W,H);
-  x.save();rr(0,0,W,H,48);x.clip();
-  x.fillStyle="#fff";x.fillRect(0,0,W,H);
-  const g=x.createLinearGradient(0,0,W,300);g.addColorStop(0,"#0b3d27");g.addColorStop(.6,"#0f5132");g.addColorStop(1,"#1f8a5b");
-  x.fillStyle=g;x.fillRect(0,0,W,300);
-  x.strokeStyle="rgba(200,150,46,.4)";x.lineWidth=40;x.beginPath();x.arc(W-30,10,130,0,7);x.stroke();
-  x.fillStyle="#fff";x.textAlign="center";
-  x.font="800 64px "+F;x.fillText("MyIgi",W/2,115);
-  x.font="600 28px "+F;x.fillText("MA Insan Generasi Islami",W/2,160);
-  x.fillStyle="#c8962e";rr(W/2-170,200,340,52,26);x.fill();
-  x.fillStyle="#1c2b24";x.font="800 24px "+F;x.fillText("KARTU IDENTITAS SISWA",W/2,235);
-  x.fillStyle="#fff";x.strokeStyle="#e5e2d6";x.lineWidth=4;rr(W/2-260,330,520,520,28);x.fill();x.stroke();
-  drawQR(x,W/2-220,370,440,qrTeks(s));
-  x.fillStyle="#1c2b24";let fs=44;x.font="800 "+fs+"px "+F;
-  while(x.measureText(s.nama).width>W-80&&fs>22){fs-=2;x.font="800 "+fs+"px "+F}
-  x.fillText(s.nama,W/2,925);
-  x.fillStyle="#0f5132";x.font="800 36px "+F;x.fillText("Kelas: "+s.kelas,W/2,985);
-  x.fillStyle="#64748b";x.font="600 30px "+F;x.fillText("NISN: "+s.nisn,W/2,1040);
-  x.fillStyle="#0f5132";x.fillRect(0,H-56,W,56);
-  x.fillStyle="#fff";x.font="600 22px "+F;x.fillText("Scan QR untuk absensi & verifikasi",W/2,H-20);
+// ============ KARTU ID (SISWA & GURU) - ukuran standar CR80: 54 x 85,6 mm (portrait), resolusi 300 dpi ============
+const CW=638,CH=1011,FONT="'Plus Jakarta Sans',system-ui,sans-serif";
+const PW=354,PH=472,PXL=(CW-PW)/2,PY=232; // area foto 3x4 cm (354x472 px pada 300 dpi)
+const fontsReady=async()=>{try{await document.fonts.load("800 30px 'Plus Jakarta Sans'");await document.fonts.load("600 30px 'Plus Jakarta Sans'")}catch(e){}};
+const rrect=(x,a,b,w,h,r)=>{x.beginPath();x.moveTo(a+r,b);x.arcTo(a+w,b,a+w,b+h,r);x.arcTo(a+w,b+h,a,b+h,r);x.arcTo(a,b+h,a,b,r);x.arcTo(a,b,a+w,b,r);x.closePath()};
+const fitFont=(x,t,maxW,fs,min,wt)=>{x.font=wt+" "+fs+"px "+FONT;while(x.measureText(t).width>maxW&&fs>min){fs-=2;x.font=wt+" "+fs+"px "+FONT}};
+const loadImg=src=>new Promise((res,rej)=>{const im=new Image();im.onload=()=>res(im);im.onerror=()=>rej(new Error("Gambar tidak valid"));im.src=src});
+const cardNew=async judul=>{
+  await fontsReady();
+  const c=document.createElement("canvas");c.width=CW;c.height=CH;
+  const x=c.getContext("2d");
+  x.fillStyle="#fff";x.fillRect(0,0,CW,CH);
+  x.save();rrect(x,0,0,CW,CH,36);x.clip();
+  const g=x.createLinearGradient(0,0,CW,200);g.addColorStop(0,"#0b3d27");g.addColorStop(.6,"#0f5132");g.addColorStop(1,"#1f8a5b");
+  x.fillStyle=g;x.fillRect(0,0,CW,200);
+  x.strokeStyle="rgba(200,150,46,.4)";x.lineWidth=34;x.beginPath();x.arc(CW-20,0,110,0,7);x.stroke();
+  x.textAlign="center";x.fillStyle="#fff";
+  x.font="800 54px "+FONT;x.fillText("MyIgi",CW/2,82);
+  x.font="600 22px "+FONT;x.fillText("MA Insan Generasi Islami",CW/2,118);
+  x.fillStyle="#c8962e";rrect(x,CW/2-175,142,350,38,19);x.fill();
+  x.fillStyle="#1c2b24";x.font="800 19px "+FONT;x.fillText(judul,CW/2,168);
+  return {c,x};
+};
+const cardEnd=(x,teks)=>{
+  x.fillStyle="#0f5132";x.fillRect(0,CH-48,CW,48);
+  x.fillStyle="#fff";x.textAlign="center";x.font="600 19px "+FONT;x.fillText(teks,CW/2,CH-17);
   x.restore();
+  x.strokeStyle="#cfd8d2";x.lineWidth=2;rrect(x,1,1,CW-2,CH-2,35);x.stroke();
+};
+const cardIdent=(x,nama,baris2,baris3,warna2)=>{ // blok teks di bawah foto
+  const y=PY+PH;
+  x.textAlign="center";x.fillStyle="#1c2b24";fitFont(x,nama,CW-70,38,20,"800");x.fillText(nama,CW/2,y+60);
+  if(baris2){x.fillStyle=warna2||"#0f5132";x.font="800 30px "+FONT;x.fillText(baris2,CW/2,y+110)}
+  if(baris3){x.fillStyle="#64748b";x.font="600 25px "+FONT;x.fillText(baris3,CW/2,y+152)}
+  x.fillStyle="#c8962e";x.fillRect(CW/2-40,y+180,80,4);
+};
+
+// ---- Kartu siswa: DEPAN (kotak foto 3x4 untuk ditempel) ----
+const makeIDFront=async s=>{
+  const {c,x}=await cardNew("KARTU IDENTITAS SISWA");
+  x.fillStyle="#f8faf8";rrect(x,PXL,PY,PW,PH,10);x.fill();
+  x.setLineDash([14,10]);x.strokeStyle="#7a8f84";x.lineWidth=3;rrect(x,PXL+1.5,PY+1.5,PW-3,PH-3,10);x.stroke();x.setLineDash([]);
+  x.textAlign="center";x.fillStyle="#7a8f84";
+  x.font="800 46px "+FONT;x.fillText("FOTO 3×4",CW/2,PY+PH/2-6);
+  x.font="600 20px "+FONT;x.fillText("Tempel pas foto di sini",CW/2,PY+PH/2+30);
+  cardIdent(x,String(s.nama||""),"Kelas: "+(s.kelas||"-"),"NISN: "+(s.nisn||"-"));
+  x.fillStyle="#64748b";x.font="600 17px "+FONT;x.fillText("Berlaku selama menjadi siswa",CW/2,PY+PH+220);
+  cardEnd(x,"Kartu ini milik MA Insan Generasi Islami");
   return c;
 };
-let idCanvas=null;
+// ---- Kartu siswa: BELAKANG (QR code) ----
+const makeIDBack=async s=>{
+  const {c,x}=await cardNew("KARTU IDENTITAS SISWA");
+  x.fillStyle="#fff";x.strokeStyle="#e5e2d6";x.lineWidth=4;rrect(x,69,226,500,500,24);x.fill();x.stroke();
+  drawQR(x,99,256,440,qrTeks(s));
+  x.textAlign="center";x.fillStyle="#1c2b24";fitFont(x,String(s.nama||""),CW-70,34,20,"800");x.fillText(String(s.nama||""),CW/2,790);
+  x.fillStyle="#64748b";x.font="600 24px "+FONT;x.fillText("NISN: "+(s.nisn||"-"),CW/2,832);
+  x.fillStyle="#c8962e";x.fillRect(CW/2-40,858,80,4);
+  x.fillStyle="#64748b";x.font="600 19px "+FONT;
+  x.fillText("Scan QR untuk absensi kegiatan",CW/2,900);x.fillText("& verifikasi data siswa",CW/2,926);
+  cardEnd(x,"Kartu ini milik MA Insan Generasi Islami");
+  return c;
+};
+const makeID=async s=>({depan:await makeIDFront(s),belakang:await makeIDBack(s)});
+
+// ---- Kartu guru / staf: nama + foto profil ----
+const makeGuruCard=async(g,foto)=>{
+  const {c,x}=await cardNew("KARTU IDENTITAS "+String(g.role||"GURU").toUpperCase());
+  x.save();rrect(x,PXL,PY,PW,PH,14);x.clip();
+  let ok=false;
+  if(foto){try{const im=await loadImg(foto),r=Math.max(PW/im.width,PH/im.height),w=im.width*r,h=im.height*r;x.drawImage(im,PXL+(PW-w)/2,PY+(PH-h)*.3,w,h);ok=true}catch(e){}}
+  if(!ok){
+    x.fillStyle="#eef3ef";x.fillRect(PXL,PY,PW,PH);
+    x.fillStyle="#b9c9bf";x.beginPath();x.arc(CW/2,PY+185,75,0,7);x.fill();
+    x.beginPath();x.ellipse(CW/2,PY+PH+20,140,170,0,0,7);x.fill();
+    x.fillStyle="#7a8f84";x.textAlign="center";x.font="600 20px "+FONT;x.fillText("Belum ada foto",CW/2,PY+44);
+  }
+  x.restore();
+  x.strokeStyle="#0f5132";x.lineWidth=6;rrect(x,PXL,PY,PW,PH,14);x.stroke();
+  cardIdent(x,String(g.nama||""),String(g.role||"Guru"),g.id?"ID: "+g.id:"");
+  x.fillStyle="#64748b";x.font="600 17px "+FONT;x.textAlign="center";x.fillText("Berlaku selama aktif bertugas",CW/2,PY+PH+220);
+  cardEnd(x,"Kartu ini milik MA Insan Generasi Islami");
+  return c;
+};
+
+// ---- Utilitas unduh ----
+const dlCanvas=(cv,name)=>{const a=document.createElement("a");a.href=cv.toDataURL("image/png");a.download=name;document.body.appendChild(a);a.click();a.remove()};
+const gabungKartu=(a,b)=>{const c=document.createElement("canvas");c.width=CW*2+60;c.height=CH;const x=c.getContext("2d");x.fillStyle="#fff";x.fillRect(0,0,c.width,c.height);x.drawImage(a,0,0);x.drawImage(b,CW+60,0);return c};
+// PDF A4: kartu dicetak pada ukuran asli 54 x 85,6 mm, 9 kartu per halaman (3 x 3)
+const pdfKartu=(cards,fname,note)=>{
+  if(!window.jspdf)return alert("Library PDF gagal dimuat. Periksa koneksi internet lalu muat ulang halaman.");
+  const p=new window.jspdf.jsPDF({unit:"mm",format:"a4"}),w=54,h=85.6,gap=6,x0=(210-(3*w+2*gap))/2,y0=(297-(3*h+2*gap))/2;
+  cards.forEach((cv,i)=>{if(i&&i%9===0)p.addPage();const k=i%9;p.addImage(cv.toDataURL("image/jpeg",.92),"JPEG",x0+(k%3)*(w+gap),y0+Math.floor(k/3)*(h+gap),w,h)});
+  if(note&&note.length){p.setPage(1);p.setFont("helvetica","normal");p.setFontSize(8);p.setTextColor(100);note.forEach((t,i)=>p.text(t,105,y0+h+10+i*5,{align:"center"}))}
+  p.save(fname);
+};
+const safeNm=s=>String(s||"kartu").replace(/[^\w]+/g,"_");
+
+// ---- Halaman siswa ----
+let idCards=null;
 S.KartuID=async()=>`<div class="card text-center space-y-3"><h2 class="font-extrabold">Kartu ID Siswa</h2>
  <p id="idMsg" class="text-sm text-slate-500">Membuat kartu…</p>
- <img id="idPrev" class="mx-auto rounded-2xl border hidden" style="max-width:320px;width:100%" alt="Kartu ID">
- <div><button class="btn" onclick="dlID()">⬇ Download ID Card</button></div>
- <p class="text-xs text-slate-500">QR code pada kartu ini unik untuk Anda dan dipakai untuk absen kegiatan. Jika discan lewat Google/kamera HP, QR menampilkan data diri Anda dan status terverifikasi.</p></div>`;
+ <div id="idWrap" class="hidden"><div class="flex flex-wrap justify-center gap-4">
+  <div><div class="text-xs font-bold text-slate-500 mb-1">DEPAN</div><img id="idPrevA" class="rounded-2xl border" style="width:250px;max-width:100%" alt="Kartu ID depan"></div>
+  <div><div class="text-xs font-bold text-slate-500 mb-1">BELAKANG (QR)</div><img id="idPrevB" class="rounded-2xl border" style="width:250px;max-width:100%" alt="Kartu ID belakang"></div></div></div>
+ <div class="flex flex-wrap gap-2 justify-center"><button class="btn" onclick="dlID('pdf')">⬇ Download PDF (siap cetak)</button><button class="btn2" onclick="dlID('png')">⬇ Download PNG</button></div>
+ <div class="text-xs text-slate-500 text-left space-y-1"><p>• Ukuran kartu standar (CR80) 54 × 85,6 mm. Cetak PDF dengan skala <b>100% / Actual size</b>, lalu potong sesuai tepi kartu.</p>
+ <p>• Tempel <b>pas foto 3×4 cm</b> Anda pada kotak foto di sisi depan.</p>
+ <p>• QR code di sisi belakang unik untuk Anda dan dipakai untuk absen kegiatan. Jika discan lewat kamera HP, QR menampilkan data diri dan status terverifikasi.</p></div></div>`;
 window.renderID=async()=>{
   try{
     if(typeof qrcode==="undefined")throw 0;
-    idCanvas=await makeID(me);
-    const im=$("idPrev");if(!im)return;
-    im.src=idCanvas.toDataURL("image/png");im.classList.remove("hidden");$("idMsg").classList.add("hidden");
+    idCards=await makeID(me);
+    if(!$("idPrevA"))return;
+    $("idPrevA").src=idCards.depan.toDataURL("image/png");$("idPrevB").src=idCards.belakang.toDataURL("image/png");
+    $("idWrap").classList.remove("hidden");$("idMsg").classList.add("hidden");
   }catch(e){if($("idMsg"))$("idMsg").textContent="Gagal membuat kartu. Periksa koneksi internet lalu muat ulang halaman."}
 };
-window.dlID=()=>{
-  if(!idCanvas)return alert("Kartu belum siap. Tunggu sebentar.");
-  const a=document.createElement("a");a.href=idCanvas.toDataURL("image/png");
-  a.download="ID_Card_"+String(me.nama).replace(/[^\w]+/g,"_")+".png";
-  document.body.appendChild(a);a.click();a.remove();
+window.dlID=fmt=>{
+  if(!idCards)return alert("Kartu belum siap. Tunggu sebentar.");
+  const nm=safeNm(me.nama);
+  if(fmt==="pdf")pdfKartu([idCards.depan,idCards.belakang],"ID_Card_"+nm+".pdf",["Cetak dengan skala 100% (Actual size), lalu potong sesuai tepi kartu. Ukuran kartu 54 x 85,6 mm (CR80).","Tempel pas foto 3x4 cm pada kotak foto di kartu bagian depan."]);
+  else dlCanvas(gabungKartu(idCards.depan,idCards.belakang),"ID_Card_"+nm+".png");
+};
+
+// ---- Halaman guru / staf / admin: kartu ID + upload foto profil ----
+// Foto disimpan di koleksi Firestore "fotoGuru" (id dokumen = id akun guru), terpisah dari data guru agar data guru tetap ringan.
+let KGD={self:"",cv:null,guru:[],map:{},target:""};
+window.kgSelfId=()=>key(me.idGuru||"");
+const kgFotoGet=async id=>{
+  if(!id){try{return localStorage.getItem("fotoGuruLokal")||""}catch(e){return ""}}
+  try{const d=await getDoc(doc(db,"fotoGuru",id));return d.exists()?(d.data().foto||""):""}catch(e){console.error(e);return ""}
+};
+// potong tengah rasio 3:4 dan kecilkan agar ringan (360x480 px, ~30-50 KB)
+const fotoCrop=file=>new Promise((res,rej)=>{
+  const url=URL.createObjectURL(file),im=new Image();
+  im.onload=()=>{URL.revokeObjectURL(url);
+    const W=360,H=480,c=document.createElement("canvas");c.width=W;c.height=H;
+    const x=c.getContext("2d"),r=Math.max(W/im.width,H/im.height),w=im.width*r,h=im.height*r;
+    x.fillStyle="#fff";x.fillRect(0,0,W,H);x.drawImage(im,(W-w)/2,(H-h)*.3,w,h);
+    res(c.toDataURL("image/jpeg",.85))};
+  im.onerror=()=>{URL.revokeObjectURL(url);rej(new Error("File bukan gambar yang valid"))};
+  im.src=url});
+const kgData=(g,id)=>({nama:g.nama||g.idGuru||id,role:roleLbl(g.role),id:g.idGuru||(id||"")});
+A.KartuGuru=async()=>{
+  const adm=!isGuruRole();
+  return `<div class="card text-center space-y-3"><h2 class="font-extrabold">🪪 Kartu ID Saya</h2>
+  <p id="kgMsgS" class="text-sm text-slate-500">Membuat kartu…</p>
+  <img id="kgPrev" class="mx-auto rounded-2xl border hidden" style="max-width:290px;width:100%" alt="Kartu ID">
+  <input id="kgFile" type="file" accept="image/*" class="hidden" onchange="kgUpload(this)">
+  <div class="flex flex-wrap gap-2 justify-center"><button class="btn" onclick="kgPick(kgSelfId())">📷 Upload / ganti foto profil</button><button class="btn2" onclick="kgDlSelf('png')">⬇ PNG</button><button class="btn2" onclick="kgDlSelf('pdf')">⬇ PDF (siap cetak)</button></div>
+  <p class="text-xs text-slate-500">Pilih foto yang wajahnya jelas (disarankan foto berdiri/portrait). Foto otomatis dipotong rasio 3×4. Kartu berukuran standar 54 × 85,6 mm.${kgSelfId()?"":"<br><b>Catatan:</b> akun ini tidak punya data guru di database, jadi foto hanya tersimpan di perangkat ini."}</p></div>
+  ${adm?`<div class="card mt-4 space-y-3"><h2 class="font-extrabold">Kartu semua guru & staf</h2>
+  <p class="text-xs text-slate-500">Admin dapat mengunggah foto untuk guru yang belum punya, dan mengunduh kartu satu per satu atau semuanya sekaligus (PDF, 9 kartu per halaman A4).</p>
+  <div class="flex flex-wrap gap-2"><input id="kgQ" class="inp" style="flex:1;min-width:180px" placeholder="🔍 Cari nama / ID" oninput="kgList()"><button id="kgAllBtn" class="btn" onclick="kgPdfAll()">⬇ Unduh semua kartu (PDF)</button></div>
+  <div id="kgList"><p class="text-sm text-slate-500">Memuat daftar guru…</p></div></div>`:""}`;
+};
+const kgDrawSelf=async()=>{
+  KGD.cv=await makeGuruCard(kgData(me,kgSelfId()),KGD.self);
+  const im=$("kgPrev");if(!im)return;
+  im.src=KGD.cv.toDataURL("image/png");im.classList.remove("hidden");$("kgMsgS").classList.add("hidden");
+};
+window.kgInit=async()=>{
+  try{
+    KGD={self:await kgFotoGet(kgSelfId()),cv:null,guru:[],map:{},target:""};
+    await kgDrawSelf();
+  }catch(e){console.error(e);if($("kgMsgS"))$("kgMsgS").textContent="Gagal membuat kartu. Periksa koneksi internet lalu muat ulang halaman."}
+  if(!isGuruRole()){
+    try{
+      const [g,f]=await Promise.all([all("guru"),getDocs(collection(db,"fotoGuru"))]);
+      KGD.guru=g;f.docs.forEach(d=>KGD.map[d.id]=d.data().foto||"");
+      kgList();
+    }catch(e){console.error(e);if($("kgList"))$("kgList").innerHTML=empty("Gagal memuat daftar guru ("+esc(e.code||e.message)+").")}
+  }
+};
+window.kgList=()=>{
+  const o=$("kgList");if(!o)return;
+  const q=key($("kgQ")?$("kgQ").value:""),a=KGD.guru.filter(x=>!q||key((x.nama||"")+(x.idGuru||x.id)).includes(q)).sort((p,r)=>String(p.nama||"").localeCompare(String(r.nama||""))),n=KGD.guru.filter(x=>KGD.map[x.id]).length;
+  o.innerHTML=`<p class="text-xs text-slate-500">${a.length} akun ditampilkan · ${n} dari ${KGD.guru.length} sudah punya foto</p>`
+   +(a.length?a.map(x=>`<div class="card mt-2 flex items-center gap-3"><div style="width:42px;height:56px;border-radius:8px;overflow:hidden;background:#eef3ef;flex-shrink:0">${KGD.map[x.id]?`<img src="${KGD.map[x.id]}" style="width:100%;height:100%;object-fit:cover" alt="">`:""}</div><div class="flex-1 min-w-0"><b class="block truncate">${esc(x.nama||x.idGuru)}</b><span class="text-xs text-slate-500">${esc(roleLbl(x.role))} · ${esc(x.idGuru||x.id)}${KGD.map[x.id]?"":" · <span class=\"text-rose-600\">belum ada foto</span>"}</span></div><button class="btn2" title="Upload foto" onclick="kgPick('${esc(x.id)}')">📷</button><button class="btn2" title="Download kartu" onclick="kgDl('${esc(x.id)}')">⬇</button></div>`).join(""):empty("Tidak ada data guru."));
+};
+window.kgPick=id=>{KGD.target=id||"";const f=$("kgFile");if(!f)return;f.value="";f.click()};
+window.kgUpload=async inp=>{
+  const f=inp.files&&inp.files[0];if(!f)return;
+  const id=isGuruRole()?kgSelfId():KGD.target;
+  if(!/^image\//.test(f.type))return alert("File harus berupa gambar (JPG atau PNG).");
+  try{
+    const d=await fotoCrop(f);
+    if(id)await setDoc(doc(db,"fotoGuru",id),{foto:d,waktu:new Date().toISOString()});
+    else localStorage.setItem("fotoGuruLokal",d);
+    if(id)KGD.map[id]=d;
+    if(id===kgSelfId()){KGD.self=d;await kgDrawSelf()}
+    if(!isGuruRole())kgList();
+    alert("Foto profil tersimpan.");
+  }catch(e){console.error(e);alert("Gagal menyimpan foto ("+(e.code||e.message)+"). Jika 'permission-denied', tambahkan koleksi fotoGuru di Rules Firestore.")}
+  inp.value="";
+};
+window.kgDlSelf=fmt=>{
+  if(!KGD.cv)return alert("Kartu belum siap. Tunggu sebentar.");
+  const nm="ID_Guru_"+safeNm(me.nama);
+  if(fmt==="pdf")pdfKartu([KGD.cv],nm+".pdf");else dlCanvas(KGD.cv,nm+".png");
+};
+window.kgDl=async id=>{
+  const x=KGD.guru.find(g=>g.id===id);if(!x)return;
+  try{dlCanvas(await makeGuruCard(kgData(x,id),KGD.map[id]||""),"ID_Guru_"+safeNm(x.nama||x.idGuru)+".png")}catch(e){alert("Gagal membuat kartu ("+(e.message||e)+")")}
+};
+window.kgPdfAll=async()=>{
+  if(!window.jspdf)return alert("Library PDF gagal dimuat. Periksa koneksi internet lalu muat ulang halaman.");
+  if(!KGD.guru.length)return alert("Belum ada data guru.");
+  const b=$("kgAllBtn");b.disabled=true;b.textContent="Menyiapkan…";
+  try{
+    const a=[...KGD.guru].sort((p,r)=>String(p.nama||"").localeCompare(String(r.nama||""))),cv=[];
+    for(const x of a)cv.push(await makeGuruCard(kgData(x,x.id),KGD.map[x.id]||""));
+    pdfKartu(cv,"ID_Card_Semua_Guru.pdf");
+  }catch(e){alert("Gagal membuat PDF ("+(e.message||e)+")")}
+  b.disabled=false;b.textContent="⬇ Unduh semua kartu (PDF)";
 };
 
 // ============ ABSEN KEGIATAN (scan QR siswa) ============
